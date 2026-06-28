@@ -537,3 +537,73 @@ label {
 .phase-action-form {
     margin-top: 18px;
 }
+
+
+/* Phase 5 AI Monitoring */
+.ai-stats-grid {
+    margin-bottom: 1.5rem;
+}
+
+.quick-ai-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.ai-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.ai-form-full {
+    grid-column: 1 / -1;
+}
+
+.badge-ai {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+}
+
+.severity {
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    text-transform: capitalize;
+    border: 1px solid transparent;
+}
+
+.severity-info {
+    background: #f3f4f6;
+    color: #374151;
+    border-color: #e5e7eb;
+}
+
+.severity-low {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #bbf7d0;
+}
+
+.severity-medium {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
+.severity-high {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fecaca;
+}
+
+@media (max-width: 768px) {
+    .ai-form-grid {
+        grid-template-columns: 1fr;
+    }
+}

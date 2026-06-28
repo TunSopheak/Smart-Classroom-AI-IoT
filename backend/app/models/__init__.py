@@ -30,3 +30,5 @@ __all__ = [
     "Device",
     "SensorReading",
 ]
+
+from app.models.ai_monitoring_event import AIMonitoringEvent

@@ -55,3 +55,8 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+
+# Phase 5 AI Monitoring routes
+from app.routers.ai_monitoring_router import router as phase5_ai_monitoring_router
+app.include_router(phase5_ai_monitoring_router)

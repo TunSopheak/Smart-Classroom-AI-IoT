@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}AI Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>AI Monitoring</h1>
+        <p>Log and review AI classroom behavior events for each session.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard">Back Dashboard</a>
+</div>
+
+<div class="stats-grid ai-stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total AI Events</div>
+        <div class="stat-value">{{ stats.total }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">High Severity</div>
+        <div class="stat-value">{{ stats.high }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Phone Usage</div>
+        <div class="stat-value">{{ stats.phone_usage }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Attention Low</div>
+        <div class="stat-value">{{ stats.attention_low }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Select Session</h2>
+
+    <form method="get" action="/dashboard/ai-monitoring" class="form-row">
+        <select name="session_id" class="form-control">
+            {% for session in sessions %}
+            <option value="{{ session.id }}" {% if selected_session_id == session.id %}selected{% endif %}>
+                #{{ session.id }} - {{ session.title }}
+                {% if session.active %}(Active){% else %}(Closed){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+
+        <button class="btn btn-primary" type="submit">View Events</button>
+    </form>
+
+    {% if not sessions %}
+    <p class="muted">No session found. Please create a class session first.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Quick AI Event Simulation</h2>
+    <p class="muted">Use this for demo/testing before connecting real MediaPipe or YOLO detection.</p>
+
+    {% if selected_session_id %}
+    <div class="quick-ai-grid">
+        <form method="post" action="/dashboard/ai-monitoring/simulate">
+            <input type="hidden" name="session_id" value="{{ selected_session_id }}">
+            <input type="hidden" name="event_type" value="phone_usage">
+            <input type="hidden" name="severity" value="medium">
+            <input type="hidden" name="confidence" value="0.86">
+            <input type="hidden" name="description" value="Student may be using phone during class.">
+            <button class="btn btn-warning" type="submit">Phone Usage</button>
+        </form>
+
+        <form method="post" action="/dashboard/ai-monitoring/simulate">
+            <input type="hidden" name="session_id" value="{{ selected_session_id }}">
+            <input type="hidden" name="event_type" value="sleeping">
+            <input type="hidden" name="severity" value="high">
+            <input type="hidden" name="confidence" value="0.82">
+            <input type="hidden" name="description" value="Student may be sleeping or not paying attention.">
+            <button class="btn btn-danger" type="submit">Sleeping</button>
+        </form>
+
+        <form method="post" action="/dashboard/ai-monitoring/simulate">
+            <input type="hidden" name="session_id" value="{{ selected_session_id }}">
+            <input type="hidden" name="event_type" value="leaving_seat">
+            <input type="hidden" name="severity" value="medium">
+            <input type="hidden" name="confidence" value="0.78">
+            <input type="hidden" name="description" value="Student may have left their seat.">
+            <button class="btn btn-warning" type="submit">Leaving Seat</button>
+        </form>
+
+        <form method="post" action="/dashboard/ai-monitoring/simulate">
+            <input type="hidden" name="session_id" value="{{ selected_session_id }}">
+            <input type="hidden" name="event_type" value="hand_raising">
+            <input type="hidden" name="severity" value="info">
+            <input type="hidden" name="confidence" value="0.91">
+            <input type="hidden" name="description" value="Student raised hand.">
+            <button class="btn btn-secondary" type="submit">Hand Raising</button>
+        </form>
+
+        <form method="post" action="/dashboard/ai-monitoring/simulate">
+            <input type="hidden" name="session_id" value="{{ selected_session_id }}">
+            <input type="hidden" name="event_type" value="attention_low">
+            <input type="hidden" name="severity" value="high">
+            <input type="hidden" name="confidence" value="0.80">
+            <input type="hidden" name="description" value="Student attention level appears low.">
+            <button class="btn btn-danger" type="submit">Attention Low</button>
+        </form>
+    </div>
+    {% else %}
+    <p class="muted">Please create a session first.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Manual AI Event Log</h2>
+
+    {% if selected_session_id %}
+    <form method="post" action="/dashboard/ai-monitoring/simulate" class="ai-form-grid">
+        <input type="hidden" name="session_id" value="{{ selected_session_id }}">
+
+        <div>
+            <label>Student</label>
+            <select name="student_id" class="form-control">
+                <option value="">Classroom-level / Unknown</option>
+                {% for student in students %}
+                <option value="{{ student.id }}">{{ student.stu_id }} - {{ student.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label>Event Type</label>
+            <select name="event_type" class="form-control">
+                {% for event_type in event_types %}
+                <option value="{{ event_type }}">{{ event_type }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label>Severity</label>
+            <select name="severity" class="form-control">
+                {% for severity in severities %}
+                <option value="{{ severity }}">{{ severity }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label>Confidence</label>
+            <input class="form-control" type="number" step="0.01" min="0" max="1" name="confidence" value="0.80">
+        </div>
+
+        <div class="ai-form-full">
+            <label>Description</label>
+            <input class="form-control" type="text" name="description" placeholder="Example: Student looked at phone during explanation.">
+        </div>
+
+        <div class="ai-form-full">
+            <button class="btn btn-primary" type="submit">Log AI Event</button>
+        </div>
+    </form>
+    {% else %}
+    <p class="muted">Please create a session first.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>AI Event History</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Student</th>
+                    <th>Event Type</th>
+                    <th>Severity</th>
+                    <th>Confidence</th>
+                    <th>Source</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                <tr>
+                    <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
+                    <td>
+                        {% if event.student %}
+                            {{ event.student.stu_id }} - {{ event.student.name }}
+                        {% else %}
+                            Classroom / Unknown
+                        {% endif %}
+                    </td>
+                    <td><span class="badge badge-ai">{{ event.event_type }}</span></td>
+                    <td><span class="severity severity-{{ event.severity }}">{{ event.severity }}</span></td>
+                    <td>{{ "%.2f"|format(event.confidence) if event.confidence is not none else "-" }}</td>
+                    <td>{{ event.source }}</td>
+                    <td>{{ event.description or "-" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="muted">No AI monitoring events yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
