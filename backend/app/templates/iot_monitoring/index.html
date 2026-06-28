@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}IoT Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Phase 6 IoT Monitoring</p>
+        <h1>IoT Device & Sensor Monitoring</h1>
+        <p>Monitor classroom devices, sensors, and automation status.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard">Back Dashboard</a>
+</div>
+
+<div class="iot-demo-note">
+    <strong>Demo Purpose:</strong>
+    This dashboard simulates the future Raspberry Pi 5 + ESP32 classroom IoT workflow.
+    Later, real hardware will send temperature, humidity, noise, light, and motion data to these API endpoints.
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Devices</div>
+        <div class="stat-value">{{ stats.total_devices }}</div>
+    </div>
+    <div class="stat-card stat-success">
+        <div class="stat-label">Online / On</div>
+        <div class="stat-value">{{ stats.online_count }}</div>
+    </div>
+    <div class="stat-card stat-warning">
+        <div class="stat-label">Temperature</div>
+        <div class="stat-value">
+            {{ "%.1f"|format(stats.latest_temperature) if stats.latest_temperature is not none else "-" }}°C
+        </div>
+    </div>
+    <div class="stat-card stat-warning">
+        <div class="stat-label">Noise Level</div>
+        <div class="stat-value">
+            {{ "%.1f"|format(stats.latest_noise_level) if stats.latest_noise_level is not none else "-" }}
+        </div>
+    </div>
+</div>
+
+<div class="card iot-action-card">
+    <div>
+        <h2>Quick IoT Demo Actions</h2>
+        <p class="muted">Use these buttons for demo/testing before connecting Raspberry Pi or ESP32.</p>
+    </div>
+
+    <div class="quick-ai-grid">
+        <form method="post" action="/dashboard/iot-monitoring/seed-demo">
+            <button class="btn btn-secondary" type="submit">Seed Demo Devices</button>
+        </form>
+
+        <form method="post" action="/dashboard/iot-monitoring/simulate-reading">
+            <button class="btn btn-primary" type="submit">Simulate Sensor Reading</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Device Status & Control</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Device</th>
+                    <th>Type</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Last Seen</th>
+                    <th>Control</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for device in devices %}
+                <tr>
+                    <td><strong>{{ device.name }}</strong></td>
+                    <td><span class="badge badge-ai">{{ device.type }}</span></td>
+                    <td>{{ device.location or "-" }}</td>
+                    <td>
+                        <span class="iot-status iot-status-{{ device.status }}">
+                            {{ device.status }}
+                        </span>
+                    </td>
+                    <td>{{ device.last_seen.strftime("%Y-%m-%d %H:%M:%S") if device.last_seen else "-" }}</td>
+                    <td>
+                        {% if device.type in ["light", "fan"] %}
+                        <form method="post" action="/dashboard/iot-monitoring/control" class="inline-form">
+                            <input type="hidden" name="device_id" value="{{ device.id }}">
+                            {% if device.status == "on" %}
+                            <input type="hidden" name="status" value="off">
+                            <button class="btn btn-danger btn-sm" type="submit">Turn Off</button>
+                            {% else %}
+                            <input type="hidden" name="status" value="on">
+                            <button class="btn btn-primary btn-sm" type="submit">Turn On</button>
+                            {% endif %}
+                        </form>
+                        {% else %}
+                        <span class="muted">Monitor only</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="muted">No IoT devices yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Latest Sensor Readings</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Device</th>
+                    <th>Temperature</th>
+                    <th>Humidity</th>
+                    <th>Noise</th>
+                    <th>Light</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reading in readings %}
+                <tr>
+                    <td>{{ reading.timestamp.strftime("%Y-%m-%d %H:%M:%S") if reading.timestamp else "-" }}</td>
+                    <td>{{ reading.device.name if reading.device else "Unknown Device" }}</td>
+                    <td>{{ "%.1f"|format(reading.temperature) if reading.temperature is not none else "-" }}°C</td>
+                    <td>{{ "%.1f"|format(reading.humidity) if reading.humidity is not none else "-" }}%</td>
+                    <td>{{ "%.1f"|format(reading.noise_level) if reading.noise_level is not none else "-" }}</td>
+                    <td>{{ "%.1f"|format(reading.light_level) if reading.light_level is not none else "-" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="muted">No sensor readings yet. Click Simulate Sensor Reading.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Automation Foundation</h2>
+    <p class="muted">
+        Future rule: if no students are detected in the classroom for 5 minutes, the system can automatically turn off lights and fans.
+        This phase prepares the device control and sensor reading foundation for that automation.
+    </p>
+
+    <pre class="code-block">Future hardware flow:
+ESP32 / Raspberry Pi → POST /api/iot/sensor-readings → Dashboard → Automation rule → Relay control</pre>
+</div>
+{% endblock %}
