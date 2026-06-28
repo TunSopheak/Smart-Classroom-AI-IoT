@@ -230,3 +230,27 @@ Phase 5 will add AI monitoring event logging:
 Tun Sopheak  
 Computer Science Student, RUPP  
 Project: Smart Classroom with AI Monitoring - IoT Project
+
+
+## Final Demo
+
+Final demo guide page:
+
+```text
+http://127.0.0.1:8000/dashboard/final-demo
+```
+
+The final demo package includes:
+
+- Demo checklist
+- System architecture explanation
+- Project defense talking points
+- Demo script
+- Teacher Q&A preparation
+
+Related documents:
+
+```text
+docs/project_defense.md
+docs/final_demo_script.md
+```

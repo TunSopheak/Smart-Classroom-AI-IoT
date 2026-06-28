@@ -65,3 +65,8 @@ app.include_router(phase5_ai_monitoring_router)
 # Phase 7 Reports routes
 from app.routers.report_router import router as phase7_report_router
 app.include_router(phase7_report_router)
+
+
+# Phase 8 Final Demo routes
+from app.routers.demo_router import router as phase8_demo_router
+app.include_router(phase8_demo_router)

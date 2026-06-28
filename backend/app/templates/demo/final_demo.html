@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Final Demo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Phase 8 Final Demo</p>
+        <h1>Final Demo & Project Defense Package</h1>
+        <p>Use this page to guide your teacher presentation and final project defense.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard">Back Dashboard</a>
+</div>
+
+<div class="final-demo-note">
+    <strong>Presentation Goal:</strong>
+    Explain how Smart Classroom combines Attendance + AI Monitoring + IoT Automation + Reports into one teacher-friendly platform.
+</div>
+
+<div class="card">
+    <h2>Demo Flow Checklist</h2>
+    <p class="muted">Follow this order during your presentation.</p>
+
+    <div class="demo-flow-grid">
+        {% for item in demo_sections %}
+        <div class="demo-step-card">
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.goal }}</p>
+            <a class="btn btn-primary btn-sm" href="{{ item.url }}">Open</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>System Architecture</h2>
+
+    <div class="architecture-flow">
+        <div class="architecture-node">Teacher Dashboard</div>
+        <div class="architecture-arrow">→</div>
+        <div class="architecture-node">FastAPI Backend</div>
+        <div class="architecture-arrow">→</div>
+        <div class="architecture-node">SQLite Database</div>
+    </div>
+
+    <div class="architecture-flow">
+        <div class="architecture-node">QR Scanner</div>
+        <div class="architecture-arrow">→</div>
+        <div class="architecture-node">Attendance Service</div>
+        <div class="architecture-arrow">→</div>
+        <div class="architecture-node">Attendance Record + Event Log</div>
+    </div>
+
+    <div class="architecture-flow">
+        <div class="architecture-node">OpenCV Camera</div>
+        <div class="architecture-arrow">→</div>
+        <div class="architecture-node">Face Recognition</div>
+        <div class="architecture-arrow">→</div>
+        <div class="architecture-node">FACE Attendance</div>
+    </div>
+
+    <div class="architecture-flow">
+        <div class="architecture-node">ESP32 / Raspberry Pi</div>
+        <div class="architecture-arrow">→</div>
+        <div class="architecture-node">IoT API</div>
+        <div class="architecture-arrow">→</div>
+        <div class="architecture-node">Sensor + Automation Logs</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Completed Features</h2>
+
+    <div class="feature-grid">
+        {% for feature in project_features %}
+        <div class="feature-pill">✅ {{ feature }}</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Presentation Script</h2>
+
+    <div class="script-box">
+        <p><strong>Opening:</strong></p>
+        <p>
+            Good morning/afternoon teacher. Our project is called <strong>Smart Classroom with AI Monitoring</strong>.
+            The goal is to help teachers manage classroom attendance, monitor student behavior, and control IoT devices in a smarter way.
+        </p>
+
+        <p><strong>Problem:</strong></p>
+        <p>
+            In a normal classroom, teachers need to check attendance manually, observe whether students are paying attention,
+            and manage classroom devices such as lights and fans. These tasks take time and are difficult to track accurately.
+        </p>
+
+        <p><strong>Solution:</strong></p>
+        <p>
+            Our system combines QR attendance, face recognition attendance, AI monitoring, IoT sensor monitoring,
+            automatic light/fan control, and report export in one dashboard.
+        </p>
+
+        <p><strong>Closing:</strong></p>
+        <p>
+            This project is still an MVP, but it has a clean architecture and is ready for future integration with Raspberry Pi,
+            ESP32, Flutter mobile app, and real AI models like YOLO or MediaPipe.
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Defense Q&A</h2>
+
+    <div class="qa-list">
+        {% for item in defense_points %}
+        <div class="qa-item">
+            <h3>{{ item.question }}</h3>
+            <p>{{ item.answer }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Final Demo Commands</h2>
+
+    <pre class="code-block">cd "D:\IT\IT-RUPP\Y3\CN\Project\smart-classroom-ai-iot\backend"
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+
+Open:
+http://127.0.0.1:8000/dashboard/final-demo</pre>
+</div>
+{% endblock %}
