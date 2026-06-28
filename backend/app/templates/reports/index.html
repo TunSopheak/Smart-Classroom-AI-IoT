@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Phase 7 Reports</p>
+        <h1>Reports & Export</h1>
+        <p>Review attendance, AI monitoring, IoT sensor readings, and automation logs.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard">Back Dashboard</a>
+</div>
+
+<div class="report-demo-note">
+    <strong>Teacher Use:</strong>
+    This page helps teachers review class attendance, AI behavior events, IoT sensor data, and export CSV reports for records.
+</div>
+
+<div class="card">
+    <h2>Select Session Report</h2>
+
+    <form method="get" action="/dashboard/reports" class="ai-filter-grid">
+        <div>
+            <label>Session</label>
+            <select name="session_id" class="form-control">
+                {% for session in sessions %}
+                <option value="{{ session.id }}" {% if selected_session_id == session.id %}selected{% endif %}>
+                    #{{ session.id }} - {{ session.title }}
+                    {% if session.active %}(Active){% else %}(Closed){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="ai-filter-actions">
+            <button class="btn btn-primary" type="submit">View Report</button>
+        </div>
+    </form>
+
+    {% if selected_session %}
+    <p class="muted">
+        Selected: <strong>#{{ selected_session.id }} - {{ selected_session.title }}</strong>
+    </p>
+    {% else %}
+    <p class="muted">No session selected.</p>
+    {% endif %}
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Students</div>
+        <div class="stat-value">{{ attendance_summary.total }}</div>
+    </div>
+    <div class="stat-card stat-success">
+        <div class="stat-label">Present</div>
+        <div class="stat-value">{{ attendance_summary.present }}</div>
+    </div>
+    <div class="stat-card stat-warning">
+        <div class="stat-label">Late</div>
+        <div class="stat-value">{{ attendance_summary.late }}</div>
+    </div>
+    <div class="stat-card stat-danger">
+        <div class="stat-label">Absent</div>
+        <div class="stat-value">{{ attendance_summary.absent }}</div>
+    </div>
+</div>
+
+<div class="card report-actions-card">
+    <div>
+        <h2>Export Reports</h2>
+        <p class="muted">Download CSV files for teacher record keeping.</p>
+    </div>
+
+    <div class="quick-ai-grid">
+        <a class="btn btn-primary" href="/dashboard/reports/attendance.csv?session_id={{ selected_session_id }}">Export Attendance CSV</a>
+        <a class="btn btn-secondary" href="/dashboard/reports/ai-events.csv?session_id={{ selected_session_id }}">Export AI Events CSV</a>
+        <a class="btn btn-secondary" href="/dashboard/reports/iot-readings.csv">Export IoT Readings CSV</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Attendance Report</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Status</th>
+                    <th>Method</th>
+                    <th>Confidence</th>
+                    <th>First Seen</th>
+                    <th>Override Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance_records %}
+                <tr>
+                    <td>
+                        {% if record.student %}
+                            <strong>{{ record.student.stu_id }}</strong><br>
+                            <span class="muted">{{ record.student.name }}</span>
+                        {% else %}
+                            Student #{{ record.student_id }}
+                        {% endif %}
+                    </td>
+                    <td><span class="status-badge status-{{ record.status }}">{{ record.status }}</span></td>
+                    <td>{{ record.method or "-" }}</td>
+                    <td>{{ "%.2f"|format(record.confidence) if record.confidence is not none else "-" }}</td>
+                    <td>{{ record.first_seen_time.strftime("%Y-%m-%d %H:%M:%S") if record.first_seen_time else "-" }}</td>
+                    <td>{{ record.override_reason or "-" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="muted">No attendance records found for this session.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>AI Monitoring Report</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Student</th>
+                    <th>Event Type</th>
+                    <th>Severity</th>
+                    <th>Confidence</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in ai_events %}
+                <tr>
+                    <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
+                    <td>
+                        {% if event.student %}
+                            <strong>{{ event.student.stu_id }}</strong><br>
+                            <span class="muted">{{ event.student.name }}</span>
+                        {% else %}
+                            Classroom / Unknown
+                        {% endif %}
+                    </td>
+                    <td><span class="badge badge-ai">{{ event.event_type }}</span></td>
+                    <td><span class="severity severity-{{ event.severity }}">{{ event.severity }}</span></td>
+                    <td>{{ "%.2f"|format(event.confidence) if event.confidence is not none else "-" }}</td>
+                    <td>{{ event.description or "-" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="muted">No AI monitoring events found for this session.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>IoT Sensor Report</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Device</th>
+                    <th>Temperature</th>
+                    <th>Humidity</th>
+                    <th>Noise</th>
+                    <th>Light</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reading in iot_readings %}
+                <tr>
+                    <td>{{ reading.timestamp.strftime("%Y-%m-%d %H:%M:%S") if reading.timestamp else "-" }}</td>
+                    <td>{{ reading.device.name if reading.device else "Unknown Device" }}</td>
+                    <td>{{ "%.1f"|format(reading.temperature) if reading.temperature is not none else "-" }}°C</td>
+                    <td>{{ "%.1f"|format(reading.humidity) if reading.humidity is not none else "-" }}%</td>
+                    <td>{{ "%.1f"|format(reading.noise_level) if reading.noise_level is not none else "-" }}</td>
+                    <td>{{ "%.1f"|format(reading.light_level) if reading.light_level is not none else "-" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="muted">No IoT sensor readings found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>IoT Automation Report</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Rule</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                    <th>Occupancy</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in automation_events %}
+                <tr>
+                    <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
+                    <td><span class="badge badge-ai">{{ event.rule_name }}</span></td>
+                    <td>{{ event.action }}</td>
+                    <td><span class="automation-status automation-status-{{ event.status }}">{{ event.status }}</span></td>
+                    <td>{{ event.occupancy_count }}</td>
+                    <td>{{ event.reason or "-" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="muted">No automation events found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

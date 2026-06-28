@@ -799,3 +799,28 @@ label {
     border-color: #fde68a;
     color: #b45309;
 }
+
+
+/* Phase 7 Reports */
+.report-demo-note {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    color: #0c4a6e;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    margin: 1rem 0 1.5rem;
+}
+
+.report-actions-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .report-actions-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

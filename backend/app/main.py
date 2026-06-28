@@ -60,3 +60,8 @@ app = create_app()
 # Phase 5 AI Monitoring routes
 from app.routers.ai_monitoring_router import router as phase5_ai_monitoring_router
 app.include_router(phase5_ai_monitoring_router)
+
+
+# Phase 7 Reports routes
+from app.routers.report_router import router as phase7_report_router
+app.include_router(phase7_report_router)
