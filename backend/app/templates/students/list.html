@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Phase 3.1 QR Demo Workflow</p>
+        <h1>Students</h1>
+        <p class="muted">Manage student identity, QR images, printable QR cards, search, and filters.</p>
+    </div>
+    <div class="action-row">
+        <form action="/dashboard/students/generate-all-qr" method="post">
+            <button class="secondary-button" type="submit">Generate All QR</button>
+        </form>
+        <a class="button" href="/dashboard/students/print-all-qr">Print All QR</a>
+        <a class="button secondary-button" href="/dashboard/students/export-qr.csv">Export CSV</a>
+    </div>
+</section>
+
+{% if message %}
+<section class="alert">
+    {{ message }}
+</section>
+{% endif %}
+
+<section class="cards student-stats">
+    <div class="card"><span>Total Students</span><strong>{{ stats.total }}</strong></div>
+    <div class="card success"><span>Active</span><strong>{{ stats.active }}</strong></div>
+    <div class="card danger"><span>Inactive</span><strong>{{ stats.inactive }}</strong></div>
+    <div class="card info"><span>With QR Image</span><strong>{{ stats.with_qr }}</strong></div>
+</section>
+
+<form class="form-card" action="/dashboard/students/create" method="post">
+    <h2>Add Student</h2>
+    <div class="form-row">
+        <input name="stu_id" placeholder="Student ID, e.g. S006" required>
+        <input name="name" placeholder="Student Name" required>
+        <input name="gender" placeholder="Gender">
+        <button type="submit">Add Student</button>
+    </div>
+    <p class="muted">New students are automatically given QR value, QR image, face dataset path, and demo classroom enrollment.</p>
+</form>
+
+<section class="panel">
+    <div class="panel-title-row">
+        <h2>Student List</h2>
+        <span class="muted">{{ students|length }} result(s)</span>
+    </div>
+
+    <form class="search-toolbar" method="get" action="/dashboard/students">
+        <input name="q" value="{{ q }}" placeholder="Search by ID, name, QR, gender...">
+        <select name="status">
+            <option value="all" {% if status_filter == "all" %}selected{% endif %}>All Students</option>
+            <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active Only</option>
+            <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive Only</option>
+        </select>
+        <button type="submit">Search</button>
+        <a class="button secondary-button" href="/dashboard/students">Reset</a>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>QR</th>
+                <th>Student</th>
+                <th>QR Value</th>
+                <th>Face Dataset</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for student in students %}
+            <tr class="{% if not student.active %}inactive-row{% endif %}">
+                <td>{{ student.id }}</td>
+                <td>
+                    {% if student.qr_image_path %}
+                        <img class="qr-thumb" src="{{ student.qr_image_path }}" alt="QR {{ student.stu_id }}">
+                    {% else %}
+                        <span class="muted">No QR</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <strong>{{ student.stu_id }} - {{ student.name }}</strong><br>
+                    <span class="small-text">Gender: {{ student.gender or '-' }}</span>
+                </td>
+                <td><code>{{ student.qr_code or '-' }}</code></td>
+                <td class="small-text">{{ student.face_dataset_path or '-' }}</td>
+                <td>
+                    {% if student.active %}
+                        <span class="badge-soft active-badge">Active</span>
+                    {% else %}
+                        <span class="badge-soft closed-badge">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="table-actions">
+                        <a class="button small-button" href="/dashboard/students/{{ student.id }}">Detail</a>
+                        <form action="/dashboard/students/{{ student.id }}/generate-qr" method="post">
+                            <button class="secondary-button small-button" type="submit">QR</button>
+                        </form>
+                        <a class="secondary-button small-button" href="/dashboard/students/{{ student.id }}/print-qr">Print</a>
+
+                        {% if student.active %}
+                            <form action="/dashboard/students/{{ student.id }}/deactivate" method="post">
+                                <button class="danger-button small-button" type="submit">Deactivate</button>
+                            </form>
+                        {% else %}
+                            <form action="/dashboard/students/{{ student.id }}/activate" method="post">
+                                <button class="secondary-button small-button" type="submit">Activate</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7">
+                    <p class="muted">No students found. Try another search or reset the filter.</p>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

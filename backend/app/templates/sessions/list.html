@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Class Session Management</p>
+        <h1>Sessions</h1>
+        <p class="muted">Create, open, close, and manage attendance sessions without PowerShell.</p>
+    </div>
+    <a class="button secondary-button" href="/dashboard">Back Dashboard</a>
+</section>
+
+{% if active_session %}
+<section class="panel active-session-banner">
+    <div>
+        <p class="eyebrow">Current Active Session</p>
+        <h2>{{ active_session.title }}</h2>
+        <p class="muted">Start: {{ active_session.start_time }} | Late: {{ active_session.late_time }} | Close: {{ active_session.close_time }}</p>
+    </div>
+    <div class="action-row">
+        <a class="button" href="/dashboard/sessions/{{ active_session.id }}/attendance">Open Attendance</a>
+        <form action="/dashboard/sessions/{{ active_session.id }}/close" method="post">
+            <button class="danger-button" type="submit">Close Session</button>
+        </form>
+    </div>
+</section>
+{% endif %}
+
+<form class="form-card" action="/dashboard/sessions/create" method="post">
+    <h2>Create New Live Session</h2>
+    <div class="form-row">
+        <select name="classroom_id" required>
+            {% for c in classes %}<option value="{{ c.id }}">{{ c.code }} - {{ c.name }}</option>{% endfor %}
+        </select>
+        <select name="subject_id" required>
+            {% for s in subjects %}<option value="{{ s.id }}">{{ s.code }} - {{ s.name }}</option>{% endfor %}
+        </select>
+        <input name="title" placeholder="Session title" value="Live QR Attendance Test" required>
+        <button type="submit">Create & Open</button>
+    </div>
+    <p class="muted">This creates a session starting now, late after 15 minutes, close after 2 hours. Other active sessions will be closed automatically.</p>
+</form>
+
+<section class="panel">
+    <h2>Session List</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Start</th>
+                <th>Late Time</th>
+                <th>Close</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for session in sessions %}
+            <tr class="{% if session.active %}active-row{% endif %}">
+                <td>{{ session.id }}</td>
+                <td>
+                    <strong>{{ session.title }}</strong>
+                    {% if session.active %}<span class="badge-soft active-badge">Current</span>{% endif %}
+                </td>
+                <td>{{ session.start_time }}</td>
+                <td>{{ session.late_time }}</td>
+                <td>{{ session.close_time }}</td>
+                <td>
+                    {% if session.active %}
+                        <span class="badge-soft active-badge">Active</span>
+                    {% else %}
+                        <span class="badge-soft closed-badge">Closed</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="table-actions">
+                        <a class="button small-button" href="/dashboard/sessions/{{ session.id }}/attendance">Attendance</a>
+
+                        {% if session.active %}
+                            <form action="/dashboard/sessions/{{ session.id }}/close" method="post">
+                                <button class="danger-button small-button" type="submit">Close</button>
+                            </form>
+                        {% else %}
+                            <form action="/dashboard/sessions/{{ session.id }}/open" method="post">
+                                <button class="secondary-button small-button" type="submit">Open</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

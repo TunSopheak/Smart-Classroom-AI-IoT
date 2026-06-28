@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Print All Student QR Cards</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="print-all-body">
+    <div class="no-print print-toolbar">
+        <h1>Print All Student QR Cards</h1>
+        <div class="action-row">
+            <button onclick="window.print()">Print All</button>
+            <a class="button secondary-button" href="/dashboard/students">Back Students</a>
+        </div>
+    </div>
+
+    <main class="qr-print-grid">
+        {% for student in students %}
+            <section class="qr-print-card {% if not student.active %}inactive-print-card{% endif %}">
+                <h2>Smart Classroom Attendance QR</h2>
+
+                {% if student.qr_image_path %}
+                    <img class="print-qr-small" src="{{ student.qr_image_path }}" alt="QR {{ student.stu_id }}">
+                {% else %}
+                    <p>No QR image</p>
+                {% endif %}
+
+                <h3>{{ student.stu_id }}</h3>
+                <h4>{{ student.name }}</h4>
+                <p><code>{{ student.qr_code or '-' }}</code></p>
+                <p class="small-text">{{ 'Active' if student.active else 'Inactive' }}</p>
+            </section>
+        {% endfor %}
+    </main>
+</body>
+</html>

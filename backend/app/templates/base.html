@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or "Smart Classroom AI IoT" }}</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">Smart Classroom</div>
+        <nav>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/dashboard/students">Students</a>
+            <a href="/dashboard/sessions">Sessions</a>
+            <a href="/docs">API Docs</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

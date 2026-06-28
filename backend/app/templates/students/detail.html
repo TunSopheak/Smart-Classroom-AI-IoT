@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Student Detail</p>
+        <h1>{{ student.stu_id }} - {{ student.name }}</h1>
+        <p class="muted">Permanent identity data. Do not store attendance status here.</p>
+    </div>
+    <div class="action-row">
+        <a class="button secondary-button" href="/dashboard/students">Back Students</a>
+        <a class="button" href="/dashboard/students/{{ student.id }}/print-qr">Print QR</a>
+        <a class="button secondary-button" href="/dashboard/students/{{ student.id }}/face-profile">Face Profile</a>
+    </div>
+</section>
+
+{% if message %}
+<section class="alert">{{ message }}</section>
+{% endif %}
+
+<section class="student-detail-grid">
+    <div class="panel qr-card">
+        <h2>Student QR Code</h2>
+        {% if student.qr_image_path %}
+            <img class="qr-large" src="{{ student.qr_image_path }}" alt="QR {{ student.stu_id }}">
+        {% else %}
+            <p class="muted">No QR image generated yet.</p>
+        {% endif %}
+        <p><strong>QR Value:</strong></p>
+        <p><code>{{ student.qr_code or '-' }}</code></p>
+
+        <form action="/dashboard/students/{{ student.id }}/generate-qr" method="post">
+            <button type="submit">Generate / Refresh QR</button>
+        </form>
+    </div>
+
+    <form class="panel" action="/dashboard/students/{{ student.id }}/update" method="post">
+        <h2>Edit Student</h2>
+
+        <label>Student ID</label>
+        <input name="stu_id" value="{{ student.stu_id }}" required>
+
+        <label>Name</label>
+        <input name="name" value="{{ student.name }}" required>
+
+        <label>Gender</label>
+        <input name="gender" value="{{ student.gender or '' }}">
+
+        <label>QR Code Value</label>
+        <input name="qr_code" value="{{ student.qr_code or '' }}">
+
+        <label>Face Dataset Path</label>
+        <input name="face_dataset_path" value="{{ student.face_dataset_path or '' }}">
+
+        <button type="submit">Save Changes</button>
+    </form>
+</section>
+
+<section class="panel">
+    <h2>Student System Info</h2>
+    <div class="info-grid">
+        <div><span>Status</span><strong>{{ 'Active' if student.active else 'Inactive' }}</strong></div>
+        <div><span>Created</span><strong>{{ student.created_at }}</strong></div>
+        <div><span>Updated</span><strong>{{ student.updated_at }}</strong></div>
+        <div><span>Face Dataset</span><strong>{{ student.face_dataset_path or '-' }}</strong></div>
+    </div>
+
+    <div class="action-row">
+        {% if student.active %}
+            <form action="/dashboard/students/{{ student.id }}/deactivate" method="post">
+                <button class="danger-button" type="submit">Deactivate Student</button>
+            </form>
+        {% else %}
+            <form action="/dashboard/students/{{ student.id }}/activate" method="post">
+                <button class="secondary-button" type="submit">Activate Student</button>
+            </form>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

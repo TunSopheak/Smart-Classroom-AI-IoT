@@ -1,0 +1,31 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+
+# Database local files
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated files
+backend/app/static/generated_qr/
+
+# Face data privacy
+backend/ai_module/face_recognition/datasets/
+backend/ai_module/face_recognition/models/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

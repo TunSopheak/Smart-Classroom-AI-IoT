@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Print QR - {{ student.stu_id }}</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="print-body">
+    <main class="print-card">
+        <h1>Smart Classroom Attendance QR</h1>
+
+        {% if student.qr_image_path %}
+            <img class="print-qr" src="{{ student.qr_image_path }}" alt="QR {{ student.stu_id }}">
+        {% else %}
+            <p>No QR image available.</p>
+        {% endif %}
+
+        <h2>{{ student.stu_id }}</h2>
+        <h3>{{ student.name }}</h3>
+        <p><code>{{ student.qr_code }}</code></p>
+
+        <div class="no-print action-row print-actions">
+            <button onclick="window.print()">Print</button>
+            <a class="button secondary-button" href="/dashboard/students/{{ student.id }}">Back</a>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Phase 4 Face Recognition</p>
+        <h1>Face Profile: {{ student.stu_id }} - {{ student.name }}</h1>
+        <p class="muted">This page prepares the dataset and metadata for future OpenCV face recognition.</p>
+    </div>
+
+    <div class="action-row">
+        <a class="button secondary-button" href="/dashboard/students/{{ student.id }}">Back Student</a>
+        <a class="button secondary-button" href="/dashboard/students">Back Students</a>
+    </div>
+</section>
+
+{% if message %}
+<section class="alert">{{ message }}</section>
+{% endif %}
+
+<section class="student-detail-grid">
+    <div class="panel qr-card">
+        <h2>Student Identity</h2>
+        {% if student.qr_image_path %}
+            <img class="qr-large" src="{{ student.qr_image_path }}" alt="QR {{ student.stu_id }}">
+        {% endif %}
+        <p><strong>{{ student.stu_id }}</strong></p>
+        <p>{{ student.name }}</p>
+        <p><code>{{ student.qr_code or '-' }}</code></p>
+    </div>
+
+    <div class="panel">
+        <h2>Face Dataset Profile</h2>
+
+        <div class="info-grid">
+            <div><span>Dataset Path</span><strong>{{ profile.dataset_path }}</strong></div>
+            <div><span>Model Label</span><strong>{{ profile.model_label }}</strong></div>
+            <div><span>Sample Count</span><strong>{{ profile.sample_count }}</strong></div>
+            <div><span>Trained At</span><strong>{{ profile.trained_at or 'Not trained yet' }}</strong></div>
+        </div>
+
+        <form action="/dashboard/students/{{ student.id }}/face-profile/initialize" method="post" class="phase-action-form">
+            <button type="submit">Initialize / Refresh Face Profile</button>
+        </form>
+
+        <div class="note-box">
+            <h3>Next AI step</h3>
+            <p>Use the OpenCV capture script to collect face images into this dataset folder:</p>
+            <p><code>{{ profile.dataset_path }}</code></p>
+            <p class="muted">Use volunteer/demo faces only.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
