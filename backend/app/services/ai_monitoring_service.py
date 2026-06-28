@@ -33,11 +33,23 @@ def create_ai_monitoring_event(db: Session, payload: AIMonitoringEventCreate) ->
     return event
 
 
-def list_ai_monitoring_events(db: Session, session_id: int | None = None, limit: int = 100):
+def list_ai_monitoring_events(
+    db: Session,
+    session_id: int | None = None,
+    event_type: str | None = None,
+    severity: str | None = None,
+    limit: int = 100,
+):
     query = db.query(AIMonitoringEvent)
 
     if session_id:
         query = query.filter(AIMonitoringEvent.session_id == session_id)
+
+    if event_type:
+        query = query.filter(AIMonitoringEvent.event_type == event_type)
+
+    if severity:
+        query = query.filter(AIMonitoringEvent.severity == severity)
 
     return query.order_by(AIMonitoringEvent.created_at.desc()).limit(limit).all()
 

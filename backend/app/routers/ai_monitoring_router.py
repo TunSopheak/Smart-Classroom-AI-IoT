@@ -56,10 +56,18 @@ def event_to_dict(event):
 @router.get("/api/ai-monitoring/events")
 def api_list_ai_events(
     session_id: Optional[int] = None,
+    event_type: Optional[str] = None,
+    severity: Optional[str] = None,
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    events = list_ai_monitoring_events(db, session_id=session_id, limit=limit)
+    events = list_ai_monitoring_events(
+        db,
+        session_id=session_id,
+        event_type=event_type or None,
+        severity=severity or None,
+        limit=limit,
+    )
     return [event_to_dict(event) for event in events]
 
 
@@ -93,6 +101,8 @@ def api_simulate_ai_event(
 def dashboard_ai_monitoring(
     request: Request,
     session_id: Optional[int] = None,
+    event_type: str = "",
+    severity: str = "",
     db: Session = Depends(get_db),
 ):
     sessions = (
@@ -120,6 +130,8 @@ def dashboard_ai_monitoring(
     events = list_ai_monitoring_events(
         db,
         session_id=selected_session_id,
+        event_type=event_type or None,
+        severity=severity or None,
         limit=100,
     )
 
@@ -138,6 +150,8 @@ def dashboard_ai_monitoring(
             "severities": SEVERITIES,
             "selected_session_id": selected_session_id,
             "active_session": active_session,
+            "selected_event_type": event_type,
+            "selected_severity": severity,
         },
     )
 

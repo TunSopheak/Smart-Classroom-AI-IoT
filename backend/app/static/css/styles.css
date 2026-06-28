@@ -607,3 +607,98 @@ label {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Phase 5.1 AI Monitoring Polish */
+.eyebrow {
+    color: #2563eb;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.4rem;
+}
+
+.ai-demo-note {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    color: #1e1b4b;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    margin: 1rem 0 1.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.stat-label {
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.stat-value {
+    color: #0f172a;
+    font-size: 2rem;
+    font-weight: 900;
+    margin-top: 0.4rem;
+}
+
+.stat-warning {
+    border-color: #fde68a;
+    background: #fffbeb;
+}
+
+.stat-danger {
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.ai-filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.ai-filter-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ai-session-link-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+@media (max-width: 1000px) {
+    .stats-grid,
+    .ai-filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .stats-grid,
+    .ai-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ai-session-link-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

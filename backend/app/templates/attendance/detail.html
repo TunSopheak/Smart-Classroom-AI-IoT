@@ -139,4 +139,14 @@
         <p class="muted">No scan events yet. Use the QR scan form above.</p>
     {% endif %}
 </section>
+
+<!-- Phase 5.1 AI Monitoring Link -->
+<div class="card ai-session-link-card">
+    <div>
+        <h2>AI Monitoring Events</h2>
+        <p class="muted">Review phone usage, sleeping, leaving seat, hand raising, and low attention events for this session.</p>
+    </div>
+    <a class="btn btn-primary" href="/dashboard/ai-monitoring?session_id={{ session.id }}">Open AI Monitoring</a>
+</div>
+
 {% endblock %}

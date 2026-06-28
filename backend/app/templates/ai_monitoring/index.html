@@ -5,10 +5,16 @@
 {% block content %}
 <div class="page-header">
     <div>
+        <p class="eyebrow">Phase 5.1 AI Monitoring</p>
         <h1>AI Monitoring</h1>
-        <p>Log and review AI classroom behavior events for each session.</p>
+        <p>Log, filter, and review AI classroom behavior events for each class session.</p>
     </div>
     <a class="btn btn-secondary" href="/dashboard">Back Dashboard</a>
+</div>
+
+<div class="ai-demo-note">
+    <strong>Demo Purpose:</strong>
+    This page is the foundation for future YOLO / MediaPipe detection. For now, teachers can simulate and review AI events such as phone usage, sleeping, leaving seat, hand raising, and low attention.
 </div>
 
 <div class="stats-grid ai-stats-grid">
@@ -16,34 +22,60 @@
         <div class="stat-label">Total AI Events</div>
         <div class="stat-value">{{ stats.total }}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-danger">
         <div class="stat-label">High Severity</div>
         <div class="stat-value">{{ stats.high }}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-warning">
         <div class="stat-label">Phone Usage</div>
         <div class="stat-value">{{ stats.phone_usage }}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-danger">
         <div class="stat-label">Attention Low</div>
         <div class="stat-value">{{ stats.attention_low }}</div>
     </div>
 </div>
 
 <div class="card">
-    <h2>Select Session</h2>
+    <h2>Filter Events</h2>
 
-    <form method="get" action="/dashboard/ai-monitoring" class="form-row">
-        <select name="session_id" class="form-control">
-            {% for session in sessions %}
-            <option value="{{ session.id }}" {% if selected_session_id == session.id %}selected{% endif %}>
-                #{{ session.id }} - {{ session.title }}
-                {% if session.active %}(Active){% else %}(Closed){% endif %}
-            </option>
-            {% endfor %}
-        </select>
+    <form method="get" action="/dashboard/ai-monitoring" class="ai-filter-grid">
+        <div>
+            <label>Session</label>
+            <select name="session_id" class="form-control">
+                {% for session in sessions %}
+                <option value="{{ session.id }}" {% if selected_session_id == session.id %}selected{% endif %}>
+                    #{{ session.id }} - {{ session.title }}
+                    {% if session.active %}(Active){% else %}(Closed){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
 
-        <button class="btn btn-primary" type="submit">View Events</button>
+        <div>
+            <label>Event Type</label>
+            <select name="event_type" class="form-control">
+                <option value="">All event types</option>
+                {% for item in event_types %}
+                <option value="{{ item }}" {% if selected_event_type == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label>Severity</label>
+            <select name="severity" class="form-control">
+                <option value="">All severities</option>
+                {% for item in severities %}
+                <option value="{{ item }}" {% if selected_severity == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="ai-filter-actions">
+            <button class="btn btn-primary" type="submit">Apply Filter</button>
+            <a class="btn btn-secondary" href="/dashboard/ai-monitoring">Reset</a>
+        </div>
     </form>
 
     {% if not sessions %}
@@ -53,7 +85,7 @@
 
 <div class="card">
     <h2>Quick AI Event Simulation</h2>
-    <p class="muted">Use this for demo/testing before connecting real MediaPipe or YOLO detection.</p>
+    <p class="muted">Classroom-level quick buttons. These are useful for fast demo testing.</p>
 
     {% if selected_session_id %}
     <div class="quick-ai-grid">
@@ -108,7 +140,8 @@
 </div>
 
 <div class="card">
-    <h2>Manual AI Event Log</h2>
+    <h2>Student-Specific Quick Event</h2>
+    <p class="muted">Use this when the teacher wants to attach an AI event to a real student.</p>
 
     {% if selected_session_id %}
     <form method="post" action="/dashboard/ai-monitoring/simulate" class="ai-form-grid">
@@ -149,11 +182,11 @@
 
         <div class="ai-form-full">
             <label>Description</label>
-            <input class="form-control" type="text" name="description" placeholder="Example: Student looked at phone during explanation.">
+            <input class="form-control" type="text" name="description" placeholder="Example: S001 looked at phone during explanation.">
         </div>
 
         <div class="ai-form-full">
-            <button class="btn btn-primary" type="submit">Log AI Event</button>
+            <button class="btn btn-primary" type="submit">Log Student AI Event</button>
         </div>
     </form>
     {% else %}
@@ -183,7 +216,8 @@
                     <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
                     <td>
                         {% if event.student %}
-                            {{ event.student.stu_id }} - {{ event.student.name }}
+                            <strong>{{ event.student.stu_id }}</strong><br>
+                            <span class="muted">{{ event.student.name }}</span>
                         {% else %}
                             Classroom / Unknown
                         {% endif %}
