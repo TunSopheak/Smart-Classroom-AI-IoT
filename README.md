@@ -254,3 +254,27 @@ Related documents:
 docs/project_defense.md
 docs/final_demo_script.md
 ```
+
+
+## v1.0 Final Demo Release
+
+Stable final demo tag:
+
+```text
+v1.0-final-demo
+```
+
+Final release documents:
+
+```text
+docs/final_demo_checklist.md
+docs/release_notes_v1.md
+docs/project_defense.md
+docs/final_demo_script.md
+```
+
+Final demo page:
+
+```text
+http://127.0.0.1:8000/dashboard/final-demo
+```

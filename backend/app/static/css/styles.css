@@ -921,3 +921,33 @@ label {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Phase 8.1 Final Script Polish */
+.clean-script {
+    display: grid;
+    gap: 1rem;
+}
+
+.script-section {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.85rem;
+    padding: 1rem;
+}
+
+.script-section h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+    color: #0f172a;
+}
+
+.script-section p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.script-section strong {
+    color: #1d4ed8;
+    font-size: inherit;
+}
