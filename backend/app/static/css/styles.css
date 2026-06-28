@@ -775,3 +775,27 @@ label {
         align-items: flex-start;
     }
 }
+
+
+/* Phase 6.1 IoT Automation Rules */
+.automation-status {
+    display: inline-block;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    border: 1px solid #e5e7eb;
+}
+
+.automation-status-executed {
+    background: #ecfdf5;
+    border-color: #bbf7d0;
+    color: #047857;
+}
+
+.automation-status-skipped {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #b45309;
+}

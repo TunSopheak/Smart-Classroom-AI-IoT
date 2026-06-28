@@ -147,6 +147,61 @@
     </div>
 </div>
 
+
+<!-- Phase 6.1 Automation Rule Controls -->
+<div class="card">
+    <h2>Automation Rule: Empty Classroom Auto-Off</h2>
+    <p class="muted">
+        Teacher requirement: if no students are detected in the classroom for 5 minutes,
+        the system can automatically turn off lights and fans.
+    </p>
+
+    <div class="quick-ai-grid">
+        <form method="post" action="/dashboard/iot-monitoring/check-auto-off">
+            <button class="btn btn-warning" type="submit">Check Auto-Off Rule</button>
+        </form>
+
+        <form method="post" action="/dashboard/iot-monitoring/simulate-empty-auto-off">
+            <button class="btn btn-danger" type="submit">Simulate Empty Classroom Auto-Off</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Automation Event History</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Rule</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                    <th>Occupancy</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in automation_events %}
+                <tr>
+                    <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
+                    <td><span class="badge badge-ai">{{ event.rule_name }}</span></td>
+                    <td>{{ event.action }}</td>
+                    <td><span class="automation-status automation-status-{{ event.status }}">{{ event.status }}</span></td>
+                    <td>{{ event.occupancy_count }}</td>
+                    <td>{{ event.reason or "-" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="muted">No automation events yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div class="card">
     <h2>Automation Foundation</h2>
     <p class="muted">

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.schemas.iot_schema import DeviceControlRequest, SensorReadingCreate
+from app.services.iot_automation_service import evaluate_auto_off_rule, list_automation_events
 from app.services.iot_service import (
     create_sensor_reading,
     get_iot_stats,
@@ -141,6 +142,7 @@ def dashboard_iot_monitoring(request: Request, db: Session = Depends(get_db)):
     devices = list_devices(db)
     readings = list_sensor_readings(db, limit=50)
     stats = get_iot_stats(db)
+    automation_events = list_automation_events(db, limit=30)
 
     return templates.TemplateResponse(
         request,
@@ -150,6 +152,7 @@ def dashboard_iot_monitoring(request: Request, db: Session = Depends(get_db)):
             "devices": devices,
             "readings": readings,
             "stats": stats,
+            "automation_events": automation_events,
         },
     )
 
@@ -173,4 +176,27 @@ def dashboard_control_device(
     db: Session = Depends(get_db),
 ):
     update_device_status(db, device_id, status)
+    return RedirectResponse(url="/dashboard/iot-monitoring", status_code=303)
+
+
+
+@router.post("/api/iot/automation/check-auto-off")
+def api_check_auto_off_rule(db: Session = Depends(get_db)):
+    return evaluate_auto_off_rule(db, simulate_empty=False)
+
+
+@router.post("/api/iot/automation/simulate-empty-auto-off")
+def api_simulate_empty_auto_off(db: Session = Depends(get_db)):
+    return evaluate_auto_off_rule(db, simulate_empty=True)
+
+
+@router.post("/dashboard/iot-monitoring/check-auto-off")
+def dashboard_check_auto_off_rule(db: Session = Depends(get_db)):
+    evaluate_auto_off_rule(db, simulate_empty=False)
+    return RedirectResponse(url="/dashboard/iot-monitoring", status_code=303)
+
+
+@router.post("/dashboard/iot-monitoring/simulate-empty-auto-off")
+def dashboard_simulate_empty_auto_off(db: Session = Depends(get_db)):
+    evaluate_auto_off_rule(db, simulate_empty=True)
     return RedirectResponse(url="/dashboard/iot-monitoring", status_code=303)
