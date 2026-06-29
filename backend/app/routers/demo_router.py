@@ -24,17 +24,22 @@ def final_demo_page(request: Request):
             "url": "/dashboard/sessions",
         },
         {
-            "title": "4. AI Monitoring",
+            "title": "4. Camera Monitoring & Recording",
+            "goal": "Show live camera, frame boxes, behavior overlays, and video recording inside the system.",
+            "url": "/dashboard/camera-monitoring",
+        },
+        {
+            "title": "5. AI Monitoring",
             "goal": "Show phone usage, sleeping, leaving seat, hand raising, attention low, and student-level AI events.",
             "url": "/dashboard/ai-monitoring",
         },
         {
-            "title": "5. IoT Monitoring",
+            "title": "6. IoT Monitoring",
             "goal": "Show Raspberry Pi / ESP32 devices, sensor readings, light/fan control, and auto-off rule.",
             "url": "/dashboard/iot-monitoring",
         },
         {
-            "title": "6. Reports & Export",
+            "title": "7. Reports & Export",
             "goal": "Show attendance report, AI report, IoT report, automation report, and CSV export.",
             "url": "/dashboard/reports",
         },
@@ -44,6 +49,7 @@ def final_demo_page(request: Request):
         "Student management",
         "QR attendance",
         "Face recognition attendance",
+        "Camera monitoring and video recording",
         "Attendance event logging",
         "Teacher manual override",
         "AI behavior monitoring",

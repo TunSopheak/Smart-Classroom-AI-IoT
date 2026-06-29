@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Camera Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Phase 9 Product Camera Monitoring</p>
+        <h1>Camera Monitoring & Video Recording</h1>
+        <p>Live camera stream with OpenCV frame boxes, behavior overlays, and recording inside the system.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard/final-demo">Back Final Demo</a>
+</div>
+
+<div class="product-note">
+    <strong>Product Goal:</strong>
+    This page records real classroom video with AI-style frame boxes and behavior overlays. The recording is saved inside the system for later review.
+</div>
+
+<div class="card">
+    <h2>Session Selection</h2>
+
+    <form method="get" action="/dashboard/camera-monitoring" class="ai-filter-grid">
+        <div>
+            <label>Session</label>
+            <select name="session_id" class="form-control">
+                {% for session in sessions %}
+                <option value="{{ session.id }}" {% if selected_session and selected_session.id == session.id %}selected{% endif %}>
+                    #{{ session.id }} - {{ session.title }}
+                    {% if session.active %}(Active){% else %}(Closed){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="ai-filter-actions">
+            <button class="btn btn-primary" type="submit">Use Session</button>
+        </div>
+    </form>
+
+    {% if selected_session %}
+    <p class="muted">Selected session: <strong>#{{ selected_session.id }} - {{ selected_session.title }}</strong></p>
+    {% endif %}
+</div>
+
+<div class="camera-layout">
+    <div class="card camera-card">
+        <h2>Live Camera</h2>
+
+        <div class="camera-frame-wrap">
+            <img class="camera-stream" src="/api/camera-monitoring/stream" alt="Live Camera Stream">
+        </div>
+
+        <div class="camera-status-row">
+            <span class="camera-status-pill">Camera: {{ "Running" if camera_status.running else "Stopped" }}</span>
+            <span class="camera-status-pill">Recording: {{ "Recording" if camera_status.recording else "Not recording" }}</span>
+        </div>
+
+        <div class="quick-ai-grid">
+            <form method="post" action="/dashboard/camera-monitoring/start">
+                <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
+                <button class="btn btn-primary" type="submit">Start Camera</button>
+            </form>
+
+            <form method="post" action="/dashboard/camera-monitoring/stop">
+                <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
+                <button class="btn btn-danger" type="submit">Stop Camera</button>
+            </form>
+
+            <form method="post" action="/dashboard/camera-monitoring/record/start">
+                <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
+                <button class="btn btn-warning" type="submit">Start Recording</button>
+            </form>
+
+            <form method="post" action="/dashboard/camera-monitoring/record/stop">
+                <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
+                <button class="btn btn-secondary" type="submit">Stop Recording</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Behavior Marking</h2>
+        <p class="muted">These behavior labels appear as overlays on the live stream and recorded video.</p>
+
+        <div class="behavior-grid">
+            {% for item in behavior_types %}
+            <form method="post" action="/dashboard/camera-monitoring/behavior">
+                <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
+                <input type="hidden" name="event_type" value="{{ item }}">
+                <input type="hidden" name="severity" value="{{ 'high' if item in ['sleeping', 'attention_low'] else 'medium' }}">
+                <button class="btn btn-primary" type="submit">{{ item }}</button>
+            </form>
+            {% endfor %}
+        </div>
+
+        <h3>Recent Behavior Events</h3>
+        <div class="mini-event-list">
+            {% for event in ai_events %}
+            <div class="mini-event">
+                <strong>{{ event.event_type }}</strong>
+                <span>{{ event.severity }}</span>
+                <small>{{ event.created_at.strftime("%H:%M:%S") if event.created_at else "-" }}</small>
+            </div>
+            {% else %}
+            <p class="muted">No behavior events yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Recording History</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Session</th>
+                    <th>Status</th>
+                    <th>Started</th>
+                    <th>Stopped</th>
+                    <th>Duration</th>
+                    <th>Open</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in recordings %}
+                <tr>
+                    <td>{{ item.filename }}</td>
+                    <td>{{ item.session_id or "-" }}</td>
+                    <td><span class="camera-status-pill">{{ item.status }}</span></td>
+                    <td>{{ item.started_at.strftime("%Y-%m-%d %H:%M:%S") if item.started_at else "-" }}</td>
+                    <td>{{ item.stopped_at.strftime("%Y-%m-%d %H:%M:%S") if item.stopped_at else "-" }}</td>
+                    <td>{{ "%.1f"|format(item.duration_seconds) if item.duration_seconds is not none else "-" }}s</td>
+                    <td>
+                        {% if item.status == "saved" %}
+                        <a href="{{ item.file_path }}" target="_blank">Open Video</a>
+                        {% else %}
+                        <span class="muted">Recording...</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="muted">No recordings yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Important Product Note</h2>
+    <p class="muted">
+        Current version records video with face frame boxes and manual behavior overlays.
+        Next phase will improve behavior detection logic so the system can detect more behavior automatically.
+    </p>
+</div>
+{% endblock %}

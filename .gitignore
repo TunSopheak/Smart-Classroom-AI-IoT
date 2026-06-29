@@ -29,3 +29,6 @@ backend/ai_module/face_recognition/models/
 Thumbs.db
 .vscode/
 .idea/
+
+# Camera recordings privacy
+backend/app/static/recordings/

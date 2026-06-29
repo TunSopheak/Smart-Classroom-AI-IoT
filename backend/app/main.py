@@ -70,3 +70,8 @@ app.include_router(phase7_report_router)
 # Phase 8 Final Demo routes
 from app.routers.demo_router import router as phase8_demo_router
 app.include_router(phase8_demo_router)
+
+
+# Phase 9 Camera Monitoring routes
+from app.routers.camera_monitoring_router import router as phase9_camera_monitoring_router
+app.include_router(phase9_camera_monitoring_router)

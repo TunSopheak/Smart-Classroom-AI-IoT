@@ -951,3 +951,83 @@ label {
     color: #1d4ed8;
     font-size: inherit;
 }
+
+
+/* Phase 9 Camera Monitoring */
+.product-note {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #7c2d12;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    margin: 1rem 0 1.5rem;
+}
+
+.camera-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+}
+
+.camera-frame-wrap {
+    background: #020617;
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid #1e293b;
+}
+
+.camera-stream {
+    display: block;
+    width: 100%;
+    max-height: 540px;
+    object-fit: contain;
+    background: #020617;
+}
+
+.camera-status-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+}
+
+.camera-status-pill {
+    display: inline-block;
+    background: #eef2ff;
+    color: #312e81;
+    border: 1px solid #c7d2fe;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.behavior-grid {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.behavior-grid .btn {
+    width: 100%;
+    text-transform: capitalize;
+}
+
+.mini-event-list {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.mini-event {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.5rem 0;
+}
+
+@media (max-width: 1000px) {
+    .camera-layout {
+        grid-template-columns: 1fr;
+    }
+}
