@@ -1,8 +1,9 @@
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -12,11 +13,13 @@ from app.models.camera_recording import CameraRecording
 from app.models.class_session import ClassSession
 from app.schemas.ai_monitoring_schema import AIMonitoringEventCreate
 from app.services.ai_monitoring_service import create_ai_monitoring_event
-from app.services.camera_monitoring_service import camera_service
+from app.services.camera_monitoring_service import camera_service, convert_recording_to_webm
 
 router = APIRouter(tags=["Camera Monitoring"])
 templates = Jinja2Templates(directory="app/templates")
 
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+RECORDINGS_DIR = BACKEND_ROOT / "app" / "static" / "recordings"
 
 BEHAVIOR_TYPES = [
     "phone_usage",
@@ -41,6 +44,37 @@ def get_active_or_latest_session(db: Session):
     return db.query(ClassSession).order_by(ClassSession.start_time.desc()).first()
 
 
+def get_recording_file_path(recording: CameraRecording):
+    return RECORDINGS_DIR / recording.filename
+
+
+def get_recording_media_type(filename: str):
+    if filename.lower().endswith(".webm"):
+        return "video/webm"
+    if filename.lower().endswith(".mp4"):
+        return "video/mp4"
+    return "application/octet-stream"
+
+
+def enrich_recording_file_info(recording: CameraRecording):
+    file_path = get_recording_file_path(recording)
+
+    recording.file_exists = file_path.exists()
+    recording.file_size_bytes = file_path.stat().st_size if file_path.exists() else 0
+    recording.file_size_mb = round(recording.file_size_bytes / (1024 * 1024), 2)
+
+    recording.is_webm = recording.filename.lower().endswith(".webm")
+    recording.is_mp4 = recording.filename.lower().endswith(".mp4")
+
+    # Browser playback is official only for our new WebM recordings.
+    recording.is_playable = recording.file_exists and recording.file_size_bytes > 100000 and recording.is_webm
+    recording.is_convertible = recording.file_exists and recording.file_size_bytes > 100000 and recording.is_mp4
+
+    recording.media_type = get_recording_media_type(recording.filename)
+
+    return recording
+
+
 @router.get("/dashboard/camera-monitoring")
 def dashboard_camera_monitoring(
     request: Request,
@@ -56,6 +90,7 @@ def dashboard_camera_monitoring(
         .limit(20)
         .all()
     )
+    recordings = [enrich_recording_file_info(item) for item in recordings]
 
     ai_events = []
     if selected_session:
@@ -96,28 +131,20 @@ def api_camera_stream():
 
 
 @router.post("/dashboard/camera-monitoring/start")
-def dashboard_start_camera(
-    session_id: Optional[int] = Form(None),
-):
+def dashboard_start_camera(session_id: Optional[int] = Form(None)):
     camera_service.start(0)
-
     url = "/dashboard/camera-monitoring"
     if session_id:
         url += f"?session_id={session_id}"
-
     return RedirectResponse(url=url, status_code=303)
 
 
 @router.post("/dashboard/camera-monitoring/stop")
-def dashboard_stop_camera(
-    session_id: Optional[int] = Form(None),
-):
+def dashboard_stop_camera(session_id: Optional[int] = Form(None)):
     camera_service.stop()
-
     url = "/dashboard/camera-monitoring"
     if session_id:
         url += f"?session_id={session_id}"
-
     return RedirectResponse(url=url, status_code=303)
 
 
@@ -144,7 +171,6 @@ def dashboard_start_recording(
     url = "/dashboard/camera-monitoring"
     if session_id:
         url += f"?session_id={session_id}"
-
     return RedirectResponse(url=url, status_code=303)
 
 
@@ -172,7 +198,6 @@ def dashboard_stop_recording(
     url = "/dashboard/camera-monitoring"
     if session_id:
         url += f"?session_id={session_id}"
-
     return RedirectResponse(url=url, status_code=303)
 
 
@@ -199,8 +224,85 @@ def dashboard_log_behavior(
     url = "/dashboard/camera-monitoring"
     if session_id:
         url += f"?session_id={session_id}"
-
     return RedirectResponse(url=url, status_code=303)
+
+
+@router.get("/dashboard/camera-monitoring/recordings/{recording_id}")
+def dashboard_recording_playback(
+    recording_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    recording = db.query(CameraRecording).filter(CameraRecording.id == recording_id).first()
+    recording = enrich_recording_file_info(recording) if recording else None
+
+    return templates.TemplateResponse(
+        request,
+        "camera_monitoring/playback.html",
+        {
+            "request": request,
+            "recording": recording,
+        },
+    )
+
+
+@router.post("/dashboard/camera-monitoring/recordings/{recording_id}/convert-webm")
+def dashboard_convert_recording_to_webm(
+    recording_id: int,
+    db: Session = Depends(get_db),
+):
+    recording = db.query(CameraRecording).filter(CameraRecording.id == recording_id).first()
+
+    if not recording:
+        return RedirectResponse(url="/dashboard/camera-monitoring", status_code=303)
+
+    source_path = get_recording_file_path(recording)
+    result = convert_recording_to_webm(source_path)
+
+    if not result:
+        return RedirectResponse(url=f"/dashboard/camera-monitoring/recordings/{recording_id}", status_code=303)
+
+    new_recording = CameraRecording(
+        session_id=recording.session_id,
+        filename=result["filename"],
+        file_path=f"/static/recordings/{result['filename']}",
+        status="saved",
+        started_at=datetime.utcnow(),
+        stopped_at=datetime.utcnow(),
+        duration_seconds=result.get("duration_seconds"),
+        note=f"Converted from legacy recording: {recording.filename}",
+    )
+
+    db.add(new_recording)
+    db.commit()
+    db.refresh(new_recording)
+
+    return RedirectResponse(
+        url=f"/dashboard/camera-monitoring/recordings/{new_recording.id}",
+        status_code=303,
+    )
+
+
+@router.get("/dashboard/camera-monitoring/recordings/{recording_id}/download")
+def dashboard_recording_download(
+    recording_id: int,
+    db: Session = Depends(get_db),
+):
+    recording = db.query(CameraRecording).filter(CameraRecording.id == recording_id).first()
+
+    if not recording:
+        return {"success": False, "message": "Recording not found."}
+
+    file_path = get_recording_file_path(recording)
+
+    if not file_path.exists():
+        return {"success": False, "message": "Recording file is missing from storage."}
+
+    return FileResponse(
+        path=str(file_path),
+        filename=recording.filename,
+        media_type=get_recording_media_type(recording.filename),
+    )
 
 
 @router.get("/api/camera-monitoring/recordings")

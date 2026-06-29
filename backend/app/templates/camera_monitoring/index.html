@@ -5,16 +5,16 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <p class="eyebrow">Phase 9 Product Camera Monitoring</p>
+        <p class="eyebrow">Phase 9.4 Product Camera Monitoring</p>
         <h1>Camera Monitoring & Video Recording</h1>
-        <p>Live camera stream with OpenCV frame boxes, behavior overlays, and recording inside the system.</p>
+        <p>Live camera stream with OpenCV frame boxes, behavior overlays, and browser-compatible WebM recording.</p>
     </div>
     <a class="btn btn-secondary" href="/dashboard/final-demo">Back Final Demo</a>
 </div>
 
 <div class="product-note">
     <strong>Product Goal:</strong>
-    This page records real classroom video with AI-style frame boxes and behavior overlays. The recording is saved inside the system for later review.
+    New recordings use WebM so teachers can watch videos inside the system and download them when needed.
 </div>
 
 <div class="card">
@@ -54,6 +54,7 @@
         <div class="camera-status-row">
             <span class="camera-status-pill">Camera: {{ "Running" if camera_status.running else "Stopped" }}</span>
             <span class="camera-status-pill">Recording: {{ "Recording" if camera_status.recording else "Not recording" }}</span>
+            <span class="camera-status-pill">Format: WebM / VP8</span>
         </div>
 
         <div class="quick-ai-grid">
@@ -122,7 +123,8 @@
                     <th>Started</th>
                     <th>Stopped</th>
                     <th>Duration</th>
-                    <th>Open</th>
+                    <th>Size</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -135,16 +137,41 @@
                     <td>{{ item.stopped_at.strftime("%Y-%m-%d %H:%M:%S") if item.stopped_at else "-" }}</td>
                     <td>{{ "%.1f"|format(item.duration_seconds) if item.duration_seconds is not none else "-" }}s</td>
                     <td>
-                        {% if item.status == "saved" %}
-                        <a href="{{ item.file_path }}" target="_blank">Open Video</a>
+                        {% if item.file_exists %}
+                            {% if item.is_playable %}
+                                <span class="file-size-good">{{ item.file_size_mb }} MB</span>
+                            {% elif item.is_convertible %}
+                                <span class="file-size-warning">{{ item.file_size_mb }} MB legacy MP4</span>
+                            {% else %}
+                                <span class="file-size-bad">{{ item.file_size_bytes }} bytes</span>
+                            {% endif %}
                         {% else %}
-                        <span class="muted">Recording...</span>
+                            <span class="file-size-bad">missing</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.status == "saved" and item.is_playable %}
+                        <div class="recording-action-links">
+                            <a class="btn btn-primary btn-sm" href="/dashboard/camera-monitoring/recordings/{{ item.id }}">Watch in System</a>
+                            <a class="btn btn-secondary btn-sm" href="/dashboard/camera-monitoring/recordings/{{ item.id }}/download">Download</a>
+                        </div>
+                        {% elif item.status == "saved" and item.is_convertible %}
+                        <div class="recording-action-links">
+                            <form method="post" action="/dashboard/camera-monitoring/recordings/{{ item.id }}/convert-webm">
+                                <button class="btn btn-warning btn-sm" type="submit">Convert to WebM</button>
+                            </form>
+                            <a class="btn btn-secondary btn-sm" href="/dashboard/camera-monitoring/recordings/{{ item.id }}/download">Download</a>
+                        </div>
+                        {% elif item.status == "saved" %}
+                            <span class="file-size-bad">Broken / too small</span>
+                        {% else %}
+                            <span class="muted">Recording...</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="muted">No recordings yet.</td>
+                    <td colspan="8" class="muted">No recordings yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -155,8 +182,7 @@
 <div class="card">
     <h2>Important Product Note</h2>
     <p class="muted">
-        Current version records video with face frame boxes and manual behavior overlays.
-        Next phase will improve behavior detection logic so the system can detect more behavior automatically.
+        New recordings use WebM/VP8 for in-system playback. Old MP4 files may be legacy recordings and can be converted to WebM when possible.
     </p>
 </div>
 {% endblock %}

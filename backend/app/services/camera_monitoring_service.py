@@ -84,10 +84,6 @@ class CameraMonitoringService:
                 frame = self._blank_frame("Camera frame not available")
 
             annotated = self._annotate_frame(frame)
-
-            # Important fix:
-            # Always resize the final annotated frame before streaming and recording.
-            # VideoWriter requires every frame to match exactly the configured size.
             annotated = cv2.resize(annotated, (FRAME_WIDTH, FRAME_HEIGHT))
 
             with self.lock:
@@ -198,15 +194,17 @@ class CameraMonitoringService:
                 "started_at": self.recording_started_at,
             }
 
-        filename = f"camera_session_{session_id or 'none'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+        # Browser-compatible recording format.
+        # WebM + VP8 is much more reliable for in-browser playback than OpenCV mp4v/mp4.
+        filename = f"camera_session_{session_id or 'none'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.webm"
         path = RECORDINGS_DIR / filename
 
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        fourcc = cv2.VideoWriter_fourcc(*"VP80")
         self.video_writer = cv2.VideoWriter(str(path), fourcc, FRAME_FPS, (FRAME_WIDTH, FRAME_HEIGHT))
 
         if not self.video_writer or not self.video_writer.isOpened():
             self.video_writer = None
-            print("ERROR: Could not open VideoWriter.")
+            print("ERROR: Could not open WebM VideoWriter with VP80.")
             return None
 
         self.recording = True
@@ -261,6 +259,7 @@ class CameraMonitoringService:
             "recording_path": str(self.recording_path) if self.recording_path else None,
             "frame_width": FRAME_WIDTH,
             "frame_height": FRAME_HEIGHT,
+            "format": "webm_vp8",
         }
 
     def get_jpeg_bytes(self):
@@ -281,6 +280,58 @@ class CameraMonitoringService:
             frame = self.get_jpeg_bytes()
             yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
             time.sleep(0.05)
+
+
+def convert_recording_to_webm(source_path: Path):
+    if not source_path.exists():
+        return None
+
+    output_path = source_path.with_name(f"converted_{source_path.stem}.webm")
+
+    cap = cv2.VideoCapture(str(source_path))
+    if not cap or not cap.isOpened():
+        return None
+
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if not fps or fps <= 1:
+        fps = FRAME_FPS
+
+    writer = cv2.VideoWriter(
+        str(output_path),
+        cv2.VideoWriter_fourcc(*"VP80"),
+        fps,
+        (FRAME_WIDTH, FRAME_HEIGHT),
+    )
+
+    if not writer or not writer.isOpened():
+        cap.release()
+        return None
+
+    frames = 0
+
+    while True:
+        ok, frame = cap.read()
+        if not ok or frame is None:
+            break
+
+        frame = cv2.resize(frame, (FRAME_WIDTH, FRAME_HEIGHT))
+        writer.write(frame)
+        frames += 1
+
+    cap.release()
+    writer.release()
+
+    if frames <= 0:
+        if output_path.exists():
+            output_path.unlink()
+        return None
+
+    return {
+        "filename": output_path.name,
+        "path": str(output_path),
+        "duration_seconds": frames / fps if fps else None,
+        "frames": frames,
+    }
 
 
 camera_service = CameraMonitoringService()
