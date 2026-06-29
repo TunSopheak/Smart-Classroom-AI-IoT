@@ -6,6 +6,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from app.database.database import SessionLocal
+from app.models.ai_monitoring_event import AIMonitoringEvent
+
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 RECORDINGS_DIR = BACKEND_ROOT / "app" / "static" / "recordings"
@@ -15,6 +18,11 @@ FRAME_WIDTH = 960
 FRAME_HEIGHT = 540
 FRAME_FPS = 20.0
 
+NO_FACE_ATTENTION_SECONDS = 2.5
+NO_FACE_LEAVING_SECONDS = 5.0
+EYES_MISSING_SLEEPING_SECONDS = 4.0
+AUTO_BEHAVIOR_COOLDOWN_SECONDS = 20.0
+
 
 class CameraMonitoringService:
     def __init__(self):
@@ -22,6 +30,7 @@ class CameraMonitoringService:
         self.running = False
         self.thread = None
         self.lock = threading.Lock()
+        self.record_lock = threading.Lock()
 
         self.latest_frame = None
         self.camera_index = 0
@@ -34,8 +43,34 @@ class CameraMonitoringService:
         self.last_behavior = None
         self.last_behavior_time = 0
 
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        self.face_cascade = cv2.CascadeClassifier(cascade_path)
+        self.monitoring_session_id = None
+        self.auto_behavior_enabled = False
+        self.no_face_started_at = None
+        self.eyes_missing_started_at = None
+        self.last_logged_behavior_time = {}
+        self.auto_behavior_events_memory = []
+
+        face_cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        eye_cascade_path = cv2.data.haarcascades + "haarcascade_eye.xml"
+
+        self.face_cascade = cv2.CascadeClassifier(face_cascade_path)
+        self.eye_cascade = cv2.CascadeClassifier(eye_cascade_path)
+
+    def set_session(self, session_id: int | None):
+        self.monitoring_session_id = session_id
+
+    def enable_auto_behavior(self, session_id: int | None = None):
+        self.monitoring_session_id = session_id
+        self.auto_behavior_enabled = True
+        self.no_face_started_at = None
+        self.eyes_missing_started_at = None
+        return self.get_status()
+
+    def disable_auto_behavior(self):
+        self.auto_behavior_enabled = False
+        self.no_face_started_at = None
+        self.eyes_missing_started_at = None
+        return self.get_status()
 
     def start(self, camera_index: int = 0):
         if self.running:
@@ -62,6 +97,7 @@ class CameraMonitoringService:
 
     def stop(self):
         self.stop_recording()
+        self.disable_auto_behavior()
         self.running = False
 
         if self.thread and self.thread.is_alive():
@@ -89,11 +125,12 @@ class CameraMonitoringService:
             with self.lock:
                 self.latest_frame = annotated.copy()
 
-            if self.recording and self.video_writer is not None:
-                try:
-                    self.video_writer.write(annotated)
-                except Exception as exc:
-                    print(f"Recording write error: {exc}")
+            with self.record_lock:
+                if self.recording and self.video_writer is not None:
+                    try:
+                        self.video_writer.write(annotated)
+                    except Exception as exc:
+                        print(f"Recording write error: {exc}")
 
             time.sleep(1 / FRAME_FPS)
 
@@ -114,6 +151,9 @@ class CameraMonitoringService:
             minSize=(60, 60),
         )
 
+        if self.auto_behavior_enabled:
+            self._run_behavior_engine(frame, gray, faces)
+
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         cv2.rectangle(frame, (0, 0), (w, 46), (15, 23, 42), -1)
@@ -126,6 +166,17 @@ class CameraMonitoringService:
             (255, 255, 255),
             2,
         )
+
+        if self.auto_behavior_enabled:
+            cv2.putText(
+                frame,
+                "AUTO BEHAVIOR: ON",
+                (w - 300, 31),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 255, 255),
+                2,
+            )
 
         if len(faces) > 0:
             for idx, (x, y, fw, fh) in enumerate(faces, start=1):
@@ -158,29 +209,136 @@ class CameraMonitoringService:
         if self.last_behavior and time.time() - self.last_behavior_time <= 8:
             label = self.last_behavior.get("event_type", "behavior")
             severity = self.last_behavior.get("severity", "info")
+            source = self.last_behavior.get("source", "manual")
             color = (0, 0, 255) if severity == "high" else (0, 165, 255)
 
             cv2.rectangle(frame, (30, h - 92), (w - 30, h - 25), color, -1)
             cv2.putText(
                 frame,
-                f"Behavior Event: {label} | Severity: {severity}",
+                f"Behavior Event: {label} | Severity: {severity} | {source}",
                 (50, h - 50),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.85,
+                0.78,
                 (255, 255, 255),
                 2,
             )
 
         return frame
 
+    def _run_behavior_engine(self, frame, gray, faces):
+        now = time.time()
+
+        if len(faces) == 0:
+            if self.no_face_started_at is None:
+                self.no_face_started_at = now
+
+            no_face_seconds = now - self.no_face_started_at
+
+            if no_face_seconds >= NO_FACE_ATTENTION_SECONDS:
+                self._log_auto_behavior_event(
+                    event_type="attention_low",
+                    severity="high",
+                    confidence=0.72,
+                    description="Auto behavior engine: no face visible for attention threshold.",
+                )
+
+            if no_face_seconds >= NO_FACE_LEAVING_SECONDS:
+                self._log_auto_behavior_event(
+                    event_type="leaving_seat",
+                    severity="high",
+                    confidence=0.82,
+                    description="Auto behavior engine: student may have left seat because face disappeared.",
+                )
+
+            self.eyes_missing_started_at = None
+            return
+
+        self.no_face_started_at = None
+
+        largest_face = max(faces, key=lambda item: item[2] * item[3])
+        x, y, fw, fh = largest_face
+
+        roi_gray = gray[y:y + fh, x:x + fw]
+        eyes = self.eye_cascade.detectMultiScale(
+            roi_gray,
+            scaleFactor=1.15,
+            minNeighbors=5,
+            minSize=(18, 18),
+        )
+
+        if len(eyes) == 0:
+            if self.eyes_missing_started_at is None:
+                self.eyes_missing_started_at = now
+
+            eyes_missing_seconds = now - self.eyes_missing_started_at
+
+            if eyes_missing_seconds >= EYES_MISSING_SLEEPING_SECONDS:
+                self._log_auto_behavior_event(
+                    event_type="sleeping",
+                    severity="high",
+                    confidence=0.74,
+                    description="Auto behavior engine: face detected but eyes were not detected for sleeping threshold.",
+                )
+        else:
+            self.eyes_missing_started_at = None
+
+    def _log_auto_behavior_event(self, event_type: str, severity: str, confidence: float, description: str):
+        now = time.time()
+        last_time = self.last_logged_behavior_time.get(event_type, 0)
+
+        if now - last_time < AUTO_BEHAVIOR_COOLDOWN_SECONDS:
+            return
+
+        self.last_logged_behavior_time[event_type] = now
+
+        event_memory = {
+            "event_type": event_type,
+            "severity": severity,
+            "confidence": round(confidence, 2),
+            "description": description,
+            "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "session_id": self.monitoring_session_id,
+        }
+
+        self.auto_behavior_events_memory.insert(0, event_memory)
+        self.auto_behavior_events_memory = self.auto_behavior_events_memory[:20]
+
+        self.last_behavior = {
+            "event_type": event_type,
+            "severity": severity,
+            "source": "auto",
+        }
+        self.last_behavior_time = time.time()
+
+        try:
+            db = SessionLocal()
+            event = AIMonitoringEvent(
+                session_id=self.monitoring_session_id,
+                student_id=None,
+                event_type=event_type,
+                severity=severity,
+                confidence=round(confidence, 2),
+                source="camera_auto_behavior_engine",
+                description=description,
+            )
+            db.add(event)
+            db.commit()
+            db.close()
+            print(f"AUTO BEHAVIOR LOGGED: {event_type} | {severity}")
+        except Exception as exc:
+            print(f"Auto behavior DB log failed: {exc}")
+
     def set_behavior_overlay(self, event_type: str, severity: str = "info"):
         self.last_behavior = {
             "event_type": event_type,
             "severity": severity,
+            "source": "manual",
         }
         self.last_behavior_time = time.time()
 
     def start_recording(self, session_id: int | None = None):
+        self.monitoring_session_id = session_id
+
         if not self.running:
             started = self.start(0)
             if not started:
@@ -194,8 +352,6 @@ class CameraMonitoringService:
                 "started_at": self.recording_started_at,
             }
 
-        # Browser-compatible recording format.
-        # WebM + VP8 is much more reliable for in-browser playback than OpenCV mp4v/mp4.
         filename = f"camera_session_{session_id or 'none'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.webm"
         path = RECORDINGS_DIR / filename
 
@@ -218,36 +374,45 @@ class CameraMonitoringService:
             "started_at": self.recording_started_at,
         }
 
+
+
     def stop_recording(self):
-        if not self.recording:
-            return None
+        with self.record_lock:
+            if not self.recording and self.video_writer is None:
+                return None
 
-        stopped_at = datetime.utcnow()
-        duration = None
+            stopped_at = datetime.utcnow()
+            started_at = self.recording_started_at
+            path = self.recording_path
+            filename = path.name if path else None
+            writer = self.video_writer
 
-        if self.recording_started_at:
-            duration = (stopped_at - self.recording_started_at).total_seconds()
-
-        self.recording = False
-
-        if self.video_writer:
-            self.video_writer.release()
+            self.recording = False
             self.video_writer = None
+            self.recording_path = None
+            self.recording_started_at = None
+
+        duration = None
+        if started_at:
+            duration = (stopped_at - started_at).total_seconds()
+
+        if writer:
+            try:
+                writer.release()
+            except Exception as exc:
+                print(f"VideoWriter release warning: {exc}")
 
         result = {
-            "path": str(self.recording_path) if self.recording_path else None,
-            "filename": self.recording_path.name if self.recording_path else None,
-            "started_at": self.recording_started_at,
+            "path": str(path) if path else None,
+            "filename": filename,
+            "started_at": started_at,
             "stopped_at": stopped_at,
             "duration_seconds": duration,
         }
 
-        if self.recording_path and self.recording_path.exists():
-            print(f"Recording saved: {self.recording_path}")
-            print(f"Recording size: {self.recording_path.stat().st_size} bytes")
-
-        self.recording_path = None
-        self.recording_started_at = None
+        if path and path.exists():
+            print(f"Recording saved: {path}")
+            print(f"Recording size: {path.stat().st_size} bytes")
 
         return result
 
@@ -260,6 +425,9 @@ class CameraMonitoringService:
             "frame_width": FRAME_WIDTH,
             "frame_height": FRAME_HEIGHT,
             "format": "webm_vp8",
+            "auto_behavior_enabled": self.auto_behavior_enabled,
+            "monitoring_session_id": self.monitoring_session_id,
+            "recent_auto_behavior_events": self.auto_behavior_events_memory,
         }
 
     def get_jpeg_bytes(self):

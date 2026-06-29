@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.core.timezone import format_cambodia_datetime, format_cambodia_time
 from app.database.database import get_db
 from app.models.ai_monitoring_event import AIMonitoringEvent
 from app.models.camera_recording import CameraRecording
@@ -66,7 +67,6 @@ def enrich_recording_file_info(recording: CameraRecording):
     recording.is_webm = recording.filename.lower().endswith(".webm")
     recording.is_mp4 = recording.filename.lower().endswith(".mp4")
 
-    # Browser playback is official only for our new WebM recordings.
     recording.is_playable = recording.file_exists and recording.file_size_bytes > 100000 and recording.is_webm
     recording.is_convertible = recording.file_exists and recording.file_size_bytes > 100000 and recording.is_mp4
 
@@ -83,6 +83,9 @@ def dashboard_camera_monitoring(
 ):
     sessions = db.query(ClassSession).order_by(ClassSession.start_time.desc()).limit(30).all()
     selected_session = db.query(ClassSession).filter(ClassSession.id == session_id).first() if session_id else get_active_or_latest_session(db)
+
+    if selected_session:
+        camera_service.set_session(selected_session.id)
 
     recordings = (
         db.query(CameraRecording)
@@ -113,6 +116,8 @@ def dashboard_camera_monitoring(
             "recordings": recordings,
             "ai_events": ai_events,
             "behavior_types": BEHAVIOR_TYPES,
+            "format_kh_datetime": format_cambodia_datetime,
+            "format_kh_time": format_cambodia_time,
         },
     )
 
@@ -132,6 +137,7 @@ def api_camera_stream():
 
 @router.post("/dashboard/camera-monitoring/start")
 def dashboard_start_camera(session_id: Optional[int] = Form(None)):
+    camera_service.set_session(session_id)
     camera_service.start(0)
     url = "/dashboard/camera-monitoring"
     if session_id:
@@ -142,6 +148,28 @@ def dashboard_start_camera(session_id: Optional[int] = Form(None)):
 @router.post("/dashboard/camera-monitoring/stop")
 def dashboard_stop_camera(session_id: Optional[int] = Form(None)):
     camera_service.stop()
+    url = "/dashboard/camera-monitoring"
+    if session_id:
+        url += f"?session_id={session_id}"
+    return RedirectResponse(url=url, status_code=303)
+
+
+@router.post("/dashboard/camera-monitoring/behavior-auto/start")
+def dashboard_start_auto_behavior(session_id: Optional[int] = Form(None)):
+    camera_service.enable_auto_behavior(session_id=session_id)
+
+    if not camera_service.running:
+        camera_service.start(0)
+
+    url = "/dashboard/camera-monitoring"
+    if session_id:
+        url += f"?session_id={session_id}"
+    return RedirectResponse(url=url, status_code=303)
+
+
+@router.post("/dashboard/camera-monitoring/behavior-auto/stop")
+def dashboard_stop_auto_behavior(session_id: Optional[int] = Form(None)):
+    camera_service.disable_auto_behavior()
     url = "/dashboard/camera-monitoring"
     if session_id:
         url += f"?session_id={session_id}"
@@ -174,12 +202,19 @@ def dashboard_start_recording(
     return RedirectResponse(url=url, status_code=303)
 
 
+
+
 @router.post("/dashboard/camera-monitoring/record/stop")
 def dashboard_stop_recording(
     session_id: Optional[int] = Form(None),
     db: Session = Depends(get_db),
 ):
-    result = camera_service.stop_recording()
+    result = None
+
+    try:
+        result = camera_service.stop_recording()
+    except Exception as exc:
+        print(f"Safe stop caught recording error: {exc}")
 
     if result and result.get("filename"):
         recording = (
@@ -194,12 +229,29 @@ def dashboard_stop_recording(
             recording.stopped_at = result["stopped_at"]
             recording.duration_seconds = result["duration_seconds"]
             db.commit()
+    else:
+        # Recovery fallback: if stop crashed after file was written,
+        # mark the latest valid recording as saved.
+        latest = (
+            db.query(CameraRecording)
+            .filter(CameraRecording.status == "recording")
+            .order_by(CameraRecording.started_at.desc())
+            .first()
+        )
+
+        if latest:
+            file_path = get_recording_file_path(latest)
+            if file_path.exists() and file_path.stat().st_size > 100000:
+                latest.status = "saved"
+                latest.stopped_at = datetime.utcnow()
+                if latest.started_at:
+                    latest.duration_seconds = (latest.stopped_at - latest.started_at).total_seconds()
+                db.commit()
 
     url = "/dashboard/camera-monitoring"
     if session_id:
         url += f"?session_id={session_id}"
     return RedirectResponse(url=url, status_code=303)
-
 
 @router.post("/dashboard/camera-monitoring/behavior")
 def dashboard_log_behavior(
@@ -227,6 +279,41 @@ def dashboard_log_behavior(
     return RedirectResponse(url=url, status_code=303)
 
 
+
+
+@router.post("/dashboard/camera-monitoring/recordings/fix-stuck")
+def dashboard_fix_stuck_recordings(
+    session_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+):
+    stuck_recordings = (
+        db.query(CameraRecording)
+        .filter(CameraRecording.status == "recording")
+        .order_by(CameraRecording.started_at.desc())
+        .all()
+    )
+
+    fixed_count = 0
+
+    for item in stuck_recordings:
+        file_path = get_recording_file_path(item)
+
+        if file_path.exists() and file_path.stat().st_size > 100000:
+            item.status = "saved"
+            item.stopped_at = datetime.utcnow()
+            if item.started_at:
+                item.duration_seconds = (item.stopped_at - item.started_at).total_seconds()
+            fixed_count += 1
+
+    db.commit()
+    print(f"Fixed stuck recordings: {fixed_count}")
+
+    url = "/dashboard/camera-monitoring"
+    if session_id:
+        url += f"?session_id={session_id}"
+    return RedirectResponse(url=url, status_code=303)
+
+
 @router.get("/dashboard/camera-monitoring/recordings/{recording_id}")
 def dashboard_recording_playback(
     recording_id: int,
@@ -242,6 +329,8 @@ def dashboard_recording_playback(
         {
             "request": request,
             "recording": recording,
+            "format_kh_datetime": format_cambodia_datetime,
+            "format_kh_time": format_cambodia_time,
         },
     )
 

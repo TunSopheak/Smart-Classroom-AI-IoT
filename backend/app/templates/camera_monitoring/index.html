@@ -5,16 +5,16 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <p class="eyebrow">Phase 9.4 Product Camera Monitoring</p>
-        <h1>Camera Monitoring & Video Recording</h1>
-        <p>Live camera stream with OpenCV frame boxes, behavior overlays, and browser-compatible WebM recording.</p>
+        <p class="eyebrow">Phase 10 Behavior Detection Engine</p>
+        <h1>Camera Monitoring & Behavior Detection</h1>
+        <p>Live camera stream, browser-compatible recording, and automatic behavior detection.</p>
     </div>
     <a class="btn btn-secondary" href="/dashboard/final-demo">Back Final Demo</a>
 </div>
 
 <div class="product-note">
     <strong>Product Goal:</strong>
-    New recordings use WebM so teachers can watch videos inside the system and download them when needed.
+    The system can now automatically detect basic behavior signals such as attention low, leaving seat, and sleeping using camera heuristics.
 </div>
 
 <div class="card">
@@ -55,6 +55,8 @@
             <span class="camera-status-pill">Camera: {{ "Running" if camera_status.running else "Stopped" }}</span>
             <span class="camera-status-pill">Recording: {{ "Recording" if camera_status.recording else "Not recording" }}</span>
             <span class="camera-status-pill">Format: WebM / VP8</span>
+            <span class="camera-status-pill">Time: Asia/Phnom_Penh</span>
+            <span class="camera-status-pill">Auto Behavior: {{ "ON" if camera_status.auto_behavior_enabled else "OFF" }}</span>
         </div>
 
         <div class="quick-ai-grid">
@@ -81,8 +83,30 @@
     </div>
 
     <div class="card">
-        <h2>Behavior Marking</h2>
-        <p class="muted">These behavior labels appear as overlays on the live stream and recorded video.</p>
+        <h2>Behavior Engine</h2>
+        <p class="muted">Automatic detection is rule-based for this product version.</p>
+
+        <div class="quick-ai-grid">
+            <form method="post" action="/dashboard/camera-monitoring/behavior-auto/start">
+                <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
+                <button class="btn btn-primary" type="submit">Start Auto Behavior</button>
+            </form>
+
+            <form method="post" action="/dashboard/camera-monitoring/behavior-auto/stop">
+                <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
+                <button class="btn btn-danger" type="submit">Stop Auto Behavior</button>
+            </form>
+        </div>
+
+        <div class="behavior-engine-rules">
+            <div>✅ No face 2.5s → attention_low</div>
+            <div>✅ No face 5s → leaving_seat</div>
+            <div>✅ Face but no eyes 4s → sleeping</div>
+            <div>🟡 phone_usage → manual now, YOLO later</div>
+        </div>
+
+        <h2>Manual Behavior Marking</h2>
+        <p class="muted">Manual labels still appear as overlays and are saved to AI Monitoring.</p>
 
         <div class="behavior-grid">
             {% for item in behavior_types %}
@@ -101,7 +125,8 @@
             <div class="mini-event">
                 <strong>{{ event.event_type }}</strong>
                 <span>{{ event.severity }}</span>
-                <small>{{ event.created_at.strftime("%H:%M:%S") if event.created_at else "-" }}</small>
+                <small>{{ event.source }}</small>
+                <small>{{ format_kh_time(event.created_at) }}</small>
             </div>
             {% else %}
             <p class="muted">No behavior events yet.</p>
@@ -111,7 +136,13 @@
 </div>
 
 <div class="card">
-    <h2>Recording History</h2>
+    <div class="section-title-row">
+        <h2>Recording History</h2>
+        <form method="post" action="/dashboard/camera-monitoring/recordings/fix-stuck">
+            <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
+            <button class="btn btn-warning btn-sm" type="submit">Fix Stuck Recordings</button>
+        </form>
+    </div>
 
     <div class="table-responsive">
         <table class="data-table">
@@ -133,8 +164,8 @@
                     <td>{{ item.filename }}</td>
                     <td>{{ item.session_id or "-" }}</td>
                     <td><span class="camera-status-pill">{{ item.status }}</span></td>
-                    <td>{{ item.started_at.strftime("%Y-%m-%d %H:%M:%S") if item.started_at else "-" }}</td>
-                    <td>{{ item.stopped_at.strftime("%Y-%m-%d %H:%M:%S") if item.stopped_at else "-" }}</td>
+                    <td>{{ format_kh_datetime(item.started_at) }}</td>
+                    <td>{{ format_kh_datetime(item.stopped_at) }}</td>
                     <td>{{ "%.1f"|format(item.duration_seconds) if item.duration_seconds is not none else "-" }}s</td>
                     <td>
                         {% if item.file_exists %}
@@ -182,7 +213,8 @@
 <div class="card">
     <h2>Important Product Note</h2>
     <p class="muted">
-        New recordings use WebM/VP8 for in-system playback. Old MP4 files may be legacy recordings and can be converted to WebM when possible.
+        Phase 10 uses rule-based computer vision heuristics. It is suitable for demo/product prototype.
+        For stronger phone detection and advanced behavior recognition, the next upgrade can connect YOLO or MediaPipe.
     </p>
 </div>
 {% endblock %}

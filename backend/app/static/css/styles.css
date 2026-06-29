@@ -1136,3 +1136,26 @@ label {
 .recording-action-links form {
     display: inline-block;
 }
+
+
+/* Phase 10 Behavior Detection Engine */
+.behavior-engine-rules {
+    display: grid;
+    gap: 0.55rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    padding: 1rem;
+    margin: 1rem 0;
+    font-weight: 700;
+}
+
+
+/* Phase 10.1 Safe Recording Stop */
+.section-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
