@@ -75,3 +75,8 @@ app.include_router(phase8_demo_router)
 # Phase 9 Camera Monitoring routes
 from app.routers.camera_monitoring_router import router as phase9_camera_monitoring_router
 app.include_router(phase9_camera_monitoring_router)
+
+
+# Phase 11 Product Settings and Health routes
+from app.routers.product_router import router as phase11_product_router
+app.include_router(phase11_product_router)

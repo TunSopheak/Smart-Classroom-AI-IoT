@@ -278,3 +278,14 @@ Final demo page:
 ```text
 http://127.0.0.1:8000/dashboard/final-demo
 ```
+
+
+## Phase 11 Product Settings and System Health
+
+Product pages:
+
+- http://127.0.0.1:8000/dashboard/product-settings
+- http://127.0.0.1:8000/dashboard/system-health
+- http://127.0.0.1:8000/api/system-health
+
+This phase adds product-level settings, health checks, and product readiness verification.

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Product Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Phase 11 Product Settings</p>
+        <h1>Product Settings</h1>
+        <p>Configure the product identity, camera defaults, behavior thresholds, and privacy note.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard/system-health">System Health</a>
+</div>
+
+<div class="product-note">
+    <strong>Product Goal:</strong>
+    A real classroom product should have configurable settings instead of hardcoded values only.
+</div>
+
+{% if request.query_params.get("saved") %}
+<div class="success-note">
+    ✅ Settings saved successfully.
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>General Product Settings</h2>
+
+    <form method="post" action="/dashboard/product-settings" class="settings-form">
+        <div class="settings-grid">
+            <div>
+                <label>Product Name</label>
+                <input class="form-control" name="product_name" value="{{ settings.product_name }}" required>
+            </div>
+
+            <div>
+                <label>School / Institution</label>
+                <input class="form-control" name="school_name" value="{{ settings.school_name }}" required>
+            </div>
+
+            <div>
+                <label>Timezone</label>
+                <input class="form-control" name="timezone" value="{{ settings.timezone }}" required>
+            </div>
+
+            <div>
+                <label>Camera Index</label>
+                <input class="form-control" type="number" name="camera_index" value="{{ settings.camera_index }}" min="0">
+            </div>
+
+            <div>
+                <label>Recording Format</label>
+                <select class="form-control" name="recording_format">
+                    <option value="webm_vp8" {% if settings.recording_format == "webm_vp8" %}selected{% endif %}>WebM / VP8</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Auto Behavior Default</label>
+                <div class="checkbox-line">
+                    <input type="checkbox" name="auto_behavior_default" {% if settings.auto_behavior_default %}checked{% endif %}>
+                    <span>Enable auto behavior when camera starts</span>
+                </div>
+            </div>
+        </div>
+
+        <h2>Behavior Detection Thresholds</h2>
+
+        <div class="settings-grid">
+            <div>
+                <label>Attention Low Seconds</label>
+                <input class="form-control" type="number" step="0.1" name="attention_low_seconds" value="{{ settings.attention_low_seconds }}">
+            </div>
+
+            <div>
+                <label>Leaving Seat Seconds</label>
+                <input class="form-control" type="number" step="0.1" name="leaving_seat_seconds" value="{{ settings.leaving_seat_seconds }}">
+            </div>
+
+            <div>
+                <label>Sleeping Seconds</label>
+                <input class="form-control" type="number" step="0.1" name="sleeping_seconds" value="{{ settings.sleeping_seconds }}">
+            </div>
+
+            <div>
+                <label>Behavior Cooldown Seconds</label>
+                <input class="form-control" type="number" step="0.1" name="behavior_cooldown_seconds" value="{{ settings.behavior_cooldown_seconds }}">
+            </div>
+        </div>
+
+        <h2>Privacy Note</h2>
+        <textarea class="form-control settings-textarea" name="privacy_note">{{ settings.privacy_note }}</textarea>
+
+        <div class="settings-actions">
+            <button class="btn btn-primary" type="submit">Save Settings</button>
+            <a class="btn btn-secondary" href="/dashboard/camera-monitoring">Camera Monitoring</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Current Storage Policy</h2>
+    <pre class="code-block">{{ settings.recording_storage_note }}</pre>
+</div>
+{% endblock %}

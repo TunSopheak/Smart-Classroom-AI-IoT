@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}System Health{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Phase 11 System Health</p>
+        <h1>System Health & Product Readiness</h1>
+        <p>Check whether important product modules are ready for teacher demo and classroom use.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard/product-settings">Product Settings</a>
+</div>
+
+<div class="product-note">
+    <strong>Product Health:</strong>
+    This page helps verify database, OpenCV, recording storage, camera service, routes, and product readiness.
+</div>
+
+<div class="health-grid">
+    {% for item in health_checks %}
+    <div class="health-card health-{{ item.status }}">
+        <h3>{{ item.name }}</h3>
+        <strong>{{ item.status|upper }}</strong>
+        <p>{{ item.message }}</p>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <h2>Product Readiness Checklist</h2>
+
+    <div class="readiness-grid">
+        {% for item in readiness_items %}
+        <div class="readiness-item">
+            <span>{% if item.ready %}✅{% else %}❌{% endif %}</span>
+            <strong>{{ item.label }}</strong>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Important Product Pages</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Module</th>
+                    <th>Status</th>
+                    <th>URL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in route_checks %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td><span class="file-size-good">{{ item.status }}</span></td>
+                    <td><a href="{{ item.message }}">{{ item.message }}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Current Product Settings</h2>
+
+    <div class="settings-summary-grid">
+        <div>
+            <span>Product</span>
+            <strong>{{ settings.product_name }}</strong>
+        </div>
+        <div>
+            <span>Institution</span>
+            <strong>{{ settings.school_name }}</strong>
+        </div>
+        <div>
+            <span>Timezone</span>
+            <strong>{{ settings.timezone }}</strong>
+        </div>
+        <div>
+            <span>Recording</span>
+            <strong>{{ settings.recording_format }}</strong>
+        </div>
+        <div>
+            <span>Camera Index</span>
+            <strong>{{ settings.camera_index }}</strong>
+        </div>
+        <div>
+            <span>Auto Behavior Default</span>
+            <strong>{{ settings.auto_behavior_default }}</strong>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>API Health Endpoint</h2>
+    <pre class="code-block">GET /api/system-health</pre>
+</div>
+{% endblock %}

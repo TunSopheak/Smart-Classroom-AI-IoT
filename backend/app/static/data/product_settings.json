@@ -1,0 +1,14 @@
+{
+  "product_name": "Smart Classroom AI Monitoring",
+  "school_name": "RUPP",
+  "timezone": "Asia/Phnom_Penh",
+  "camera_index": 0,
+  "recording_format": "webm_vp8",
+  "auto_behavior_default": false,
+  "attention_low_seconds": 2.5,
+  "leaving_seat_seconds": 5.0,
+  "sleeping_seconds": 4.0,
+  "behavior_cooldown_seconds": 20.0,
+  "recording_storage_note": "Recordings are saved locally inside backend/app/static/recordings.",
+  "privacy_note": "Use volunteer/demo faces only during project demonstration."
+}
