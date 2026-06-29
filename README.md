@@ -289,3 +289,16 @@ Product pages:
 - http://127.0.0.1:8000/api/system-health
 
 This phase adds product-level settings, health checks, and product readiness verification.
+
+
+## Phase 12 Storage, Privacy and Admin Management
+
+Product pages:
+
+```text
+http://127.0.0.1:8000/dashboard/admin/storage
+http://127.0.0.1:8000/dashboard/privacy
+http://127.0.0.1:8000/api/admin/storage
+```
+
+This phase adds admin recording management, cleanup tools, storage summary, and privacy policy pages.

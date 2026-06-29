@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Phase 12 Privacy Management</p>
+        <h1>Storage & Privacy Policy</h1>
+        <p>Explain how the system handles face data, attendance records, behavior events, and camera recordings.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard/admin/storage">Admin Storage</a>
+</div>
+
+<div class="product-note">
+    <strong>Product Principle:</strong>
+    Smart classroom monitoring should be useful for teachers, but it must also be careful with privacy and consent.
+</div>
+
+<div class="privacy-grid">
+    <div class="card">
+        <h2>Data Stored by System</h2>
+        <ul class="demo-check-list">
+            <li>Student identity and QR code information</li>
+            <li>Attendance records per class session</li>
+            <li>QR and FACE attendance event logs</li>
+            <li>AI behavior monitoring events</li>
+            <li>IoT sensor readings and automation logs</li>
+            <li>Camera recordings saved in local storage</li>
+            <li>Face dataset metadata for recognition training</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Privacy Rules</h2>
+        <ul class="demo-check-list">
+            <li>Use volunteer/demo faces only during project demonstration</li>
+            <li>Do not publish raw classroom recordings without permission</li>
+            <li>Recordings are stored locally and are ignored by Git</li>
+            <li>Teachers/admins can delete recordings from the system</li>
+            <li>Event logs are for review and accountability</li>
+            <li>Future product version should include user roles and login protection</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Recording Retention Policy</h2>
+    <p>
+        For a school product, recordings should not be kept forever. The admin should review and delete old recordings after they are no longer needed.
+    </p>
+
+    <div class="admin-action-row">
+        <a class="btn btn-primary" href="/dashboard/admin/storage">Manage Recordings</a>
+        <a class="btn btn-secondary" href="/dashboard/system-health">System Health</a>
+    </div>
+</div>
+
+<div class="danger-note">
+    <strong>Important:</strong>
+    This project is a prototype. For real deployment, the school should define clear consent, access control, retention period, and data protection policy.
+</div>
+{% endblock %}

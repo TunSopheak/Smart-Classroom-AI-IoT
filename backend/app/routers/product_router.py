@@ -101,6 +101,8 @@ def check_required_pages() -> list[dict]:
         ("Final Demo", "/dashboard/final-demo"),
         ("Product Settings", "/dashboard/product-settings"),
         ("System Health", "/dashboard/system-health"),
+        ("Admin Storage", "/dashboard/admin/storage"),
+        ("Privacy", "/dashboard/privacy"),
     ]
 
     return [
@@ -182,6 +184,7 @@ def system_health_page(request: Request):
         {"label": "Reports and CSV export", "ready": True},
         {"label": "Final demo and defense package", "ready": True},
         {"label": "Product settings and health checks", "ready": True},
+        {"label": "Storage and privacy admin management", "ready": True},
     ]
 
     return templates.TemplateResponse(

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Storage{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Phase 12 Storage Management</p>
+        <h1>Admin Storage Management</h1>
+        <p>Manage classroom monitoring recordings, storage usage, broken files, and legacy video formats.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard/privacy">Privacy Policy</a>
+</div>
+
+<div class="product-note">
+    <strong>Product Goal:</strong>
+    A real product must allow admins to manage camera recordings, clean broken files, and protect privacy-sensitive data.
+</div>
+
+{% if message %}
+<div class="success-note">
+    ✅ {{ message }}
+</div>
+{% endif %}
+
+<div class="health-grid">
+    <div class="health-card health-ok">
+        <h3>Total Recordings</h3>
+        <strong>{{ summary.total_recordings }}</strong>
+        <p>All recording records in the system.</p>
+    </div>
+
+    <div class="health-card health-ok">
+        <h3>Total Storage</h3>
+        <strong>{{ summary.total_size }}</strong>
+        <p>Used by saved recordings.</p>
+    </div>
+
+    <div class="health-card health-ok">
+        <h3>Playable WebM</h3>
+        <strong>{{ summary.playable_count }}</strong>
+        <p>Videos ready to watch inside system.</p>
+    </div>
+
+    <div class="health-card {% if summary.broken_count > 0 or summary.stuck_count > 0 %}health-error{% else %}health-ok{% endif %}">
+        <h3>Needs Attention</h3>
+        <strong>{{ summary.broken_count + summary.stuck_count }}</strong>
+        <p>{{ summary.broken_count }} broken, {{ summary.stuck_count }} stuck.</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="section-title-row">
+        <h2>Admin Maintenance Actions</h2>
+    </div>
+
+    <div class="admin-action-row">
+        <form method="post" action="/dashboard/admin/recordings/fix-stuck">
+            <button class="btn btn-warning" type="submit">Fix Stuck Recordings</button>
+        </form>
+
+        <form method="post" action="/dashboard/admin/recordings/clean-broken" onsubmit="return confirm('Clean broken or too-small recordings?')">
+            <button class="btn btn-danger" type="submit">Clean Broken Recordings</button>
+        </form>
+
+        <form method="post" action="/dashboard/admin/recordings/delete-legacy-mp4" onsubmit="return confirm('Delete all legacy MP4 recordings? Make sure converted WebM copies already exist.')">
+            <button class="btn btn-danger" type="submit">Delete Legacy MP4</button>
+        </form>
+
+        <a class="btn btn-secondary" href="/api/admin/storage" target="_blank">Open Storage API</a>
+    </div>
+
+    <p class="muted">Storage path: <code>{{ summary.storage_path }}</code></p>
+</div>
+
+<div class="card">
+    <h2>Recording Records</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Session</th>
+                    <th>Status</th>
+                    <th>Started</th>
+                    <th>Stopped</th>
+                    <th>Duration</th>
+                    <th>Size</th>
+                    <th>Type</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in recordings %}
+                <tr>
+                    <td>{{ item.filename }}</td>
+                    <td>{{ item.session_id or "-" }}</td>
+                    <td><span class="camera-status-pill">{{ item.status }}</span></td>
+                    <td>{{ format_kh_datetime(item.started_at) }}</td>
+                    <td>{{ format_kh_datetime(item.stopped_at) }}</td>
+                    <td>{{ "%.1f"|format(item.duration_seconds) if item.duration_seconds is not none else "-" }}s</td>
+                    <td>
+                        {% if item.is_playable %}
+                        <span class="file-size-good">{{ item.size }}</span>
+                        {% elif item.is_legacy %}
+                        <span class="file-size-warning">{{ item.size }}</span>
+                        {% elif item.is_broken %}
+                        <span class="file-size-bad">{{ item.size }}</span>
+                        {% else %}
+                        <span class="camera-status-pill">{{ item.size }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.is_playable %}
+                        <span class="file-size-good">Playable WebM</span>
+                        {% elif item.is_legacy %}
+                        <span class="file-size-warning">Legacy MP4</span>
+                        {% elif item.is_broken %}
+                        <span class="file-size-bad">Broken / Missing</span>
+                        {% else %}
+                        <span class="camera-status-pill">Recording</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="recording-action-links">
+                            {% if item.is_playable %}
+                            <a class="btn btn-primary btn-sm" href="/dashboard/camera-monitoring/recordings/{{ item.id }}">Watch</a>
+                            <a class="btn btn-secondary btn-sm" href="/dashboard/camera-monitoring/recordings/{{ item.id }}/download">Download</a>
+                            {% endif %}
+
+                            {% if item.is_legacy %}
+                            <form method="post" action="/dashboard/camera-monitoring/recordings/{{ item.id }}/convert-webm">
+                                <button class="btn btn-warning btn-sm" type="submit">Convert</button>
+                            </form>
+                            <a class="btn btn-secondary btn-sm" href="/dashboard/camera-monitoring/recordings/{{ item.id }}/download">Download</a>
+                            {% endif %}
+
+                            <form method="post" action="/dashboard/admin/recordings/{{ item.id }}/delete" onsubmit="return confirm('Delete this recording from system?')">
+                                <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="muted">No recordings yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="danger-note">
+    <strong>Privacy Warning:</strong>
+    Camera recordings may contain faces and classroom behavior. Do not upload recordings publicly unless all participants agreed.
+</div>
+{% endblock %}

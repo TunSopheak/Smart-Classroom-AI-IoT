@@ -1278,3 +1278,34 @@ label {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Phase 12 Storage Privacy Admin */
+.admin-action-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.danger-note {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #7f1d1d;
+    border-radius: 1rem;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+}
+
+.privacy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 900px) {
+    .privacy-grid {
+        grid-template-columns: 1fr;
+    }
+}
