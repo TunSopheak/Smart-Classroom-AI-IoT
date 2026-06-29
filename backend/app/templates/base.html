@@ -9,21 +9,44 @@
 <body>
     <aside class="sidebar">
         <div class="brand">Smart Classroom</div>
-        <nav>
-            <a href="/dashboard">Dashboard</a>
-            <a href="/dashboard/students">Students</a>
-            <a href="/dashboard/sessions">Sessions</a>
-            <a href="/docs">API Docs</a>
-            <a href="/dashboard/ai-monitoring">AI Monitoring</a>
+        
+<nav class="sidebar-nav">
+    <a href="/dashboard">Dashboard</a>
+
+    {% if request.state.current_user and request.state.current_user.role in ["admin", "teacher"] %}
+    <a href="/dashboard/students">Students</a>
+    <a href="/dashboard/sessions">Sessions</a>
+    {% endif %}
+
+    <a href="/docs">API Docs</a>
+
+    {% if request.state.current_user and request.state.current_user.role in ["admin", "teacher"] %}
+    <a href="/dashboard/ai-monitoring">AI Monitoring</a>
     <a href="/dashboard/camera-monitoring">Camera Monitoring</a>
     <a href="/dashboard/iot-monitoring">IoT Monitoring</a>
     <a href="/dashboard/reports">Reports</a>
+    {% endif %}
+
     <a href="/dashboard/final-demo">Final Demo</a>
+
+    {% if request.state.current_user and request.state.current_user.role == "admin" %}
     <a href="/dashboard/product-settings">Product Settings</a>
     <a href="/dashboard/system-health">System Health</a>
     <a href="/dashboard/admin/storage">Admin Storage</a>
+    {% endif %}
+
     <a href="/dashboard/privacy">Privacy</a>
+
+    {% if request.state.current_user %}
+    <div class="sidebar-user-card">
+        <span>Signed in as</span>
+        <strong>{{ request.state.current_user.display_name }}</strong>
+        <small>{{ request.state.current_user.role }}</small>
+        <a href="/logout">Logout</a>
+    </div>
+    {% endif %}
 </nav>
+
     </aside>
 
     <main class="content">

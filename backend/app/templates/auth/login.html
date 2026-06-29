@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Smart Classroom</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background:
+                radial-gradient(circle at top left, #dbeafe, transparent 30%),
+                linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #2563eb 100%);
+            display: grid;
+            place-items: center;
+            color: #0f172a;
+        }
+
+        .login-shell {
+            width: min(1000px, 94vw);
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 30px 90px rgba(15, 23, 42, 0.35);
+        }
+
+        .login-info {
+            padding: 3rem;
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        .login-info .eyebrow {
+            color: #93c5fd;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-weight: 800;
+            font-size: 0.8rem;
+        }
+
+        .login-info h1 {
+            font-size: 2.6rem;
+            line-height: 1.05;
+            margin: 0.5rem 0 1rem;
+        }
+
+        .login-info p {
+            color: #cbd5e1;
+            line-height: 1.65;
+        }
+
+        .feature-list {
+            margin-top: 2rem;
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .feature-list div {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            padding: 0.7rem 1rem;
+        }
+
+        .login-form-wrap {
+            padding: 3rem;
+            display: grid;
+            align-content: center;
+        }
+
+        .login-form-wrap h2 {
+            font-size: 2rem;
+            margin: 0 0 0.25rem;
+        }
+
+        .muted {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            display: grid;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        label {
+            font-weight: 800;
+            color: #334155;
+        }
+
+        input {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            font-size: 1rem;
+        }
+
+        button {
+            width: 100%;
+            border: none;
+            border-radius: 14px;
+            padding: 0.95rem 1.1rem;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+
+        .demo-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 16px;
+            padding: 1rem;
+            margin-top: 1.25rem;
+            color: #1e3a8a;
+            line-height: 1.55;
+        }
+
+        .error-box {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            border-radius: 14px;
+            padding: 0.8rem 1rem;
+            margin-bottom: 1rem;
+            font-weight: 800;
+        }
+
+        @media (max-width: 800px) {
+            .login-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .login-info,
+            .login-form-wrap {
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="login-shell">
+        <section class="login-info">
+            <p class="eyebrow">Phase 13 Authentication</p>
+            <h1>Smart Classroom AI Monitoring</h1>
+            <p>
+                Login protects sensitive classroom pages such as camera recordings,
+                reports, admin storage, student identity, and system settings.
+            </p>
+
+            <div class="feature-list">
+                <div>✅ Role-based access</div>
+                <div>✅ Admin / Teacher / Viewer demo accounts</div>
+                <div>✅ Product-ready privacy protection foundation</div>
+            </div>
+        </section>
+
+        <section class="login-form-wrap">
+            <h2>Sign in</h2>
+            <p class="muted">Use a demo account for project presentation.</p>
+
+            {% if error %}
+            <div class="error-box">{{ error }}</div>
+            {% endif %}
+
+            <form method="post" action="/login">
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <div class="form-group">
+                    <label>Username</label>
+                    <input name="username" placeholder="admin" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input name="password" type="password" placeholder="admin123" required>
+                </div>
+
+                <button type="submit">Login</button>
+            </form>
+
+            <div class="demo-box">
+                <strong>Demo accounts</strong><br>
+                Admin: admin / admin123<br>
+                Teacher: teacher / teacher123<br>
+                Viewer: viewer / viewer123
+            </div>
+        </section>
+    </main>
+</body>
+</html>

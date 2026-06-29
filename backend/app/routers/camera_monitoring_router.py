@@ -372,6 +372,29 @@ def dashboard_convert_recording_to_webm(
     )
 
 
+
+
+@router.get("/dashboard/camera-monitoring/recordings/{recording_id}/stream")
+def dashboard_recording_stream(
+    recording_id: int,
+    db: Session = Depends(get_db),
+):
+    recording = db.query(CameraRecording).filter(CameraRecording.id == recording_id).first()
+
+    if not recording:
+        return {"success": False, "message": "Recording not found."}
+
+    file_path = get_recording_file_path(recording)
+
+    if not file_path.exists():
+        return {"success": False, "message": "Recording file is missing from storage."}
+
+    return FileResponse(
+        path=str(file_path),
+        media_type=get_recording_media_type(recording.filename),
+    )
+
+
 @router.get("/dashboard/camera-monitoring/recordings/{recording_id}/download")
 def dashboard_recording_download(
     recording_id: int,

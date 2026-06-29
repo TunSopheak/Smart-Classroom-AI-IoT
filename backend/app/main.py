@@ -85,3 +85,95 @@ app.include_router(phase11_product_router)
 # Phase 12 Storage, Privacy and Admin Management routes
 from app.routers.admin_router import router as phase12_admin_router
 app.include_router(phase12_admin_router)
+
+
+# Phase 13 Authentication and Role-Based Access
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from app.core.auth import (
+    get_current_user_from_request,
+    is_protected_path,
+    is_public_path,
+    user_can_access_path,
+)
+from app.routers.auth_router import router as phase13_auth_router
+
+app.include_router(phase13_auth_router)
+
+
+@app.middleware("http")
+async def phase13_auth_middleware(request, call_next):
+    path = request.url.path
+
+    current_user = get_current_user_from_request(request)
+    request.state.current_user = current_user
+
+    if is_public_path(path):
+        return await call_next(request)
+
+    if is_protected_path(path):
+        if not current_user:
+            if path.startswith("/api"):
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "success": False,
+                        "message": "Authentication required.",
+                    },
+                )
+
+            login_url = f"/login?next={path}"
+            return RedirectResponse(url=login_url, status_code=303)
+
+        if not user_can_access_path(current_user, path):
+            if path.startswith("/api"):
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "success": False,
+                        "message": "You do not have permission to access this resource.",
+                    },
+                )
+
+            return HTMLResponse(
+                content=f'''
+                <html>
+                    <head>
+                        <title>Access Denied</title>
+                        <style>
+                            body {{
+                                font-family: Arial, sans-serif;
+                                background: #f8fafc;
+                                display: grid;
+                                place-items: center;
+                                min-height: 100vh;
+                                margin: 0;
+                                color: #0f172a;
+                            }}
+                            .box {{
+                                max-width: 560px;
+                                background: white;
+                                border-radius: 24px;
+                                padding: 2rem;
+                                box-shadow: 0 18px 60px rgba(15, 23, 42, 0.16);
+                            }}
+                            a {{
+                                color: #2563eb;
+                                font-weight: 800;
+                            }}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="box">
+                            <h1>403 - Access Denied</h1>
+                            <p>Your role does not have permission to open this page.</p>
+                            <p><strong>Current role:</strong> {current_user.get("role")}</p>
+                            <a href="/dashboard">Back Dashboard</a> ·
+                            <a href="/logout">Logout</a>
+                        </div>
+                    </body>
+                </html>
+                ''',
+                status_code=403,
+            )
+
+    return await call_next(request)

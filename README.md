@@ -302,3 +302,22 @@ http://127.0.0.1:8000/api/admin/storage
 ```
 
 This phase adds admin recording management, cleanup tools, storage summary, and privacy policy pages.
+
+
+## Phase 13 Authentication and Role-Based Access
+
+Demo login:
+
+```text
+http://127.0.0.1:8000/login
+```
+
+Demo accounts:
+
+```text
+admin / admin123
+teacher / teacher123
+viewer / viewer123
+```
+
+This phase adds login, logout, role-based page protection, and authenticated recording playback.

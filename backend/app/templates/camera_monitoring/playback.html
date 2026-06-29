@@ -24,7 +24,7 @@
     {% if recording.is_playable %}
     <div class="recording-player-wrap">
         <video class="recording-player" controls preload="metadata">
-            <source src="{{ recording.file_path }}" type="{{ recording.media_type }}">
+            <source src="/dashboard/camera-monitoring/recordings/{{ recording.id }}/stream" type="{{ recording.media_type }}">
             Your browser does not support video playback.
         </video>
     </div>
@@ -79,7 +79,7 @@
 
     <div class="quick-ai-grid">
         {% if recording.is_playable %}
-        <a class="btn btn-primary" href="{{ recording.file_path }}" target="_blank">Open Raw Video</a>
+        <a class="btn btn-primary" href="/dashboard/camera-monitoring/recordings/{{ recording.id }}/stream" target="_blank">Open Raw Video</a>
         {% endif %}
         <a class="btn btn-secondary" href="/dashboard/camera-monitoring/recordings/{{ recording.id }}/download">Download Video</a>
         <a class="btn btn-primary" href="/dashboard/camera-monitoring?session_id={{ recording.session_id }}">Record New Video</a>

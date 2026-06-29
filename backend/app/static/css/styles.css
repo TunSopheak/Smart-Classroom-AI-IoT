@@ -1309,3 +1309,31 @@ label {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Phase 13 Authentication */
+.sidebar-user-card {
+    margin-top: 1.25rem;
+    padding: 0.85rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e5e7eb;
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.sidebar-user-card span,
+.sidebar-user-card small {
+    color: #93a4b8;
+}
+
+.sidebar-user-card strong {
+    color: #ffffff;
+}
+
+.sidebar-user-card a {
+    color: #bfdbfe;
+    font-weight: 800;
+    margin-top: 0.35rem;
+}
