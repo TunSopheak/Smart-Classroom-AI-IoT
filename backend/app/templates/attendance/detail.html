@@ -5,6 +5,10 @@
         <p class="eyebrow">Session Attendance Review</p>
         <h1>{{ session.title }}</h1>
         <p class="muted">Review attendance records, correct statuses, and inspect scan/face audit events for this session.</p>
+        <div class="session-chip-row">
+            <span class="event-badge">{{ session.class_group.code if session.class_group else (session.classroom.code if session.classroom else "Class") }}</span>
+            <span class="event-badge">{{ session.course.code if session.course else (session.subject.code if session.subject else "Course") }}</span>
+        </div>
     </div>
 
     <div class="action-row">

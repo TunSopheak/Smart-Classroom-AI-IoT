@@ -33,19 +33,25 @@
     <p class="muted">Student code will be generated automatically. Existing/manual codes are still supported when needed.</p>
     <div class="student-form-grid">
         <div>
-            <label>Student code (optional)</label>
-            <input name="stu_id" placeholder="Auto, e.g. S006">
-        </div>
-        <div>
             <label>Student name</label>
             <input name="name" placeholder="Student Name" required>
         </div>
         <div>
             <label>Gender</label>
-            <input name="gender" placeholder="Optional">
+            <select name="gender" required>
+        <option value="M">Male</option>
+        <option value="F">Female</option>
+        <option value="Other">Other</option>
+        <option value="Not specified">Not specified</option>
+    </select>
         </div>
         <button type="submit">Add Student</button>
     </div>
+    <details class="advanced-controls">
+        <summary>Advanced: manual student code override</summary>
+        <label>Student code (optional)</label>
+        <input name="stu_id" placeholder="Auto-generated, e.g. S006">
+    </details>
     <p class="small-text">Students should belong to class groups. Full class-group enrollment is planned for the next data-architecture phase.</p>
 </form>
 

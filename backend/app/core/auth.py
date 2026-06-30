@@ -96,6 +96,7 @@ TEACHER_OR_ADMIN_PREFIXES = (
     "/dashboard/face-training",
     "/dashboard/face-recognition-live",
     "/dashboard/students",
+    "/dashboard/class-setup",
     "/dashboard/sessions",
     "/dashboard/ai-monitoring",
     "/dashboard/camera-monitoring",

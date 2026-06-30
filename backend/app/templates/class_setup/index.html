@@ -1,0 +1,630 @@
+{% extends "base.html" %}
+{% block title %}Class Setup
+
+<section class="card lifecycle-management-card">
+    <div class="section-title-row">
+        <div>
+            <h2>Lifecycle Management</h2>
+            <p class="muted">Edit or deactivate academic setup data safely. Existing history is preserved for reports.</p>
+        </div>
+    </div>
+
+    {% if request.query_params.get("message") %}
+    <div class="success-note compact-note">{{ request.query_params.get("message") }}</div>
+    {% endif %}
+
+    <div class="lifecycle-grid">
+        <div class="lifecycle-panel">
+            <h3>Class Groups</h3>
+            {% for group in class_groups|default([]) %}
+            <form method="post" action="/dashboard/class-setup/class-groups/{{ group.id }}/update" class="lifecycle-row">
+                <input name="code" value="{{ group.code }}">
+                <input name="name" value="{{ group.name }}" required>
+                <input name="academic_year" value="{{ group.academic_year or '' }}" placeholder="Academic year">
+                <input name="description" value="{{ group.description or '' }}" placeholder="Description">
+                <button class="btn btn-primary btn-sm" type="submit">Save</button>
+            </form>
+            <form method="post" action="/dashboard/class-setup/class-groups/{{ group.id }}/deactivate" class="lifecycle-danger-form">
+                <button class="btn btn-secondary btn-sm" type="submit">Deactivate {{ group.code }}</button>
+            </form>
+            {% else %}
+            <p class="muted">No class groups yet.</p>
+            {% endfor %}
+        </div>
+
+        <div class="lifecycle-panel">
+            <h3>Courses</h3>
+            {% for course in courses|default([]) %}
+            <form method="post" action="/dashboard/class-setup/courses/{{ course.id }}/update" class="lifecycle-row">
+                <input name="code" value="{{ course.code }}">
+                <input name="name" value="{{ course.name }}" required>
+                <input name="description" value="{{ course.description or '' }}" placeholder="Description">
+                <button class="btn btn-primary btn-sm" type="submit">Save</button>
+            </form>
+            <form method="post" action="/dashboard/class-setup/courses/{{ course.id }}/deactivate" class="lifecycle-danger-form">
+                <button class="btn btn-secondary btn-sm" type="submit">Deactivate {{ course.code }}</button>
+            </form>
+            {% else %}
+            <p class="muted">No courses yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="lifecycle-panel lifecycle-schedules">
+        <h3>Weekly Schedules</h3>
+
+        {% set schedule_list = weekly_schedules|default(schedules|default([])) %}
+
+        {% for schedule in schedule_list %}
+        <form method="post" action="/dashboard/class-setup/schedules/{{ schedule.id }}/update" class="lifecycle-schedule-row">
+            <select name="class_group_id" required>
+                {% for group in class_groups|default([]) %}
+                <option value="{{ group.id }}" {% if group.id == schedule.class_group_id %}selected{% endif %}>
+                    {{ group.code }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <select name="course_id" required>
+                {% for course in courses|default([]) %}
+                <option value="{{ course.id }}" {% if course.id == schedule.course_id %}selected{% endif %}>
+                    {{ course.code }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <select name="weekday">
+                {% for value, label in [(0, "Monday"), (1, "Tuesday"), (2, "Wednesday"), (3, "Thursday"), (4, "Friday"), (5, "Saturday"), (6, "Sunday")] %}
+                <option value="{{ value }}" {% if value == schedule.weekday %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+
+            <input name="start_time" value="{{ schedule.start_time }}" required>
+            <input name="end_time" value="{{ schedule.end_time }}" required>
+            <input name="late_after_minutes" type="number" min="0" value="{{ schedule.late_after_minutes or 15 }}">
+            <input name="location" value="{{ schedule.location or '' }}" placeholder="Location">
+
+            <button class="btn btn-primary btn-sm" type="submit">Save</button>
+        </form>
+
+        <form method="post" action="/dashboard/class-setup/schedules/{{ schedule.id }}/deactivate" class="lifecycle-danger-form">
+            <button class="btn btn-secondary btn-sm" type="submit">Deactivate Schedule</button>
+        </form>
+        {% else %}
+        <p class="muted">No weekly schedules yet.</p>
+        {% endfor %}
+    </div>
+</section>
+
+{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Academic Setup</p>
+        <h1>Class Setup</h1>
+        <p class="muted">Manage class groups, courses, student enrollment, and weekly schedule foundations.</p>
+    </div>
+    <a class="button secondary-button" href="/dashboard/sessions">Open Sessions</a>
+</section>
+
+{% if message %}
+<section class="alert">{{ message }}</section>
+{% endif %}
+
+<section class="class-setup-grid">
+    <div class="card">
+        <div class="section-title-row">
+            <h2>Class Groups</h2>
+            <span class="muted">{{ class_groups|length }} total</span>
+        </div>
+        <form class="compact-form" method="post" action="/dashboard/class-setup/class-groups">
+            <input name="code" placeholder="CS-M4-Y3-G27">
+            <input name="name" placeholder="Computer Science M4 Year 3 Generation 27" required>
+            <input name="academic_year" placeholder="2025-2026">
+            <input name="description" placeholder="Description">
+            <button type="submit">Add Class Group</button>
+        <p class="muted small-note">Class code is auto-generated if left empty. Example: CS-M4-Y3-G27 = Computer Science, M4, Year 3, Generation 27.</p>
+</form>
+        <div class="table-responsive">
+            <table class="data-table compact-table">
+                <thead><tr><th>Code</th><th>Name</th><th>Year</th><th>Status</th></tr></thead>
+                <tbody>
+                {% for item in class_groups %}
+                <tr>
+                    <td><strong class="compact-name">{{ item.code }}</strong></td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.academic_year or "-" }}</td>
+                    <td><span class="badge-soft {% if item.active %}active-badge{% else %}closed-badge{% endif %}">{{ "Active" if item.active else "Inactive" }}</span></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-title-row">
+            <h2>Courses</h2>
+            <span class="muted">{{ courses|length }} total</span>
+        </div>
+        <form class="compact-form" method="post" action="/dashboard/class-setup/courses">
+            <input name="code" placeholder="Auto-generate, e.g. IOT301">
+            <input name="name" placeholder="IoT Project" required>
+            <input name="description" placeholder="Description">
+            <button type="submit">Add Course</button>
+        <p class="muted small-note">Course code is auto-generated if left empty. Example: IOT301.</p>
+</form>
+        <div class="table-responsive">
+            <table class="data-table compact-table">
+                <thead><tr><th>Code</th><th>Name</th><th>Status</th></tr></thead>
+                <tbody>
+                {% for item in courses %}
+                <tr>
+                    <td><span class="event-badge">{{ item.code }}</span></td>
+                    <td>{{ item.name }}</td>
+                    <td><span class="badge-soft {% if item.active %}active-badge{% else %}closed-badge{% endif %}">{{ "Active" if item.active else "Inactive" }}</span></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+
+
+<section class="card student-enrollment-manager-card">
+    <div class="section-title-row">
+        <div>
+            <p class="eyebrow">Student Lifecycle</p>
+            <h2>Add Student & Class Enrollment</h2>
+            <p class="muted">
+                Student identity stays permanent. Class enrollment can be changed when a student moves class.
+            </p>
+        </div>
+    </div>
+
+    <div class="student-lifecycle-grid">
+        <div class="student-lifecycle-panel">
+            <h3>Add Student to Class</h3>
+            <form method="post" action="/dashboard/class-setup/students/create-and-enroll" class="student-lifecycle-form">
+                <label>
+                    <span>Student name</span>
+                    <input name="name" placeholder="Student full name" required>
+                </label>
+
+                <label>
+                    <span>Gender</span>
+                    <select name="gender" required>
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                        <option value="Other">Other</option>
+                        <option value="Not specified">Not specified</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Class group</span>
+                    <select name="class_group_id" required>
+                        {% for group in class_groups|default([]) %}
+                        {% if group.active %}
+                        <option value="{{ group.id }}" {% if selected_group and selected_group.id == group.id %}selected{% endif %}>
+                            {{ group.code }} - {{ group.name }}
+                        </option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <details class="advanced-inline">
+                    <summary>Advanced: manual student code</summary>
+                    <label>
+                        <span>Student code override</span>
+                        <input name="student_code" placeholder="Leave empty for auto, e.g. S007">
+                    </label>
+                </details>
+
+                <button class="btn btn-primary" type="submit">Add & Enroll</button>
+            </form>
+        </div>
+
+        <div class="student-lifecycle-panel">
+            <h3>Move Student to Another Class</h3>
+            <form method="post" action="/dashboard/class-setup/enrollment/move-student" class="student-lifecycle-form">
+                <label>
+                    <span>Student</span>
+                    <select name="student_id" required>
+                        {% for student in all_students|default([]) %}
+                        {% if student.active is not defined or student.active %}
+                        <option value="{{ student.id }}">
+                            {{ student.stu_id if student.stu_id is defined else student.id }} - {{ student.name }}
+                        </option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label>
+                    <span>Move to class</span>
+                    <select name="target_class_group_id" required>
+                        {% for group in class_groups|default([]) %}
+                        {% if group.active %}
+                        <option value="{{ group.id }}" {% if selected_group and selected_group.id == group.id %}selected{% endif %}>
+                            {{ group.code }} - {{ group.name }}
+                        </option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <div class="safe-note">
+                    Moving class deactivates the old enrollment but keeps student attendance and history.
+                </div>
+
+                <button class="btn btn-secondary" type="submit">Move Class</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <div class="section-title-row">
+        <div>
+            <h2>Student Enrollment</h2>
+            <p class="muted">Activate or remove students from a class group without deleting student records.</p>
+        </div>
+        {% if selected_group %}<span class="event-badge">{{ selected_group.code }}</span>{% endif %}
+    </div>
+
+    <form class="compact-form inline-selector" method="get" action="/dashboard/class-setup">
+        <select name="selected_group_id">
+            {% for group in class_groups %}
+            <option value="{{ group.id }}" {% if selected_group and selected_group.id == group.id %}selected{% endif %}>{{ group.code }} - {{ group.name }}</option>
+            {% endfor %}
+        </select>
+        <button class="secondary-button" type="submit">View Group</button>
+    </form>
+
+    {% if selected_group %}
+    <div class="class-setup-grid">
+        <div>
+            <h3>Enrolled Students</h3>
+            <div class="table-responsive">
+                <table class="data-table compact-table">
+                    <thead><tr><th>Code</th><th>Name</th><th>Action</th></tr></thead>
+                    <tbody>
+                    {% for student in enrolled_students %}
+                    <tr>
+                        <td><strong class="student-code">{{ student.stu_id }}</strong></td>
+                        <td>{{ student.name }}</td>
+                        <td>
+                            <form method="post" action="/dashboard/class-setup/enrollments/{{ student.id }}/deactivate">
+                                <input type="hidden" name="class_group_id" value="{{ selected_group.id }}">
+                                <button class="secondary-button small-button" type="submit">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="muted">No enrolled students.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div>
+            <h3>Unenrolled Active Students</h3>
+            <div class="table-responsive">
+                <table class="data-table compact-table">
+                    <thead><tr><th>Code</th><th>Name</th><th>Action</th></tr></thead>
+                    <tbody>
+                    {% for student in unenrolled_students %}
+                    <tr>
+                        <td><strong class="student-code">{{ student.stu_id }}</strong></td>
+                        <td>{{ student.name }}</td>
+                        <td>
+                            <form method="post" action="/dashboard/class-setup/enroll">
+                                <input type="hidden" name="class_group_id" value="{{ selected_group.id }}">
+                                <input type="hidden" name="student_id" value="{{ student.id }}">
+                                <button class="small-button" type="submit">Enroll</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="muted">All active students are enrolled.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+<section class="card">
+    <div class="section-title-row">
+        <div>
+            <h2>Weekly Schedule</h2>
+            <p class="muted">Recurring class time used to preview and create live sessions manually.</p>
+        </div>
+    </div>
+
+    <form class="schedule-form-grid" method="post" action="/dashboard/class-setup/schedules">
+        <select name="class_group_id" required>
+            {% for group in class_groups %}
+            <option value="{{ group.id }}">{{ group.code }} - {{ group.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="course_id" required>
+            {% for course in courses %}
+            <option value="{{ course.id }}">{{ course.code }} - {{ course.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="weekday" required>
+            {% for label in weekday_labels %}
+            <option value="{{ loop.index0 }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+        <input name="start_time" type="time" value="06:00" required>
+        <input name="end_time" type="time" value="08:00" required>
+        <input name="late_after_minutes" type="number" min="0" value="15" required>
+        <input name="location" placeholder="Smart Classroom Lab">
+        <button type="submit">Add Schedule</button>
+    </form>
+
+    <div class="table-responsive">
+        <table class="data-table compact-table">
+            <thead><tr><th>Class</th><th>Course</th><th>Day</th><th>Time</th><th>Late</th><th>Location</th><th>Status</th></tr></thead>
+            <tbody>
+            {% for item in schedules %}
+            <tr>
+                <td><strong class="compact-name">{{ item.class_group.code }}</strong></td>
+                <td><span class="event-badge">{{ item.course.code }}</span></td>
+                <td>{{ weekday_labels[item.weekday] }}</td>
+                <td>{{ item.start_time }} - {{ item.end_time }}</td>
+                <td>{{ item.late_after_minutes }} min</td>
+                <td>{{ item.location or "-" }}</td>
+                <td><span class="badge-soft {% if item.active %}active-badge{% else %}closed-badge{% endif %}">{{ "Active" if item.active else "Inactive" }}</span></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+
+
+<section id="scheduleManager" class="card schedule-manager-card">
+    <div class="section-title-row schedule-manager-header">
+        <div>
+            <p class="eyebrow">Schedule Control</p>
+            <h2>Weekly Schedule Manager</h2>
+            <p class="muted">
+                Manage class timetable safely. Same class cannot have overlapping schedules on the same day.
+            </p>
+        </div>
+        <a class="btn btn-secondary btn-sm" href="/dashboard/sessions">Open Sessions</a>
+    </div>
+
+    <div class="schedule-rule-note">
+        <strong>Conflict rule:</strong>
+        Same class + same day + overlapping time is blocked. Updates affect future sessions only; existing sessions keep their history.
+    </div>
+
+    {% if request.query_params.get("message") %}
+    <div class="success-note compact-note">{{ request.query_params.get("message") }}</div>
+    {% endif %}
+
+    <form method="post" action="/dashboard/class-setup/schedules/manage-create" class="schedule-manager-form">
+        <label>
+            <span>Class</span>
+            <select name="class_group_id" required>
+                {% for group in class_groups|default([]) %}
+                {% if group.active %}
+                <option value="{{ group.id }}" {% if selected_group and selected_group.id == group.id %}selected{% endif %}>
+                    {{ group.code }} - {{ group.name }}
+                </option>
+                {% endif %}
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            <span>Course</span>
+            <select name="course_id" required>
+                {% for course in courses|default([]) %}
+                {% if course.active %}
+                <option value="{{ course.id }}">{{ course.code }} - {{ course.name }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            <span>Day</span>
+            <select name="weekday" required>
+                <option value="0">Monday</option>
+                <option value="1">Tuesday</option>
+                <option value="2">Wednesday</option>
+                <option value="3">Thursday</option>
+                <option value="4">Friday</option>
+                <option value="5">Saturday</option>
+                <option value="6">Sunday</option>
+            </select>
+        </label>
+
+        <label>
+            <span>Start</span>
+            <input type="time" name="start_time" value="06:00" required>
+        </label>
+
+        <label>
+            <span>End</span>
+            <input type="time" name="end_time" value="08:00" required>
+        </label>
+
+        <label>
+            <span>Late after</span>
+            <input type="number" min="0" name="late_after_minutes" value="15" required>
+        </label>
+
+        <label>
+            <span>Location</span>
+            <input name="location" value="Smart Classroom Lab" placeholder="Room / Lab">
+        </label>
+
+        <button class="btn btn-primary" type="submit">Add Schedule</button>
+    </form>
+
+    {% set schedule_list = weekly_schedules|default(schedules|default([])) %}
+
+    <div class="schedule-manager-list">
+        {% for schedule in schedule_list %}
+        <article class="schedule-item {% if not schedule.active %}is-inactive{% endif %}">
+            <div class="schedule-main">
+                <div class="schedule-code">
+                    <strong>
+                        {{ schedule.class_group.code if schedule.class_group else schedule.class_group_id }}
+                    </strong>
+                    <span class="badge">{{ schedule.course.code if schedule.course else schedule.course_id }}</span>
+                </div>
+
+                <div class="schedule-time">
+                    <strong>
+                        {% if schedule.weekday == 0 %}Monday{% elif schedule.weekday == 1 %}Tuesday{% elif schedule.weekday == 2 %}Wednesday{% elif schedule.weekday == 3 %}Thursday{% elif schedule.weekday == 4 %}Friday{% elif schedule.weekday == 5 %}Saturday{% else %}Sunday{% endif %}
+                    </strong>
+                    <span>{{ schedule.start_time }} - {{ schedule.end_time }}</span>
+                </div>
+
+                <div class="schedule-location">
+                    <span>{{ schedule.location or "No location" }}</span>
+                    <small>Late after {{ schedule.late_after_minutes or 15 }} min</small>
+                </div>
+
+                <div class="schedule-status">
+                    {% if schedule.active %}
+                    <span class="badge success-badge">Active</span>
+                    {% else %}
+                    <span class="badge muted-badge">Inactive</span>
+                    {% endif %}
+                </div>
+
+                <div class="schedule-actions">
+                    <details class="inline-edit-details">
+                        <summary class="btn btn-secondary btn-sm">Edit</summary>
+
+                        <form method="post" action="/dashboard/class-setup/schedules/{{ schedule.id }}/update" class="schedule-edit-form">
+                            <label>
+                                <span>Class</span>
+                                <select name="class_group_id" required>
+                                    {% for group in class_groups|default([]) %}
+                                    <option value="{{ group.id }}" {% if group.id == schedule.class_group_id %}selected{% endif %}>
+                                        {{ group.code }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+
+                            <label>
+                                <span>Course</span>
+                                <select name="course_id" required>
+                                    {% for course in courses|default([]) %}
+                                    <option value="{{ course.id }}" {% if course.id == schedule.course_id %}selected{% endif %}>
+                                        {{ course.code }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+
+                            <label>
+                                <span>Day</span>
+                                <select name="weekday">
+                                    <option value="0" {% if schedule.weekday == 0 %}selected{% endif %}>Monday</option>
+                                    <option value="1" {% if schedule.weekday == 1 %}selected{% endif %}>Tuesday</option>
+                                    <option value="2" {% if schedule.weekday == 2 %}selected{% endif %}>Wednesday</option>
+                                    <option value="3" {% if schedule.weekday == 3 %}selected{% endif %}>Thursday</option>
+                                    <option value="4" {% if schedule.weekday == 4 %}selected{% endif %}>Friday</option>
+                                    <option value="5" {% if schedule.weekday == 5 %}selected{% endif %}>Saturday</option>
+                                    <option value="6" {% if schedule.weekday == 6 %}selected{% endif %}>Sunday</option>
+                                </select>
+                            </label>
+
+                            <label>
+                                <span>Start</span>
+                                <input type="time" name="start_time" value="{{ schedule.start_time }}" required>
+                            </label>
+
+                            <label>
+                                <span>End</span>
+                                <input type="time" name="end_time" value="{{ schedule.end_time }}" required>
+                            </label>
+
+                            <label>
+                                <span>Late</span>
+                                <input type="number" min="0" name="late_after_minutes" value="{{ schedule.late_after_minutes or 15 }}">
+                            </label>
+
+                            <label>
+                                <span>Location</span>
+                                <input name="location" value="{{ schedule.location or '' }}">
+                            </label>
+
+                            <button class="btn btn-primary btn-sm" type="submit">Save Changes</button>
+                        </form>
+                    </details>
+
+                    {% if schedule.active %}
+                    <form method="post" action="/dashboard/class-setup/schedules/{{ schedule.id }}/deactivate">
+                        <button class="btn btn-secondary btn-sm" type="submit">Deactivate</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="/dashboard/class-setup/schedules/{{ schedule.id }}/reactivate">
+                        <button class="btn btn-primary btn-sm" type="submit">Reactivate</button>
+                    </form>
+                    {% endif %}
+
+                    <form method="post" action="/dashboard/class-setup/schedules/{{ schedule.id }}/safe-delete"
+                          onsubmit="return confirm('Safe delete this schedule? If it has session history, it will be deactivated instead.');">
+                        <button class="btn btn-danger btn-sm" type="submit">Safe Delete</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+        {% else %}
+        <div class="empty-state">
+            <strong>No schedule yet.</strong>
+            <p>Add a schedule above to create reusable class timetable.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card">
+    <div class="section-title-row">
+        <div>
+            <h2>Auto Sessions from Weekly Schedule</h2>
+            <p class="muted">Preview today’s matching weekly schedules and create a live session manually. Nothing is created silently.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table compact-table">
+            <thead><tr><th>Class</th><th>Course</th><th>Time</th><th>Action</th></tr></thead>
+            <tbody>
+            {% for item in todays_schedules %}
+            <tr>
+                <td><strong class="compact-name">{{ item.class_group.code }}</strong></td>
+                <td><span class="event-badge">{{ item.course.code }}</span></td>
+                <td>{{ item.start_time }} - {{ item.end_time }}</td>
+                <td>
+                    <form method="post" action="/dashboard/class-setup/schedules/{{ item.id }}/create-today">
+                        <button class="small-button" type="submit">Create Today's Session</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="muted">No weekly schedules match today.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

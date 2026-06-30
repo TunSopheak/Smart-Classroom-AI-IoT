@@ -21,5 +21,6 @@ class Student(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     enrollments = relationship("Enrollment", back_populates="student", cascade="all, delete-orphan")
+    class_group_enrollments = relationship("StudentEnrollment", back_populates="student", cascade="all, delete-orphan")
     attendance_records = relationship("AttendanceRecord", back_populates="student")
     attendance_events = relationship("AttendanceEvent", back_populates="student")

@@ -41,6 +41,8 @@
     {% if selected_session %}
     <p class="muted">
         Selected: <strong>#{{ selected_session.id }} - {{ selected_session.title }}</strong>
+        · {{ selected_session.class_group.code if selected_session.class_group else (selected_session.classroom.code if selected_session.classroom else "Class") }}
+        · {{ selected_session.course.code if selected_session.course else (selected_session.subject.code if selected_session.subject else "Course") }}
     </p>
     {% else %}
     <p class="muted">No session selected.</p>

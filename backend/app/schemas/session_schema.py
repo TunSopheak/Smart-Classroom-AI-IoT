@@ -5,6 +5,9 @@ from pydantic import BaseModel, ConfigDict, model_validator
 class ClassSessionBase(BaseModel):
     classroom_id: int
     subject_id: int
+    class_group_id: int | None = None
+    course_id: int | None = None
+    weekly_schedule_id: int | None = None
     title: str
     start_time: datetime
     late_time: datetime

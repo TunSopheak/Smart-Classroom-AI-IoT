@@ -15,8 +15,8 @@
         <p class="eyebrow">Today's Active Session</p>
         <h2>{{ active_session.title }}</h2>
         <div class="session-chip-row">
-            <span class="event-badge">{{ active_session.classroom.code if active_session.classroom else "Class Group" }}</span>
-            <span class="event-badge">{{ active_session.subject.code if active_session.subject else "Course" }}</span>
+            <span class="event-badge">{{ active_session.class_group.code if active_session.class_group else (active_session.classroom.code if active_session.classroom else "Class Group") }}</span>
+            <span class="event-badge">{{ active_session.course.code if active_session.course else (active_session.subject.code if active_session.subject else "Course") }}</span>
             <span class="badge-soft active-badge no-wrap">Active</span>
         </div>
         <div class="session-time-row">
@@ -46,18 +46,18 @@
     <div class="session-form-grid session-form-grid-polished">
         <div>
             <label>Class Group</label>
-            {% if classes|length == 1 %}
-                {% set c = classes[0] %}
-                <input type="hidden" name="classroom_id" value="{{ c.id }}">
+            {% if class_groups|length == 1 %}
+                {% set c = class_groups[0] %}
+                <input type="hidden" name="class_group_id" value="{{ c.id }}">
                 <div class="readonly-chip-card">
                     <span>Selected</span>
                     <strong>{{ c.code }}</strong>
-                    <small>{{ c.name }}{% if c.section %} / {{ c.section }}{% endif %}</small>
+                    <small>{{ c.name }}{% if c.academic_year %} / {{ c.academic_year }}{% endif %}</small>
                 </div>
             {% else %}
-                <select name="classroom_id" required>
-                    {% for c in classes %}
-                    <option value="{{ c.id }}">{{ c.code }} - {{ c.name }}{% if c.section %} / {{ c.section }}{% endif %}</option>
+                <select name="class_group_id" required>
+                    {% for c in class_groups %}
+                    <option value="{{ c.id }}">{{ c.code }} - {{ c.name }}</option>
                     {% endfor %}
                 </select>
             {% endif %}
@@ -65,17 +65,17 @@
 
         <div>
             <label>Course</label>
-            {% if subjects|length == 1 %}
-                {% set s = subjects[0] %}
-                <input type="hidden" name="subject_id" value="{{ s.id }}">
+            {% if courses|length == 1 %}
+                {% set s = courses[0] %}
+                <input type="hidden" name="course_id" value="{{ s.id }}">
                 <div class="readonly-chip-card">
                     <span>Selected</span>
                     <strong>{{ s.code }}</strong>
                     <small>{{ s.name }}</small>
                 </div>
             {% else %}
-                <select name="subject_id" required>
-                    {% for s in subjects %}
+                <select name="course_id" required>
+                    {% for s in courses %}
                     <option value="{{ s.id }}">{{ s.code }} - {{ s.name }}</option>
                     {% endfor %}
                 </select>
@@ -147,12 +147,12 @@
                 <tr class="{% if session.active %}active-row{% endif %}">
                     <td><span class="small-text">#{{ session.id }}</span></td>
                     <td>
-                        <strong class="compact-name">{{ session.classroom.code if session.classroom else "-" }}</strong>
-                        <span class="small-text">{{ session.classroom.name if session.classroom else "" }}</span>
+                        <strong class="compact-name">{{ session.class_group.code if session.class_group else (session.classroom.code if session.classroom else "-") }}</strong>
+                        <span class="small-text">{{ session.class_group.name if session.class_group else (session.classroom.name if session.classroom else "") }}</span>
                     </td>
                     <td>
-                        <span class="event-badge no-wrap">{{ session.subject.code if session.subject else "-" }}</span>
-                        <span class="small-text">{{ session.subject.name if session.subject else "" }}</span>
+                        <span class="event-badge no-wrap">{{ session.course.code if session.course else (session.subject.code if session.subject else "-") }}</span>
+                        <span class="small-text">{{ session.course.name if session.course else (session.subject.name if session.subject else "") }}</span>
                     </td>
                     <td><strong class="compact-name">{{ session.title }}</strong></td>
                     <td class="session-time-cell">
@@ -179,6 +179,8 @@
                                 <a class="button secondary-button small-button" href="/dashboard/sessions/{{ session.id }}/attendance">Attendance Review</a>
                                 <a class="button secondary-button small-button" href="/dashboard/reports?session_id={{ session.id }}">Reports</a>
                                 <form action="/dashboard/sessions/create" method="post">
+                                    {% if session.class_group_id %}<input type="hidden" name="class_group_id" value="{{ session.class_group_id }}">{% endif %}
+                                    {% if session.course_id %}<input type="hidden" name="course_id" value="{{ session.course_id }}">{% endif %}
                                     <input type="hidden" name="classroom_id" value="{{ session.classroom_id }}">
                                     <input type="hidden" name="subject_id" value="{{ session.subject_id }}">
                                     <input type="hidden" name="title" value="{{ session.title }}">
@@ -202,4 +204,52 @@
     <summary>Future Schedule Automation</summary>
     <p class="muted">In the full product, sessions should be generated from weekly schedules: Class Groups → Courses → Weekly Schedule → Auto Sessions.</p>
 </details>
+
+
+<section class="card lifecycle-management-card">
+    <div class="section-title-row">
+        <div>
+            <h2>Session Lifecycle</h2>
+            <p class="muted">Archive closed sessions to hide them from daily lists while preserving attendance/report history.</p>
+        </div>
+    </div>
+
+    {% if request.query_params.get("message") %}
+    <div class="success-note compact-note">{{ request.query_params.get("message") }}</div>
+    {% endif %}
+
+    <div class="table-responsive">
+        <table class="data-table compact-data-table">
+            <thead>
+                <tr>
+                    <th>Session</th>
+                    <th>Status</th>
+                    <th>Archive</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in sessions|default([]) %}
+                {% if not session.active and not session.archived %}
+                <tr>
+                    <td>
+                        <strong>#{{ session.id }} - {{ session.title }}</strong>
+                    </td>
+                    <td><span class="badge muted-badge">Closed</span></td>
+                    <td>
+                        <form method="post" action="/dashboard/sessions/{{ session.id }}/archive">
+                            <button class="btn btn-secondary btn-sm" type="submit">Archive</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endif %}
+                {% else %}
+                <tr>
+                    <td colspan="3" class="muted">No closed sessions available for archiving.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
 {% endblock %}

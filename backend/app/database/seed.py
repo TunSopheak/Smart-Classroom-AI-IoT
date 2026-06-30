@@ -13,12 +13,14 @@ from app.models.student import Student
 from app.models.subject import Subject
 from app.models.teacher import Teacher
 from app.models.user import User
+from app.services.academic_service import seed_academic_demo_data
 
 
 def seed_demo_data() -> None:
     db = SessionLocal()
     try:
         if db.query(User).first():
+            seed_academic_demo_data(db)
             return
 
         admin = User(
@@ -41,8 +43,8 @@ def seed_demo_data() -> None:
         db.flush()
 
         classroom = Classroom(
-            code="M4-Y3-G1",
-            name="M4 Year 3 Group 1",
+            code="CS-M4-Y3-G27",
+            name="Computer Science M4 Year 3 Generation 27",
             section="Group 1",
             shift="Evening",
             room="IoT Lab",
@@ -99,5 +101,6 @@ def seed_demo_data() -> None:
             )
 
         db.commit()
+        seed_academic_demo_data(db)
     finally:
         db.close()

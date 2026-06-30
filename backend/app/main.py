@@ -5,6 +5,7 @@ from pathlib import Path
 from app.core.config import settings
 from app.database.base import Base
 from app.database.database import engine
+from app.database.migrations import ensure_phase_16_2_schema
 from app.database.seed import seed_demo_data
 import app.models  # noqa: F401
 from app.routers import (
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
         # Development-friendly table creation.
         # Later, replace with Alembic migrations when the schema becomes stable.
         Base.metadata.create_all(bind=engine)
+        ensure_phase_16_2_schema()
         seed_demo_data()
 
     @app.get("/health", tags=["System"])
@@ -153,3 +155,22 @@ async def phase13_auth_middleware(request, call_next):
 # Phase 14 Product AI and Attendance Integration Center
 from app.routers.product_integration_router import router as phase14_product_integration_router
 app.include_router(phase14_product_integration_router)
+
+
+# Phase 16.2 Class Groups, Courses and Weekly Schedule
+from app.routers.class_setup_router import router as phase16_class_setup_router
+app.include_router(phase16_class_setup_router)
+
+
+# Phase 16.2.2 migration bootstrap
+try:
+    from app.database.database import engine
+    from app.database.migrations import ensure_session_archived_column
+    ensure_session_archived_column(engine)
+except Exception as migration_error:
+    print("Phase 16.2.2 migration warning:", migration_error)
+
+
+# Phase 16.2.2 Academic lifecycle routes
+from app.routers.academic_lifecycle_router import router as academic_lifecycle_router
+app.include_router(academic_lifecycle_router)

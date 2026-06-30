@@ -3387,6 +3387,49 @@ video {
 }
 
 
+/* Phase 16.2 Class Setup */
+.class-setup-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.compact-form,
+.schedule-form-grid {
+    display: grid;
+    gap: 10px;
+    margin: 12px 0 16px;
+}
+
+.compact-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.schedule-form-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.inline-selector {
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: 560px;
+}
+
+.class-setup-grid h3 {
+    margin: 6px 0 10px;
+    font-size: 16px !important;
+}
+
+@media (max-width: 900px) {
+    .class-setup-grid,
+    .compact-form,
+    .schedule-form-grid,
+    .inline-selector {
+        grid-template-columns: 1fr;
+    }
+}
+
+
 /* Phase 15.3 Global UI Consistency + Responsive Polish */
 :root {
     --brand-navy: #102033;
@@ -4242,5 +4285,926 @@ body:has([href="/dashboard/reports"].active) .data-table h3 {
     table td,
     table th {
         font-size: 0.86rem !important;
+    }
+}
+
+
+/* Phase 16.2.1 academic auto code polish */
+.small-note {
+    margin-top: 0.55rem;
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
+.code-meaning-note {
+    padding: 0.75rem 0.9rem;
+    border: 1px solid #dbeafe;
+    border-radius: 14px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+
+/* Phase 16.2.2 lifecycle management UI */
+.lifecycle-management-card {
+    margin-top: 1rem;
+}
+
+.lifecycle-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.lifecycle-panel {
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 1rem;
+    background: #f8fafc;
+    min-width: 0;
+}
+
+.lifecycle-panel h3 {
+    margin-bottom: 0.85rem;
+    font-size: 1rem !important;
+}
+
+.lifecycle-row,
+.lifecycle-schedule-row {
+    display: grid;
+    gap: 0.55rem;
+    margin-bottom: 0.55rem;
+}
+
+.lifecycle-row {
+    grid-template-columns: 0.85fr 1.35fr 0.85fr 1.1fr auto;
+}
+
+.lifecycle-schedule-row {
+    grid-template-columns: 1fr 0.8fr 0.95fr 0.75fr 0.75fr 0.6fr 1fr auto;
+}
+
+.lifecycle-row input,
+.lifecycle-row select,
+.lifecycle-schedule-row input,
+.lifecycle-schedule-row select {
+    min-width: 0;
+    height: 38px;
+    font-size: 0.88rem !important;
+}
+
+.lifecycle-danger-form {
+    margin: 0 0 0.9rem;
+}
+
+.compact-note {
+    margin: 0.75rem 0 1rem;
+    padding: 0.75rem 0.9rem !important;
+}
+
+.muted-badge {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+}
+
+.compact-data-table td,
+.compact-data-table th {
+    font-size: 0.88rem !important;
+}
+
+@media (max-width: 1200px) {
+    .lifecycle-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .lifecycle-row,
+    .lifecycle-schedule-row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .lifecycle-row,
+    .lifecycle-schedule-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* Phase 16.2.2 Camera Legacy UI Compact Fix */
+
+/* JS adds this class when URL is /dashboard/camera-monitoring */
+body.page-camera-monitoring main,
+body.page-camera-monitoring .main-content,
+body.page-camera-monitoring .page-content {
+    max-width: 1240px;
+}
+
+/* Make legacy camera page clearly secondary */
+body.page-camera-monitoring .page-header h1,
+body.page-camera-monitoring main h1,
+body.page-camera-monitoring .content h1 {
+    font-size: clamp(1.55rem, 2vw, 2rem) !important;
+    line-height: 1.15 !important;
+}
+
+/* Right behavior panel should not dominate */
+body.page-camera-monitoring .card h2,
+body.page-camera-monitoring .card h3 {
+    font-size: 1rem !important;
+    line-height: 1.3 !important;
+    margin-bottom: 0.65rem !important;
+}
+
+/* Behavior buttons compact */
+body.page-camera-monitoring button,
+body.page-camera-monitoring .btn,
+body.page-camera-monitoring input[type="submit"] {
+    min-height: 36px !important;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.84rem !important;
+    border-radius: 11px !important;
+}
+
+/* Manual behavior marking buttons should not look like primary page actions */
+body.page-camera-monitoring form button,
+body.page-camera-monitoring .behavior-button,
+body.page-camera-monitoring [class*="behavior"] button {
+    font-size: 0.82rem !important;
+    padding: 0.48rem 0.65rem !important;
+}
+
+/* The huge event headings are the main issue */
+body.page-camera-monitoring h1,
+body.page-camera-monitoring h2,
+body.page-camera-monitoring h3,
+body.page-camera-monitoring h4 {
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+}
+
+/* Compact any raw AI event names */
+body.page-camera-monitoring .event-name-compact,
+body.page-camera-monitoring [data-event-type],
+body.page-camera-monitoring .recent-behavior-event-name,
+body.page-camera-monitoring .ai-event-type,
+body.page-camera-monitoring .event-type {
+    display: inline-flex !important;
+    width: auto !important;
+    max-width: 100% !important;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.22rem 0.55rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8 !important;
+    font-size: 0.76rem !important;
+    line-height: 1.1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+}
+
+/* Any headings inside recent behavior areas must be small */
+body.page-camera-monitoring [class*="Recent"] h1,
+body.page-camera-monitoring [class*="Recent"] h2,
+body.page-camera-monitoring [class*="Recent"] h3,
+body.page-camera-monitoring [class*="recent"] h1,
+body.page-camera-monitoring [class*="recent"] h2,
+body.page-camera-monitoring [class*="recent"] h3,
+body.page-camera-monitoring [class*="behavior"] h1,
+body.page-camera-monitoring [class*="behavior"] h2,
+body.page-camera-monitoring [class*="behavior"] h3 {
+    font-size: 0.82rem !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    letter-spacing: 0 !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    white-space: nowrap !important;
+}
+
+/* Compact event rows */
+body.page-camera-monitoring .camera-event-row,
+body.page-camera-monitoring .recent-event-row,
+body.page-camera-monitoring [class*="event-row"],
+body.page-camera-monitoring [class*="behavior-event"] {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    gap: 0.55rem !important;
+    align-items: center !important;
+    padding: 0.65rem 0 !important;
+    border-bottom: 1px solid #eef2f7 !important;
+}
+
+/* Source/time/meta text compact */
+body.page-camera-monitoring .event-meta,
+body.page-camera-monitoring .event-source,
+body.page-camera-monitoring .event-time,
+body.page-camera-monitoring [class*="source"],
+body.page-camera-monitoring [class*="time"] {
+    font-size: 0.74rem !important;
+    color: #64748b !important;
+    line-height: 1.25 !important;
+    word-break: normal !important;
+}
+
+/* Recording table should remain readable */
+body.page-camera-monitoring .data-table td,
+body.page-camera-monitoring .data-table th {
+    font-size: 0.86rem !important;
+    line-height: 1.35 !important;
+    vertical-align: top !important;
+}
+
+body.page-camera-monitoring .data-table .btn,
+body.page-camera-monitoring .data-table button {
+    width: auto !important;
+    min-width: 92px;
+}
+
+/* Long filenames in recording history */
+body.page-camera-monitoring .data-table td:first-child {
+    max-width: 260px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    color: #475569;
+}
+
+/* Reduce empty visual heaviness */
+body.page-camera-monitoring .card {
+    min-width: 0;
+}
+
+body.page-camera-monitoring .card:empty {
+    display: none;
+}
+
+/* Make advanced/legacy camera layout collapse nicely */
+@media (max-width: 1180px) {
+    body.page-camera-monitoring .grid,
+    body.page-camera-monitoring [class*="grid"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 760px) {
+    body.page-camera-monitoring .data-table {
+        min-width: 760px;
+    }
+
+    body.page-camera-monitoring .camera-event-row,
+    body.page-camera-monitoring .recent-event-row,
+    body.page-camera-monitoring [class*="event-row"],
+    body.page-camera-monitoring [class*="behavior-event"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+
+/* Phase 16.2.3 Monitoring Workspace Beauty Fix */
+
+body.page-monitoring-workspace .page-header,
+body.page-monitoring-workspace .content-header {
+    margin-bottom: 1rem !important;
+}
+
+body.page-monitoring-workspace .page-header h1,
+body.page-monitoring-workspace main h1 {
+    font-size: clamp(1.65rem, 2.2vw, 2.15rem) !important;
+    letter-spacing: -0.04em !important;
+}
+
+/* One-click command bar should feel premium, not noisy */
+body.page-monitoring-workspace .workflow-command-bar {
+    padding: 0.95rem 1.05rem !important;
+    border-radius: 20px !important;
+    background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%) !important;
+    border: 1px solid #bfdbfe !important;
+    box-shadow: 0 16px 45px rgba(37, 99, 235, 0.08) !important;
+}
+
+body.page-monitoring-workspace .workflow-command-bar strong {
+    font-size: 0.98rem !important;
+}
+
+body.page-monitoring-workspace .workflow-command-bar p {
+    font-size: 0.86rem !important;
+}
+
+/* Keep the main camera as the hero */
+body.page-monitoring-workspace .workspace-live-camera-card {
+    overflow: hidden;
+}
+
+body.page-monitoring-workspace .workspace-live-camera-card img,
+body.page-monitoring-workspace .workspace-live-camera-card video,
+body.page-monitoring-workspace .workspace-live-camera-card .camera-frame,
+body.page-monitoring-workspace .workspace-live-camera-card [class*="stream"] {
+    width: 100% !important;
+    max-height: 455px !important;
+    object-fit: contain !important;
+    border-radius: 18px !important;
+}
+
+/* Avoid row stretching that creates ugly blank spaces */
+body.page-monitoring-workspace .workspace-auto-attendance-card,
+body.page-monitoring-workspace .workspace-behavior-card {
+    max-height: 520px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+body.page-monitoring-workspace .workspace-auto-attendance-card::-webkit-scrollbar,
+body.page-monitoring-workspace .workspace-behavior-card::-webkit-scrollbar {
+    width: 8px;
+}
+
+body.page-monitoring-workspace .workspace-auto-attendance-card::-webkit-scrollbar-thumb,
+body.page-monitoring-workspace .workspace-behavior-card::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+}
+
+/* Compact right-side event feeds */
+body.page-monitoring-workspace .workspace-feed-row,
+body.page-monitoring-workspace .camera-event-row,
+body.page-monitoring-workspace [class*="event-row"] {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    gap: 0.55rem !important;
+    align-items: center !important;
+    padding: 0.58rem 0 !important;
+    border-bottom: 1px solid #eef2f7 !important;
+}
+
+body.page-monitoring-workspace .workspace-feed-row:last-child,
+body.page-monitoring-workspace .camera-event-row:last-child {
+    border-bottom: none !important;
+}
+
+body.page-monitoring-workspace .event-name-compact,
+body.page-monitoring-workspace .workspace-event-badge,
+body.page-monitoring-workspace [data-event-type],
+body.page-monitoring-workspace .event-type,
+body.page-monitoring-workspace .ai-event-type {
+    display: inline-flex !important;
+    width: auto !important;
+    max-width: 130px !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.22rem 0.52rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8 !important;
+    font-size: 0.72rem !important;
+    line-height: 1.1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+body.page-monitoring-workspace .workspace-event-message,
+body.page-monitoring-workspace .event-message,
+body.page-monitoring-workspace [class*="message"] {
+    min-width: 0;
+    color: #64748b !important;
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+}
+
+body.page-monitoring-workspace .event-source,
+body.page-monitoring-workspace .event-time,
+body.page-monitoring-workspace [class*="source"],
+body.page-monitoring-workspace [class*="time"] {
+    color: #64748b !important;
+    font-size: 0.72rem !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+}
+
+/* Behavior buttons should not dominate the screen */
+body.page-monitoring-workspace .workspace-behavior-card button,
+body.page-monitoring-workspace .workspace-behavior-card .btn {
+    min-height: 36px !important;
+    padding: 0.48rem 0.65rem !important;
+    font-size: 0.82rem !important;
+    border-radius: 12px !important;
+}
+
+body.page-monitoring-workspace .workspace-behavior-card form button:not(.btn-primary):not(.btn-danger),
+body.page-monitoring-workspace .workspace-behavior-card button:not(.btn-primary):not(.btn-danger) {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+}
+
+/* QR/Recording/IoT cards cleaner */
+body.page-monitoring-workspace .workspace-qr-card,
+body.page-monitoring-workspace .workspace-recording-card,
+body.page-monitoring-workspace .workspace-iot-card,
+body.page-monitoring-workspace .workspace-capability-card {
+    align-self: start;
+}
+
+body.page-monitoring-workspace .workspace-recording-card .filename-compact,
+body.page-monitoring-workspace .workspace-recording-card a,
+body.page-monitoring-workspace .workspace-recording-card strong {
+    max-width: 100%;
+    font-size: 0.84rem !important;
+    overflow-wrap: anywhere;
+}
+
+/* Closed session warning */
+body.page-monitoring-workspace .closed-session-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    margin: 0.75rem 0 1rem;
+    border-radius: 16px;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    color: #991b1b;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+body.page-monitoring-workspace .closed-session-warning strong {
+    display: block;
+    color: #7f1d1d;
+}
+
+/* Disabled monitoring on closed session */
+body.page-monitoring-workspace .monitoring-disabled {
+    opacity: 0.55 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+
+/* Capability matrix cleaner */
+body.page-monitoring-workspace .workspace-capability-card .card,
+body.page-monitoring-workspace .workspace-capability-card [class*="capability"] {
+    min-height: 0 !important;
+}
+
+/* Mobile */
+@media (max-width: 1050px) {
+    body.page-monitoring-workspace .workspace-auto-attendance-card,
+    body.page-monitoring-workspace .workspace-behavior-card {
+        max-height: none;
+    }
+}
+
+@media (max-width: 760px) {
+    body.page-monitoring-workspace .workspace-feed-row,
+    body.page-monitoring-workspace .camera-event-row,
+    body.page-monitoring-workspace [class*="event-row"] {
+        grid-template-columns: 1fr !important;
+        gap: 0.3rem !important;
+    }
+
+    body.page-monitoring-workspace .workflow-command-bar {
+        border-radius: 16px !important;
+    }
+}
+
+
+/* Phase 16.2.4 Schedule Manager UX */
+.schedule-manager-card {
+    margin-top: 1rem;
+}
+
+.schedule-manager-header {
+    gap: 1rem;
+}
+
+.schedule-rule-note {
+    margin: 0.85rem 0 1rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid #bfdbfe;
+    border-radius: 16px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.schedule-manager-form {
+    display: grid;
+    grid-template-columns: 1.5fr 1.35fr 0.9fr 0.72fr 0.72fr 0.72fr 1.15fr auto;
+    gap: 0.75rem;
+    align-items: end;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #f8fafc;
+}
+
+.schedule-manager-form label,
+.schedule-edit-form label {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.schedule-manager-form label span,
+.schedule-edit-form label span {
+    color: #64748b;
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.schedule-manager-form input,
+.schedule-manager-form select,
+.schedule-edit-form input,
+.schedule-edit-form select {
+    min-width: 0;
+    height: 40px;
+    font-size: 0.88rem !important;
+}
+
+.schedule-manager-list {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.schedule-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 12px 35px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+}
+
+.schedule-item.is-inactive {
+    background: #f8fafc;
+    opacity: 0.82;
+}
+
+.schedule-main {
+    display: grid;
+    grid-template-columns: 1.35fr 1.2fr 1.25fr 0.75fr auto;
+    gap: 0.9rem;
+    align-items: center;
+    padding: 0.9rem 1rem;
+}
+
+.schedule-code,
+.schedule-time,
+.schedule-location {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.schedule-code strong,
+.schedule-time strong {
+    font-size: 0.92rem;
+    color: #0f172a;
+}
+
+.schedule-time span,
+.schedule-location span,
+.schedule-location small {
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
+.schedule-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.inline-edit-details {
+    position: relative;
+}
+
+.inline-edit-details > summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.inline-edit-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.schedule-edit-form {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    z-index: 20;
+    width: min(760px, 88vw);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.7rem;
+    padding: 1rem;
+    border: 1px solid #bfdbfe;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.16);
+}
+
+.schedule-edit-form button {
+    align-self: end;
+}
+
+.empty-state {
+    padding: 1rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+    color: #64748b;
+    background: #f8fafc;
+}
+
+.empty-state p {
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 1260px) {
+    .schedule-manager-form {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .schedule-main {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .schedule-actions {
+        justify-content: flex-start;
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 720px) {
+    .schedule-manager-form,
+    .schedule-edit-form {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-main {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-actions .btn,
+    .schedule-actions button {
+        width: 100%;
+    }
+}
+
+
+/* Phase 16.2.5 Student Enrollment Manager */
+.student-enrollment-manager-card {
+    margin-top: 1rem;
+}
+
+.student-lifecycle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.student-lifecycle-panel {
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    background: #f8fafc;
+    padding: 1rem;
+}
+
+.student-lifecycle-panel h3 {
+    font-size: 1rem !important;
+    margin-bottom: 0.75rem;
+}
+
+.student-lifecycle-form {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.student-lifecycle-form label {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.student-lifecycle-form label span {
+    color: #64748b;
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.student-lifecycle-form input,
+.student-lifecycle-form select {
+    height: 42px;
+    min-width: 0;
+    font-size: 0.9rem !important;
+}
+
+.advanced-inline {
+    padding: 0.7rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 14px;
+    background: #ffffff;
+}
+
+.advanced-inline summary {
+    cursor: pointer;
+    color: #475569;
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.advanced-inline label {
+    margin-top: 0.7rem;
+}
+
+.safe-note {
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    padding: 0.7rem;
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+    .student-lifecycle-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* Phase 16.2.6 Student UI de-duplication */
+
+.current-class-roster-card {
+    border-color: #dbeafe !important;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+}
+
+.current-class-roster-card h2 {
+    font-size: 1.15rem !important;
+}
+
+.current-class-roster-card table th,
+.current-class-roster-card table td {
+    font-size: 0.84rem !important;
+    padding: 0.65rem 0.75rem !important;
+}
+
+.current-class-roster-card table th {
+    background: #f8fafc !important;
+}
+
+.current-class-roster-card .btn-link-soft {
+    color: #334155 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0.2rem 0 !important;
+    font-size: 0.82rem !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.current-class-roster-card .btn-link-soft:hover {
+    color: #dc2626 !important;
+}
+
+.hide-empty-available-students {
+    display: none !important;
+}
+
+.student-master-note {
+    margin: 0.75rem 0 1rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.hide-technical-student-column {
+    display: none !important;
+}
+
+.student-master-table-compact td,
+.student-master-table-compact th {
+    font-size: 0.84rem !important;
+}
+
+.student-master-table-compact .btn,
+.student-master-table-compact button,
+.student-master-table-compact a {
+    font-size: 0.8rem !important;
+}
+
+@media (max-width: 760px) {
+    .student-master-note {
+        font-size: 0.8rem;
+    }
+}
+
+
+/* Phase 16.2.7 Student enrollment responsibility cleanup */
+
+.class-enrollment-actions-card {
+    border-color: #dbeafe !important;
+}
+
+.class-enrollment-actions-card h2,
+.class-roster-manager-card h2 {
+    font-size: 1.1rem !important;
+}
+
+.class-enrollment-routing-note,
+.roster-manager-note,
+.student-identity-note {
+    margin: 0.75rem 0 1rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.class-enrollment-routing-note a {
+    font-weight: 900;
+    color: #1d4ed8;
+}
+
+.hide-class-setup-create-student {
+    display: none !important;
+}
+
+.enrollment-actions-grid-clean {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.enroll-move-panel-clean {
+    max-width: 760px;
+    background: #f8fafc !important;
+}
+
+.enroll-move-panel-clean h3 {
+    font-size: 1rem !important;
+}
+
+.class-roster-manager-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+}
+
+.class-roster-manager-card table {
+    width: 100%;
+    table-layout: auto;
+}
+
+.class-roster-manager-card table th,
+.class-roster-manager-card table td {
+    font-size: 0.84rem !important;
+    padding: 0.6rem 0.75rem !important;
+    vertical-align: middle;
+}
+
+.class-roster-manager-card .btn-link-soft {
+    color: #334155 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0.15rem 0 !important;
+    font-size: 0.8rem !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.class-roster-manager-card .btn-link-soft:hover {
+    color: #dc2626 !important;
+}
+
+@media (max-width: 900px) {
+    .enroll-move-panel-clean {
+        max-width: 100%;
     }
 }

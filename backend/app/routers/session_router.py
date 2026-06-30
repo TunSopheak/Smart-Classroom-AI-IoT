@@ -1,3 +1,4 @@
+from app.services.academic_rules import class_has_active_session
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -10,7 +11,9 @@ from app.database.database import get_db
 from app.models.classroom import Classroom
 from app.models.class_session import ClassSession
 from app.models.subject import Subject
+from app.models.academic import ClassGroup, Course
 from app.schemas.session_schema import ClassSessionCreate, ClassSessionRead, ClassSessionUpdate
+from app.services.academic_service import get_or_create_legacy_classroom, get_or_create_legacy_subject
 from app.services.attendance_service import finalize_session_absences
 from app.services.session_service import prepare_session_attendance
 
@@ -100,6 +103,8 @@ def dashboard_sessions(request: Request, db: Session = Depends(get_db)):
             "sessions": get_sessions(db),
             "classes": db.query(Classroom).order_by(Classroom.id).all(),
             "subjects": db.query(Subject).order_by(Subject.id).all(),
+            "class_groups": db.query(ClassGroup).filter(ClassGroup.active.is_(True)).order_by(ClassGroup.code).all(),
+            "courses": db.query(Course).filter(Course.active.is_(True)).order_by(Course.code).all(),
             "active_session": active_session,
         },
     )
@@ -107,12 +112,25 @@ def dashboard_sessions(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/dashboard/sessions/create")
 def dashboard_create_session(
-    classroom_id: int = Form(...),
-    subject_id: int = Form(...),
+    classroom_id: int | None = Form(None),
+    subject_id: int | None = Form(None),
+    class_group_id: int | None = Form(None),
+    course_id: int | None = Form(None),
     title: str = Form(...),
     db: Session = Depends(get_db),
 ):
     close_other_active_sessions(db)
+    class_group = db.query(ClassGroup).filter(ClassGroup.id == class_group_id).first() if class_group_id else None
+    course = db.query(Course).filter(Course.id == course_id).first() if course_id else None
+
+    if class_group:
+        classroom_id = get_or_create_legacy_classroom(db, class_group).id
+
+    if course:
+        subject_id = get_or_create_legacy_subject(db, course).id
+
+    if classroom_id is None or subject_id is None:
+        raise HTTPException(status_code=400, detail="Class group/course or legacy classroom/subject is required")
 
     now = datetime.now().replace(microsecond=0)
     session = create_session(
@@ -120,6 +138,8 @@ def dashboard_create_session(
         ClassSessionCreate(
             classroom_id=classroom_id,
             subject_id=subject_id,
+            class_group_id=class_group.id if class_group else class_group_id,
+            course_id=course.id if course else course_id,
             title=title,
             start_time=now,
             late_time=now + timedelta(minutes=15),
