@@ -32,3 +32,8 @@ Thumbs.db
 
 # Camera recordings privacy
 backend/app/static/recordings/
+# AI model files
+backend/ai_module/object_detection/models/*.onnx
+backend/ai_module/object_detection/models/*.pt
+backend/ai_module/object_detection/models/*.tflite
+backend/ai_module/object_detection/models/*.engine
