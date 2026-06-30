@@ -10,6 +10,7 @@ from app.database.database import SessionLocal
 from app.models.ai_monitoring_event import AIMonitoringEvent
 from app.models.attendance_record import AttendanceRecord
 from app.models.device import Device
+from app.services.face_service import FACE_ATTENDANCE_MIN_CONFIDENCE
 from app.services.object_detection_service import object_detection_service
 
 
@@ -31,7 +32,6 @@ OBJECT_EVENT_COOLDOWN_SECONDS = 15.0
 OBJECT_DETECTION_INTERVAL_SECONDS = 0.4
 IOT_AUTO_UPDATE_INTERVAL_SECONDS = 1.0
 IOT_EMPTY_AUTO_OFF_SECONDS = 300.0
-FACE_RECOGNITION_ACCEPT_THRESHOLD = 0.75
 OCCUPIED_ATTENDANCE_STATUSES = ["P", "L", "Pm"]
 
 
@@ -269,7 +269,7 @@ class CameraMonitoringService:
                 "No face visible in the camera frame.",
                 marked=False,
             )
-            self._draw_label_box(frame, "Unknown face", 22, 58, (96, 96, 96))
+            self._draw_label_box(frame, "Unknown face", 22, 58, (0, 140, 255))
 
         self._draw_object_detections(frame, object_detections)
 
@@ -544,7 +544,7 @@ class CameraMonitoringService:
         try:
             from app.models.student import Student
             from app.services.face_product_service import live_face_recognizer
-            from app.services.face_service import FACE_ATTENDANCE_MIN_CONFIDENCE, simulate_face_attendance
+            from app.services.face_service import simulate_face_attendance
         except Exception:
             return f"Face #{index} | recognition unavailable", (0, 0, 255)
 
@@ -556,7 +556,7 @@ class CameraMonitoringService:
                 "Unknown face detected. Face model is missing, labels are missing, or the face did not match a trained student.",
                 marked=False,
             )
-            return "Unknown face", (96, 96, 96)
+            return "Unknown face", (0, 140, 255)
 
         confidence = float(prediction.get("confidence") or 0)
         stu_id = prediction.get("stu_id")
@@ -573,6 +573,8 @@ class CameraMonitoringService:
                     marked=False,
                     student_id=student.id if student else None,
                 )
+                if stu_id:
+                    return f"Possible {stu_id} / low confidence {confidence:.2f}", (0, 140, 255)
                 return f"Unknown / low confidence {confidence:.2f}", (0, 140, 255)
 
             attendance_text = "FACE ready"
@@ -603,7 +605,7 @@ class CameraMonitoringService:
             elif not self.monitoring_session_id:
                 attendance_text = "no session"
 
-            return f"{stu_id} - {name} {confidence:.2f}", (0, 180, 0)
+            return f"{stu_id} - {name}", (0, 180, 0)
         except Exception as exc:
             self._remember_face_attendance_event(
                 "face_attendance_error",
@@ -850,7 +852,7 @@ class CameraMonitoringService:
             "last_occupancy_seen": self.last_occupancy_seen_at.isoformat() if self.last_occupancy_seen_at else None,
             "iot_auto_off_remaining_seconds": self.iot_auto_off_remaining_seconds,
             "auto_off_countdown_seconds": self.iot_auto_off_remaining_seconds,
-            "face_recognition_accept_threshold": FACE_RECOGNITION_ACCEPT_THRESHOLD,
+            "face_recognition_accept_threshold": FACE_ATTENDANCE_MIN_CONFIDENCE,
             "monitoring_session_id": self.monitoring_session_id,
             "session_id": self.monitoring_session_id,
             "recent_auto_behavior_events": self.auto_behavior_events_memory,

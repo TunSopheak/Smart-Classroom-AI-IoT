@@ -18,7 +18,7 @@ from app.services.attendance_service import (
 )
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
-FACE_ATTENDANCE_MIN_CONFIDENCE = 0.75
+FACE_ATTENDANCE_MIN_CONFIDENCE = 0.60
 
 
 def get_dataset_path(student: Student) -> str:

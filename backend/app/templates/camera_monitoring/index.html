@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Camera Monitoring{% endblock %}
+{% block title %}Debug / Legacy Camera Monitoring{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <p class="eyebrow">Advanced / Legacy Camera View</p>
-        <h1>Camera Monitoring & Behavior Detection</h1>
-        <p>This advanced page remains for recording history and camera debugging. Daily classroom operation now belongs in Smart Monitoring Workspace.</p>
+        <p class="eyebrow">Debug / Legacy Only</p>
+        <h1>Debug / Legacy Camera Monitoring</h1>
+        <p>This page remains for recording history and camera troubleshooting only. Final demo classroom operation belongs in Monitoring Workspace.</p>
     </div>
     <a class="btn btn-primary" href="/dashboard/monitoring-workspace{% if selected_session %}?session_id={{ selected_session.id }}{% endif %}">Open Monitoring Workspace</a>
 </div>
 
 <div class="product-note">
-    <strong>Advanced view:</strong>
+    <strong>Debug / Legacy view:</strong>
     Use the workspace for daily monitoring because it combines recognized face overlays, FACE attendance, behavior events, recording, IoT, and QR backup.
 </div>
 
@@ -34,7 +34,7 @@
         </div>
 
         <div class="ai-filter-actions">
-            <button class="btn btn-primary" type="submit">Use Session</button>
+            <button class="btn btn-secondary" type="submit">Debug: Use Session</button>
         </div>
     </form>
 
@@ -62,22 +62,22 @@
         <div class="quick-ai-grid">
             <form method="post" action="/dashboard/camera-monitoring/start">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
-                <button class="btn btn-primary" type="submit">Start Camera</button>
+                <button class="btn btn-secondary" type="submit">Debug: Start Camera</button>
             </form>
 
             <form method="post" action="/dashboard/camera-monitoring/stop">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
-                <button class="btn btn-danger" type="submit">Stop Camera</button>
+                <button class="btn btn-secondary" type="submit">Debug: Stop Camera</button>
             </form>
 
             <form method="post" action="/dashboard/camera-monitoring/record/start">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
-                <button class="btn btn-warning" type="submit">Start Recording</button>
+                <button class="btn btn-secondary" type="submit">Debug: Start Recording</button>
             </form>
 
             <form method="post" action="/dashboard/camera-monitoring/record/stop">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
-                <button class="btn btn-secondary" type="submit">Stop Recording</button>
+                <button class="btn btn-secondary" type="submit">Debug: Stop Recording</button>
             </form>
         </div>
     </div>
@@ -89,12 +89,12 @@
         <div class="quick-ai-grid">
             <form method="post" action="/dashboard/camera-monitoring/behavior-auto/start">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
-                <button class="btn btn-primary" type="submit">Start Auto Behavior</button>
+                <button class="btn btn-secondary" type="submit">Debug: Start Auto Behavior</button>
             </form>
 
             <form method="post" action="/dashboard/camera-monitoring/behavior-auto/stop">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
-                <button class="btn btn-danger" type="submit">Stop Auto Behavior</button>
+                <button class="btn btn-secondary" type="submit">Debug: Stop Auto Behavior</button>
             </form>
         </div>
 
@@ -114,7 +114,7 @@
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
                 <input type="hidden" name="event_type" value="{{ item }}">
                 <input type="hidden" name="severity" value="{{ 'high' if item in ['sleeping', 'attention_low'] else 'medium' }}">
-                <button class="btn btn-primary" type="submit">{{ item }}</button>
+                <button class="btn btn-secondary" type="submit">Debug: {{ item }}</button>
             </form>
             {% endfor %}
         </div>

@@ -10,7 +10,7 @@ Make important AI and attendance features visible and teacher-friendly.
 /dashboard/product-center
 /dashboard/qr-attendance
 /dashboard/face-training
-/dashboard/face-recognition-live
+/dashboard/monitoring-workspace
 /api/face-recognition-live/stream
 ```
 

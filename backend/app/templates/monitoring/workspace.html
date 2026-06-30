@@ -91,17 +91,17 @@
                 <p class="muted">Shared stream with FACE attendance, behavior checks, YOLO overlays, and optional recording.</p>
             </div>
             <details class="advanced-controls">
-                <summary>Advanced camera controls</summary>
+                <summary>Advanced / Debug camera controls</summary>
                 <div class="settings-actions">
                 <form method="post" action="/dashboard/camera-monitoring/start">
                     <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
                     <input type="hidden" name="return_to" value="{{ workspace_url }}">
-                    <button class="btn btn-secondary" type="submit">Start Camera Only</button>
+                    <button class="btn btn-secondary" type="submit">Debug: Start Camera Only</button>
                 </form>
                 <form method="post" action="/dashboard/camera-monitoring/stop">
                     <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
                     <input type="hidden" name="return_to" value="{{ workspace_url }}">
-                    <button class="btn btn-secondary" type="submit">Stop Camera</button>
+                    <button class="btn btn-secondary" type="submit">Debug: Stop Camera</button>
                 </form>
                 </div>
             </details>
@@ -121,7 +121,7 @@
         <div class="camera-status-row">
             <span class="camera-status-pill">Face detection: OpenCV Haar</span>
             <span class="camera-status-pill">Recognition: LBPH</span>
-            <span class="camera-status-pill">Threshold: {{ camera_status.face_recognition_accept_threshold }}</span>
+            <span class="camera-status-pill">FACE threshold: {{ "%.2f"|format(camera_status.face_recognition_accept_threshold) }}</span>
             <span class="camera-status-pill">YOLO cache: {{ camera_status.object_detection_interval_seconds }}s</span>
         </div>
     </div>
@@ -133,7 +133,7 @@
         <p class="muted">High-confidence matches mark attendance once per session. Low confidence stays unknown and is not marked.</p>
 
         <details class="advanced-controls">
-            <summary>Advanced FACE attendance controls</summary>
+            <summary>Advanced / Debug FACE attendance controls</summary>
             <div class="settings-actions">
             <form method="post" action="/dashboard/camera-monitoring/face-attendance/start">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
@@ -191,7 +191,7 @@
         <p class="muted">Automatic behavior detection runs from Start Monitoring. Manual buttons are Backup / Demo only.</p>
 
         <details class="advanced-controls">
-            <summary>Advanced behavior controls</summary>
+            <summary>Advanced / Debug behavior controls</summary>
             <div class="settings-actions">
             <form method="post" action="/dashboard/camera-monitoring/behavior-auto/start">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
