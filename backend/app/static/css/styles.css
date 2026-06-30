@@ -5413,3 +5413,158 @@ body.page-monitoring-workspace .workspace-capability-card [class*="capability"] 
         width: fit-content;
     }
 }
+
+
+/* Phase 17G Final Monitoring Workspace Demo Polish */
+body.page-monitoring-workspace .monitoring-primary-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+body.page-monitoring-workspace .monitoring-primary-actions form {
+    margin: 0;
+}
+
+body.page-monitoring-workspace .monitoring-primary-actions .button {
+    min-height: 42px;
+}
+
+body.page-monitoring-workspace .monitoring-primary-actions .button:not(.secondary-button) {
+    background: #16a34a !important;
+    border-color: #16a34a !important;
+    color: #ffffff !important;
+}
+
+body.page-monitoring-workspace .monitoring-camera-section {
+    grid-template-columns: 1fr !important;
+}
+
+body.page-monitoring-workspace .monitoring-camera-card {
+    overflow: hidden;
+}
+
+body.page-monitoring-workspace .monitoring-camera-card .camera-stream {
+    width: 100%;
+    max-height: min(66vh, 620px);
+    border-radius: 14px;
+    background: #020617;
+}
+
+body.page-monitoring-workspace .monitoring-attendance-object-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+body.page-monitoring-workspace .workspace-object-status-card,
+body.page-monitoring-workspace .workspace-auto-attendance-card,
+body.page-monitoring-workspace .workspace-behavior-card,
+body.page-monitoring-workspace .workspace-qr-card,
+body.page-monitoring-workspace .workspace-recording-card,
+body.page-monitoring-workspace .workspace-iot-card {
+    min-width: 0;
+}
+
+body.page-monitoring-workspace .workspace-object-status-card {
+    border-color: #dbeafe !important;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+}
+
+body.page-monitoring-workspace .workspace-object-status-card .object-status-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body.page-monitoring-workspace .workspace-iot-card {
+    border-color: #bbf7d0 !important;
+    background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%) !important;
+}
+
+body.page-monitoring-workspace .advanced-controls {
+    margin: 0.75rem 0;
+}
+
+body.page-monitoring-workspace .advanced-controls > summary {
+    cursor: pointer;
+    color: #475569;
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
+body.page-monitoring-workspace .workspace-capability-card {
+    margin-bottom: 1rem;
+}
+
+body.page-monitoring-workspace .workspace-capability-card .capability-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+}
+
+body.page-monitoring-workspace .workspace-capability-card .capability-grid div {
+    align-content: start;
+    gap: 0.35rem;
+    border-color: #dbeafe;
+    background: #ffffff;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
+}
+
+body.page-monitoring-workspace .capability-badge {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.22rem 0.52rem;
+    font-size: 0.72rem !important;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+body.page-monitoring-workspace .capability-badge.ready {
+    background: #dcfce7;
+    color: #166534;
+}
+
+body.page-monitoring-workspace .capability-badge.active {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+body.page-monitoring-workspace .capability-badge.prototype {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+body.page-monitoring-workspace .capability-badge.simulated {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+body.page-monitoring-workspace .capability-badge.optional {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.debug-notice-card {
+    border-color: #fed7aa !important;
+    background: #fff7ed !important;
+    color: #9a3412;
+}
+
+.debug-notice-card strong {
+    color: #7c2d12;
+}
+
+@media (max-width: 900px) {
+    body.page-monitoring-workspace .monitoring-primary-actions {
+        justify-content: flex-start;
+    }
+
+    body.page-monitoring-workspace .monitoring-primary-actions .button,
+    body.page-monitoring-workspace .monitoring-primary-actions form {
+        width: 100%;
+    }
+
+    body.page-monitoring-workspace .monitoring-attendance-object-grid,
+    body.page-monitoring-workspace .workspace-object-status-card .object-status-grid {
+        grid-template-columns: 1fr !important;
+    }
+}

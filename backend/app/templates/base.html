@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
-<body>
+<body class="{% if request.url.path.startswith('/dashboard/monitoring-workspace') %}page-monitoring-workspace{% elif request.url.path.startswith('/dashboard/camera-monitoring') %}page-camera-monitoring{% elif request.url.path.startswith('/dashboard/object-detection') %}page-object-detection{% endif %}">
     {% set current_user = request.state.current_user if request.state.current_user else None %}
     {% set role = current_user.role if current_user else "guest" %}
     {% set path = request.url.path %}

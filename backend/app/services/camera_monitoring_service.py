@@ -195,7 +195,11 @@ class CameraMonitoringService:
             if not ok or frame is None:
                 frame = self._blank_frame("Camera frame not available")
 
-            annotated = self._annotate_frame(frame)
+            try:
+                annotated = self._annotate_frame(frame)
+            except Exception as exc:
+                print(f"Overlay draw warning: {exc}")
+                annotated = frame
             annotated = cv2.resize(annotated, (FRAME_WIDTH, FRAME_HEIGHT))
 
             with self.lock:
@@ -242,26 +246,8 @@ class CameraMonitoringService:
 
         self._update_iot_auto_control(len(faces), object_detections)
 
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        cv2.rectangle(frame, (0, 0), (w, 46), (15, 23, 42), -1)
-        cv2.putText(
-            frame,
-            f"Smart Classroom AI Monitoring | {timestamp}",
-            (18, 31),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.72,
-            (255, 255, 255),
-            2,
-        )
-
-        status_line = (
-            f"FACE: {'ON' if self.auto_face_attendance_enabled else 'OFF'}  "
-            f"OBJECT: {'ON' if self.object_detection_enabled else 'OFF'}  "
-            f"BEHAVIOR: {'ON' if self.auto_behavior_enabled else 'OFF'}  "
-            f"SESSION: #{self.monitoring_session_id or '-'}"
-        )
-        cv2.putText(frame, status_line, (w - 560, 31), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (203, 213, 225), 1)
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self._draw_monitoring_header(frame, w, timestamp)
 
         if len(faces) > 1:
             self._remember_face_attendance_event(
@@ -275,31 +261,15 @@ class CameraMonitoringService:
                 face_gray = gray[y:y + fh, x:x + fw]
                 label, color = self._recognize_face_label(face_gray, idx)
 
-                cv2.rectangle(frame, (x, y), (x + fw, y + fh), color, 3)
-                cv2.putText(
-                    frame,
-                    label,
-                    (x, max(35, y - 10)),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.66,
-                    color,
-                    2,
-                )
+                cv2.rectangle(frame, (x, y), (x + fw, y + fh), color, 2)
+                self._draw_label_box(frame, label, x, max(52, y - 22), color)
         else:
             self._remember_face_attendance_event(
                 "no_face_detected",
                 "No face visible in the camera frame.",
                 marked=False,
             )
-            cv2.putText(
-                frame,
-                "No face detected",
-                (32, 76),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.58,
-                (0, 215, 255),
-                2,
-            )
+            self._draw_label_box(frame, "Unknown face", 22, 58, (96, 96, 96))
 
         self._draw_object_detections(frame, object_detections)
 
@@ -311,21 +281,81 @@ class CameraMonitoringService:
             label = self.last_behavior.get("event_type", "behavior")
             severity = self.last_behavior.get("severity", "info")
             source = self.last_behavior.get("source", "manual")
-            color = (0, 0, 255) if severity == "high" else (0, 165, 255)
-
-            if severity == "high":
-                cv2.rectangle(frame, (24, h - 58), (min(w - 24, 610), h - 20), color, -1)
-                cv2.putText(
-                    frame,
-                    f"Behavior: {label} | {source}",
-                    (42, h - 32),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.62,
-                    (255, 255, 255),
-                    2,
-                )
+            self._draw_behavior_alert(frame, w, h, label, severity, source)
 
         return frame
+
+    def _draw_monitoring_header(self, frame, width: int, timestamp: str):
+        cv2.rectangle(frame, (0, 0), (width, 44), (15, 23, 42), -1)
+        cv2.putText(
+            frame,
+            "Smart Classroom AI Monitoring",
+            (16, 28),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            (255, 255, 255),
+            1,
+            cv2.LINE_AA,
+        )
+
+        chips = [
+            ("FACE ON" if self.auto_face_attendance_enabled else "FACE OFF", (22, 163, 74) if self.auto_face_attendance_enabled else (100, 116, 139)),
+            ("YOLO ON" if self.object_detection_enabled else "YOLO OFF", (37, 99, 235) if self.object_detection_enabled else (100, 116, 139)),
+            ("BEHAVIOR ON" if self.auto_behavior_enabled else "BEHAVIOR OFF", (245, 158, 11) if self.auto_behavior_enabled else (100, 116, 139)),
+            (f"SESSION #{self.monitoring_session_id or '-'}", (71, 85, 105)),
+        ]
+        x = 316
+        for text, rgb in chips:
+            (text_w, _), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.38, 1)
+            if x + text_w + 16 > width - 90:
+                break
+            bgr = (rgb[2], rgb[1], rgb[0])
+            x = self._draw_status_chip(frame, text, x, 12, bgr)
+
+        cv2.putText(frame, timestamp, (width - 78, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (203, 213, 225), 1, cv2.LINE_AA)
+
+    def _draw_status_chip(self, frame, text: str, x: int, y: int, color):
+        (text_w, text_h), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.38, 1)
+        pad_x = 8
+        chip_w = text_w + pad_x * 2
+        cv2.rectangle(frame, (x, y), (x + chip_w, y + 20), color, -1)
+        cv2.putText(frame, text, (x + pad_x, y + 14), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (255, 255, 255), 1, cv2.LINE_AA)
+        return x + chip_w + 7
+
+    def _draw_label_box(self, frame, text: str, x: int, y: int, color):
+        h, w = frame.shape[:2]
+        x = max(4, min(x, w - 80))
+        y = max(48, min(y, h - 22))
+        while len(text) > 8:
+            (candidate_w, _), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+            if candidate_w + 12 <= w - x - 4:
+                break
+            text = text[:-2].rstrip() + "."
+        (text_w, text_h), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+        box_w = min(text_w + 12, w - x - 4)
+        cv2.rectangle(frame, (x, y), (x + box_w, y + 20), color, -1)
+        cv2.putText(frame, text, (x + 6, y + 14), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+
+    def _draw_behavior_alert(self, frame, width: int, height: int, label: str, severity: str, source: str):
+        is_high_phone = severity == "high" and label == "phone_usage"
+        if severity == "high":
+            color = (0, 0, 220)
+            text = f"Alert: {label.replace('_', ' ')}"
+        else:
+            color = (0, 140, 255) if severity == "medium" else (90, 90, 90)
+            text = f"Behavior: {label.replace('_', ' ')}"
+
+        if source:
+            text = f"{text} | {source}"
+
+        font_scale = 0.48 if not is_high_phone else 0.54
+        thickness = 1 if not is_high_phone else 2
+        (text_w, _), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+        bar_w = min(width - 32, text_w + 24)
+        x1 = 16
+        y1 = height - 42
+        cv2.rectangle(frame, (x1, y1), (x1 + bar_w, height - 14), color, -1)
+        cv2.putText(frame, text, (x1 + 10, height - 23), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
 
     def _draw_object_detections(self, frame, detections):
         for detection in detections:
@@ -333,23 +363,14 @@ class CameraMonitoringService:
                 color = (0, 0, 255)
                 label = "PHONE"
             elif detection.label == "book":
-                color = (255, 80, 0)
+                color = (255, 90, 0)
                 label = "BOOK"
             else:
                 color = (0, 180, 0)
                 label = "PERSON"
 
             cv2.rectangle(frame, (detection.x1, detection.y1), (detection.x2, detection.y2), color, 2)
-            cv2.putText(
-                frame,
-                f"{label} {detection.confidence:.2f}",
-                (detection.x1, max(22, detection.y1 - 6)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.52,
-                color,
-                2,
-                cv2.LINE_AA,
-            )
+            self._draw_label_box(frame, f"{label} {detection.confidence:.2f}", detection.x1, max(52, detection.y1 - 22), color)
 
     def _get_object_detections(self, frame):
         now = time.time()
@@ -535,7 +556,7 @@ class CameraMonitoringService:
                 "Unknown face detected. Face model is missing, labels are missing, or the face did not match a trained student.",
                 marked=False,
             )
-            return "Unknown face | model not ready", (0, 0, 255)
+            return "Unknown face", (96, 96, 96)
 
         confidence = float(prediction.get("confidence") or 0)
         stu_id = prediction.get("stu_id")
@@ -552,7 +573,7 @@ class CameraMonitoringService:
                     marked=False,
                     student_id=student.id if student else None,
                 )
-                return f"Unknown / low confidence | conf {confidence:.2f}", (0, 140, 255)
+                return f"Unknown / low confidence {confidence:.2f}", (0, 140, 255)
 
             attendance_text = "FACE ready"
             session_key = f"{self.monitoring_session_id}:{student.id if student else stu_id}"
@@ -582,14 +603,14 @@ class CameraMonitoringService:
             elif not self.monitoring_session_id:
                 attendance_text = "no session"
 
-            return f"{stu_id} - {name} | conf {confidence:.2f} | {attendance_text}", (0, 255, 0)
+            return f"{stu_id} - {name} {confidence:.2f}", (0, 180, 0)
         except Exception as exc:
             self._remember_face_attendance_event(
                 "face_attendance_error",
                 f"Face attendance could not be processed: {exc}",
                 marked=False,
             )
-            return f"{stu_id or 'Face'} | attendance error", (0, 165, 255)
+            return "Unknown face", (0, 140, 255)
         finally:
             db.close()
 

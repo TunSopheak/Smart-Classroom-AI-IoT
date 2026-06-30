@@ -17,7 +17,7 @@
     <div>
         <span class="workflow-eyebrow">One-click Monitoring Control</span>
         <strong>Live classroom monitoring pipeline</strong>
-        <p>Start camera, FACE attendance, behavior detection, and YOLO phone/book detection together. Recording stays manual.</p>
+        <p>Starts camera, FACE attendance, behavior checks, YOLO phone/book detection, and IoT auto control.</p>
         {% if not selected_session %}
         <p class="small-text warning-text">Create or select an active session before starting monitoring.</p>
         {% elif not selected_session.active %}
@@ -83,7 +83,7 @@
     </div>
 </section>
 
-<section class="monitoring-main-grid">
+<section class="monitoring-main-grid monitoring-camera-section">
     <div class="card monitoring-camera-card">
         <div class="section-title-row">
             <div>
@@ -125,8 +125,10 @@
             <span class="camera-status-pill">YOLO cache: {{ camera_status.object_detection_interval_seconds }}s</span>
         </div>
     </div>
+</section>
 
-    <aside class="card">
+<section class="monitoring-secondary-grid monitoring-attendance-object-grid">
+    <aside class="card workspace-auto-attendance-card">
         <h2>Auto Attendance</h2>
         <p class="muted">High-confidence matches mark attendance once per session. Low confidence stays unknown and is not marked.</p>
 
@@ -161,35 +163,32 @@
 
         <a class="button secondary-button full-width" href="/dashboard/qr-attendance{% if selected_session %}?session_id={{ selected_session.id }}{% endif %}">Use QR Backup</a>
     </aside>
-</section>
 
-<section class="card workspace-object-status-card">
-    <div class="section-title-row">
-        <div>
-            <p class="eyebrow">Object Detection</p>
-            <h2>Phone / Book Detection</h2>
-            <p class="muted">Status only. YOLO runs inside the shared camera stream and reuses cached boxes between detections.</p>
+    <div class="card workspace-object-status-card">
+        <div class="section-title-row">
+            <div>
+                <p class="eyebrow">Object Detection</p>
+                <h2>Phone / Book Detection</h2>
+                <p class="muted">YOLO runs inside the shared camera stream and reuses cached boxes between detections.</p>
+            </div>
+            <a class="button secondary-button small-button" href="/dashboard/object-detection">Open Debug Page</a>
         </div>
-        <a class="button secondary-button small-button" href="/dashboard/object-detection">Open Debug Page</a>
+        <div class="monitoring-status-grid object-status-grid">
+            <div><span>Status</span><strong data-monitoring-field="object_detection_status">{{ monitoring_status.object_detection_status }}</strong></div>
+            <div><span>Person Count</span><strong data-monitoring-field="person_count">{{ monitoring_status.person_count }}</strong></div>
+            <div><span>Phone</span><strong data-monitoring-field="phone_detected" data-format="detected-clear">{{ "Detected" if monitoring_status.phone_detected else "Clear" }}</strong></div>
+            <div><span>Book</span><strong data-monitoring-field="book_detected" data-format="detected-clear">{{ "Detected" if monitoring_status.book_detected else "Clear" }}</strong></div>
+            <div><span>Model</span><strong>YOLOv8 ONNX</strong></div>
+            <div><span>Targets</span><strong>Person, Phone, Book</strong></div>
+        </div>
+        <p class="small-text">Stable phone/book detections log behavior events after 2.5s with a 15s cooldown.</p>
     </div>
-    <div class="monitoring-status-grid object-status-grid">
-        <div><span>Status</span><strong data-monitoring-field="object_detection_status">{{ monitoring_status.object_detection_status }}</strong></div>
-        <div><span>Person Count</span><strong data-monitoring-field="person_count">{{ monitoring_status.person_count }}</strong></div>
-        <div><span>Phone</span><strong data-monitoring-field="phone_detected" data-format="detected-clear">{{ "Detected" if monitoring_status.phone_detected else "Clear" }}</strong></div>
-        <div><span>Book</span><strong data-monitoring-field="book_detected" data-format="detected-clear">{{ "Detected" if monitoring_status.book_detected else "Clear" }}</strong></div>
-        <div><span>Faces</span><strong data-monitoring-field="face_count">{{ monitoring_status.face_count }}</strong></div>
-        <div><span>Present</span><strong data-monitoring-field="present_count">{{ monitoring_status.present_count }}</strong></div>
-        <div><span>Model</span><strong>YOLOv8 ONNX</strong></div>
-        <div><span>Targets</span><strong>Person, Phone, Book</strong></div>
-        <div><span>Model File</span><strong>{{ "Ready" if object_detection_status.enabled else "Model Missing" }}</strong></div>
-    </div>
-    <p class="small-text">Stable phone/book detections log behavior events after 2.5s with a 15s cooldown.</p>
 </section>
 
 <section class="monitoring-secondary-grid">
-    <div class="card">
+    <div class="card workspace-behavior-card">
         <h2>Behavior Monitoring</h2>
-        <p class="muted">Automatic behavior detection runs from Start Monitoring. Manual buttons are backup controls.</p>
+        <p class="muted">Automatic behavior detection runs from Start Monitoring. Manual buttons are Backup / Demo only.</p>
 
         <details class="advanced-controls">
             <summary>Advanced behavior controls</summary>
@@ -208,7 +207,7 @@
         </details>
 
         <details class="advanced-controls">
-            <summary>Manual behavior buttons</summary>
+            <summary>Manual behavior buttons - Backup / Demo only</summary>
             <div class="behavior-grid monitoring-behavior-grid">
             {% for item in behavior_types %}
             <form method="post" action="/dashboard/camera-monitoring/behavior">
@@ -236,7 +235,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card workspace-qr-card">
         <h2>QR Backup Panel</h2>
         <p class="muted">QR is backup if face recognition fails, confidence is low, or a student has no trained face profile.</p>
         {% if selected_session %}
@@ -254,10 +253,10 @@
 </section>
 
 <section class="monitoring-secondary-grid">
-    <div class="card">
+    <div class="card workspace-recording-card">
         <h2>Recording Panel</h2>
         <p class="muted">Recordings use WebM / VP8 and include the live monitoring overlay.</p>
-        <p class="small-text">Recording is optional and must be started manually.</p>
+        <p class="small-text">Recording is manual for privacy.</p>
         <div class="settings-actions">
             <form method="post" action="/dashboard/camera-monitoring/record/start">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
@@ -292,9 +291,10 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card workspace-iot-card">
         <h2>IoT Auto Control</h2>
         <p class="muted">Simulated classroom relays use occupancy from person count, face count, and attendance.</p>
+        <p class="small-text">If no occupancy is detected for 5 minutes, simulated light/fan relays turn off.</p>
         <div class="monitoring-status-grid">
             <div><span>Auto Control</span><strong data-monitoring-field="iot_auto_control_status">{{ monitoring_status.iot_auto_control_status }}</strong></div>
             <div><span>Light Relay</span><strong data-monitoring-field="light_relay" data-format="upper">{{ monitoring_status.light_relay|upper }}</strong></div>
@@ -307,19 +307,17 @@
     </div>
 </section>
 
-<section class="card">
+<section class="card workspace-capability-card">
     <h2>Detection Capability Matrix</h2>
     <div class="capability-grid">
-        <div><strong>Face detection</strong><span>OpenCV Haar</span></div>
-        <div><strong>Face recognition</strong><span>LBPH trained model</span></div>
-        <div><strong>Face attendance</strong><span>Confidence-gated prototype</span></div>
-        <div><strong>Sleeping</strong><span>Rule-based/manual prototype</span></div>
-        <div><strong>Attention low</strong><span>Rule-based prototype</span></div>
-        <div><strong>Phone usage</strong><span>Manual now / YOLO-ready</span></div>
-        <div><strong>Book usage</strong><span>Manual now / YOLO-ready</span></div>
-        <div><strong>Looking around</strong><span>Future head-pose/MediaPipe-ready</span></div>
-        <div><strong>Hand raising</strong><span>Manual now / pose-model-ready</span></div>
-        <div><strong>Light/Fan</strong><span>Simulated relay / Raspberry Pi-ESP32 ready</span></div>
+        <div><span class="capability-badge ready">Ready</span><strong>Face detection</strong><span>OpenCV Haar</span></div>
+        <div><span class="capability-badge ready">Ready</span><strong>Face recognition</strong><span>LBPH trained model</span></div>
+        <div><span class="capability-badge ready">Ready</span><strong>Face attendance</strong><span>Confidence-gated</span></div>
+        <div><span class="capability-badge active">YOLO-ready</span><strong>Phone usage</strong><span>Running when monitoring starts</span></div>
+        <div><span class="capability-badge active">YOLO-ready</span><strong>Book usage</strong><span>Running when monitoring starts</span></div>
+        <div><span class="capability-badge prototype">Prototype</span><strong>Behavior detection</strong><span>Rule-based prototype</span></div>
+        <div><span class="capability-badge simulated">Simulated</span><strong>IoT Light/Fan</strong><span>Simulated relay auto-control</span></div>
+        <div><span class="capability-badge optional">Manual</span><strong>Recording</strong><span>Manual optional</span></div>
     </div>
 </section>
 <script>
