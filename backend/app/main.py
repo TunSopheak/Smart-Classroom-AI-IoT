@@ -1,3 +1,4 @@
+from app.routers.object_detection_router import router as object_detection_router
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -174,3 +175,7 @@ except Exception as migration_error:
 # Phase 16.2.2 Academic lifecycle routes
 from app.routers.academic_lifecycle_router import router as academic_lifecycle_router
 app.include_router(academic_lifecycle_router)
+
+
+# Phase 17A Object Detection API
+app.include_router(object_detection_router)
