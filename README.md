@@ -173,6 +173,18 @@ http://127.0.0.1:8000/dashboard/sessions
 API Docs:
 http://127.0.0.1:8000/docs
 
+## Final Demo Flow
+
+1. Login as `teacher` or `admin`.
+2. Open Class Setup and confirm class, course, students, and enrollment.
+3. Open Monitoring Workspace and select the active session.
+4. Click Start Monitoring to run camera, FACE attendance, behavior checks, YOLO detection, and IoT auto control.
+5. Show face attendance with a trained student.
+6. Show phone/book detection in the shared camera stream.
+7. Explain IoT auto light/fan control from occupancy.
+8. Open Reports to review attendance and monitoring results.
+9. Return to Monitoring Workspace and click Stop Monitoring.
+
 ## Face Recognition Workflow
 
 Capture face samples:
