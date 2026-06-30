@@ -128,16 +128,57 @@ def face_training_page(request: Request, student_id: Optional[int] = None, db: S
 
 
 @router.post("/dashboard/face-training/upload")
+# def face_training_upload(
+#     student_id: int = Form(...),
+#     files: list[UploadFile] = File(...),
+#     db: Session = Depends(get_db),
+# ):
+#     result = upload_face_samples(db=db, student_id=student_id, files=files)
+#     return RedirectResponse(
+#         url=f"/dashboard/face-training?student_id={student_id}&message={result['message']}",
+#         status_code=303,
+#     )
+
 def face_training_upload(
     student_id: int = Form(...),
-    files: list[UploadFile] = File(...),
+    video: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    result = upload_face_samples(db=db, student_id=student_id, files=files)
+    result = upload_face_samples(db, student_id, video)
+
     return RedirectResponse(
         url=f"/dashboard/face-training?student_id={student_id}&message={result['message']}",
         status_code=303,
     )
+# def face_training_upload(
+#     student_id: int = Form(...),
+#     video: UploadFile = File(...),
+#     db: Session = Depends(get_db),
+# ):
+#     result = upload_face_samples(db=db, student_id=student_id, files=video)
+#     return RedirectResponse(
+#         url=f"/dashboard/face-training?student_id={student_id}&message={result['message']}",
+#         status_code=303,
+#     )
+    # video_dir = Path("ai_module/videos")
+    # video_dir.mkdir(parents=True, exist_ok=True)
+
+    # video_path = video_dir / video.filename
+
+    # with open(video_path, "wb") as buffer:
+    #     shutil.copyfileobj(video.file, buffer)
+
+    # # 👉 Call your AI function here
+    # result = process_video_to_dataset(
+    #     db=db,
+    #     student_id=student_id,
+    #     video_path=str(video_path)
+    # )
+
+    # return RedirectResponse(
+    #     url=f"/dashboard/face-training?student_id={student_id}&message={result['message']}",
+    #     status_code=303,
+    # )
 
 
 @router.post("/dashboard/face-training/capture")
