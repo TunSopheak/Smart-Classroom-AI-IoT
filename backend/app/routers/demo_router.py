@@ -24,9 +24,9 @@ def final_demo_page(request: Request):
             "url": "/dashboard/sessions",
         },
         {
-            "title": "4. Camera Monitoring & Recording",
-            "goal": "Show live camera, frame boxes, behavior overlays, and video recording inside the system.",
-            "url": "/dashboard/camera-monitoring",
+            "title": "4. Monitoring Workspace",
+            "goal": "Show the only main live classroom stream with FACE attendance, YOLO detection, behavior, IoT, and optional recording.",
+            "url": "/dashboard/monitoring-workspace",
         },
         {
             "title": "5. AI Monitoring",
@@ -49,7 +49,7 @@ def final_demo_page(request: Request):
         "Student management",
         "QR attendance",
         "Face recognition attendance",
-        "Camera monitoring and video recording",
+        "Monitoring Workspace with optional video recording",
         "Attendance event logging",
         "Teacher manual override",
         "AI behavior monitoring",

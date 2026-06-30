@@ -9,7 +9,7 @@
         <h1>Recording Playback</h1>
         <p>Watch the saved classroom monitoring video inside the system.</p>
     </div>
-    <a class="btn btn-secondary" href="/dashboard/camera-monitoring">Back Camera Monitoring</a>
+    <a class="btn btn-secondary" href="/dashboard/monitoring-workspace">Back to Monitoring Workspace</a>
 </div>
 
 {% if recording %}
@@ -82,7 +82,7 @@
         <a class="btn btn-primary" href="/dashboard/camera-monitoring/recordings/{{ recording.id }}/stream" target="_blank">Open Raw Video</a>
         {% endif %}
         <a class="btn btn-secondary" href="/dashboard/camera-monitoring/recordings/{{ recording.id }}/download">Download Video</a>
-        <a class="btn btn-primary" href="/dashboard/camera-monitoring?session_id={{ recording.session_id }}">Record New Video</a>
+        <a class="btn btn-primary" href="/dashboard/monitoring-workspace?session_id={{ recording.session_id }}">Open Monitoring Workspace</a>
     </div>
 </div>
 

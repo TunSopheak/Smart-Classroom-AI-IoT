@@ -201,11 +201,11 @@ python sync_face_training.py
 
 Test recognition only:
 
-python ai_module\face_recognition\recognize_face.py --threshold 75
+python ai_module\face_recognition\recognize_face.py --threshold 40
 
 Send real face attendance to FastAPI:
 
-python ai_module\face_recognition\recognize_face.py --session-id 7 --send-api --threshold 75
+python ai_module\face_recognition\recognize_face.py --session-id 7 --send-api --threshold 40
 
 ## QR Attendance Workflow
 
@@ -343,7 +343,7 @@ Product pages:
 http://127.0.0.1:8000/dashboard/product-center
 http://127.0.0.1:8000/dashboard/qr-attendance
 http://127.0.0.1:8000/dashboard/face-training
-http://127.0.0.1:8000/dashboard/face-recognition-live
+http://127.0.0.1:8000/dashboard/monitoring-workspace
 ```
 
 This phase makes QR attendance, face training, live face recognition, behavior monitoring, and reports easier to access from one teacher-friendly product center.

@@ -8,7 +8,7 @@ Send attendance to FastAPI:
     python ai_module/face_recognition/recognize_face.py --session-id 5 --send-api
 
 Useful options:
-    --threshold 75
+    --threshold 40
     --cooldown 10
     --allow-repeat
 
@@ -104,7 +104,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--camera-index", type=int, default=0)
-    parser.add_argument("--threshold", type=float, default=75.0, help="Lower distance is better. Try 60-85.")
+    parser.add_argument("--threshold", type=float, default=40.0, help="Lower distance is better. Default 40 matches app confidence threshold 0.60.")
     parser.add_argument("--send-api", action="store_true", help="Send recognized attendance to FastAPI.")
     parser.add_argument("--session-id", type=int, default=None, help="Required when --send-api is used.")
     parser.add_argument("--api-url", default="http://127.0.0.1:8000")
@@ -217,8 +217,11 @@ def main():
                             else:
                                 print(f"Student not found in database: {stu_id}")
             else:
-                display_text = f"Unknown | dist={distance:.1f}"
-                box_color = (0, 0, 255)
+                if stu_id != "Unknown":
+                    display_text = f"Possible {stu_id} / low confidence {confidence:.2f}"
+                else:
+                    display_text = f"Unknown / low confidence {confidence:.2f}"
+                box_color = (0, 140, 255)
 
                 now = time.time()
                 if now - last_unknown_print >= 5:

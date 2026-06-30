@@ -81,7 +81,7 @@ Show:
 
 Run:
 
-python ai_module\face_recognition\recognize_face.py --session-id <SESSION_ID> --send-api --threshold 75
+python ai_module\face_recognition\recognize_face.py --session-id <SESSION_ID> --send-api --threshold 40
 
 Show:
 

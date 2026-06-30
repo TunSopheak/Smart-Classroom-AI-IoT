@@ -2,6 +2,7 @@ import time
 from typing import Optional
 
 import cv2
+import numpy as np
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
@@ -21,7 +22,6 @@ from app.services.face_product_service import (
     upload_face_samples,
 )
 from app.services.face_service import FACE_ATTENDANCE_MIN_CONFIDENCE, simulate_face_attendance
-from app.services.camera_monitoring_service import camera_service
 
 router = APIRouter(tags=["Product AI Integration"])
 templates = Jinja2Templates(directory="app/templates")
@@ -222,6 +222,7 @@ def live_face_recognition_page(request: Request, db: Session = Depends(get_db)):
             "active_session": active_session,
             "model_exists": MODEL_PATH.exists(),
             "labels_exists": LABELS_PATH.exists(),
+            "face_threshold": FACE_ATTENDANCE_MIN_CONFIDENCE,
         },
     )
 
@@ -231,7 +232,8 @@ def generate_face_recognition_stream(camera_index: int = 0):
     cap = cv2.VideoCapture(camera_index)
 
     if not cap.isOpened():
-        frame = camera_service.create_placeholder_frame("Camera not available for face recognition.")
+        frame = np.zeros((540, 960, 3), dtype=np.uint8)
+        cv2.putText(frame, "Camera not available for debug face recognition.", (60, 270), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 140, 255), 2)
         ok, buffer = cv2.imencode(".jpg", frame)
         if ok:
             yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
@@ -254,10 +256,10 @@ def generate_face_recognition_stream(camera_index: int = 0):
 
             cv2.putText(
                 frame,
-                "Smart Classroom Face Recognition",
+                "Debug / Legacy Face Recognition",
                 (20, 35),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.9,
+                0.72,
                 (255, 255, 255),
                 2,
             )
@@ -266,12 +268,12 @@ def generate_face_recognition_stream(camera_index: int = 0):
                 cv2.putText(
                     frame,
                     "No face detected",
-                    (20, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.75,
-                    (0, 255, 255),
-                    2,
-                )
+                (20, 80),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.70,
+                (0, 255, 255),
+                2,
+            )
 
             for index, (x, y, w, h) in enumerate(faces, start=1):
                 face_gray = gray[y:y + h, x:x + w]
@@ -295,17 +297,14 @@ def generate_face_recognition_stream(camera_index: int = 0):
                         except ValueError:
                             attendance_text = "no active session"
 
-                    label = (
-                        f"{prediction['stu_id']} - {name} | conf={prediction['confidence']:.2f} "
-                        f"| {attendance_text}"
-                    )
+                    label = f"{prediction['stu_id']} - {name}"
                     color = (0, 255, 0)
                 elif prediction:
-                    label = f"Possible {prediction['stu_id']} | low conf={prediction['confidence']:.2f}"
-                    color = (0, 255, 255)
+                    label = f"Possible {prediction['stu_id']} / low confidence {prediction['confidence']:.2f}"
+                    color = (0, 140, 255)
                 else:
-                    label = f"Face #{index} | model not ready"
-                    color = (0, 0, 255)
+                    label = "Unknown face"
+                    color = (0, 140, 255)
 
                 cv2.rectangle(frame, (x, y), (x + w, y + h), color, 3)
                 cv2.putText(
@@ -313,7 +312,7 @@ def generate_face_recognition_stream(camera_index: int = 0):
                     label,
                     (x, max(35, y - 10)),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.75,
+                    0.70,
                     color,
                     2,
                 )
