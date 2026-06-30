@@ -8,6 +8,9 @@ import numpy as np
 
 from app.database.database import SessionLocal
 from app.models.ai_monitoring_event import AIMonitoringEvent
+from app.models.attendance_record import AttendanceRecord
+from app.models.device import Device
+from app.services.object_detection_service import object_detection_service
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +25,14 @@ NO_FACE_ATTENTION_SECONDS = 2.5
 NO_FACE_LEAVING_SECONDS = 5.0
 EYES_MISSING_SLEEPING_SECONDS = 4.0
 AUTO_BEHAVIOR_COOLDOWN_SECONDS = 20.0
+AUTO_BEHAVIOR_EVENT_COOLDOWN_SECONDS = 15.0
+OBJECT_STABLE_SECONDS = 2.5
+OBJECT_EVENT_COOLDOWN_SECONDS = 15.0
+OBJECT_DETECTION_INTERVAL_SECONDS = 0.4
+IOT_AUTO_UPDATE_INTERVAL_SECONDS = 1.0
+IOT_EMPTY_AUTO_OFF_SECONDS = 300.0
+FACE_RECOGNITION_ACCEPT_THRESHOLD = 0.75
+OCCUPIED_ATTENDANCE_STATUSES = ["P", "L", "Pm"]
 
 
 class CameraMonitoringService:
@@ -31,6 +42,7 @@ class CameraMonitoringService:
         self.thread = None
         self.lock = threading.Lock()
         self.record_lock = threading.Lock()
+        self.state_lock = threading.Lock()
 
         self.latest_frame = None
         self.camera_index = 0
@@ -50,6 +62,27 @@ class CameraMonitoringService:
         self.last_logged_behavior_time = {}
         self.auto_behavior_events_memory = []
         self.auto_face_attendance_enabled = True
+        self.object_detection_enabled = False
+        self.object_detection_has_started_once = False
+        self.object_detection_started_at = {}
+        self.last_object_event_time = {}
+        self.latest_object_detections = []
+        self.last_object_detection_run_at = 0
+        self.cached_object_detections = []
+        self.latest_person_count = 0
+        self.latest_phone_detected = False
+        self.latest_book_detected = False
+        self.latest_face_count = 0
+        self.latest_face_status = "No face detected"
+        self.latest_present_count = 0
+        self.latest_occupancy_count = 0
+        self.latest_light_relay = "unknown"
+        self.latest_fan_relay = "unknown"
+        self.iot_auto_control_status = "Off"
+        self.last_occupancy_seen_at = None
+        self.last_iot_auto_update_at = 0
+        self.iot_auto_off_remaining_seconds = None
+        self.live_state = {}
         self.face_attendance_events_memory = []
         self.face_attendance_marked_keys = set()
 
@@ -58,30 +91,57 @@ class CameraMonitoringService:
 
         self.face_cascade = cv2.CascadeClassifier(face_cascade_path)
         self.eye_cascade = cv2.CascadeClassifier(eye_cascade_path)
+        self._sync_live_state()
 
     def set_session(self, session_id: int | None):
         self.monitoring_session_id = session_id
+        self._sync_live_state()
 
     def enable_auto_behavior(self, session_id: int | None = None):
         self.monitoring_session_id = session_id
         self.auto_behavior_enabled = True
         self.no_face_started_at = None
         self.eyes_missing_started_at = None
+        self._sync_live_state()
         return self.get_status()
 
     def disable_auto_behavior(self):
         self.auto_behavior_enabled = False
         self.no_face_started_at = None
         self.eyes_missing_started_at = None
+        self._sync_live_state()
         return self.get_status()
 
     def enable_auto_face_attendance(self, session_id: int | None = None):
         self.monitoring_session_id = session_id
         self.auto_face_attendance_enabled = True
+        self._sync_live_state()
         return self.get_status()
 
     def disable_auto_face_attendance(self):
         self.auto_face_attendance_enabled = False
+        self._sync_live_state()
+        return self.get_status()
+
+    def enable_object_detection(self, session_id: int | None = None):
+        self.monitoring_session_id = session_id
+        status = object_detection_service.status()
+        self.object_detection_enabled = bool(status.get("enabled"))
+        if self.object_detection_enabled:
+            self.object_detection_has_started_once = True
+        self.object_detection_started_at = {}
+        self._sync_live_state()
+        return self.get_status()
+
+    def disable_object_detection(self):
+        self.object_detection_enabled = False
+        self.object_detection_started_at = {}
+        self.latest_object_detections = []
+        self.cached_object_detections = []
+        self.latest_person_count = 0
+        self.latest_phone_detected = False
+        self.latest_book_detected = False
+        self._sync_live_state()
         return self.get_status()
 
     def start(self, camera_index: int = 0):
@@ -103,6 +163,7 @@ class CameraMonitoringService:
         self.cap.set(cv2.CAP_PROP_FPS, FRAME_FPS)
 
         self.running = True
+        self._sync_live_state()
         self.thread = threading.Thread(target=self._capture_loop, daemon=True)
         self.thread.start()
         return True
@@ -110,6 +171,8 @@ class CameraMonitoringService:
     def stop(self):
         self.stop_recording()
         self.disable_auto_behavior()
+        self.disable_auto_face_attendance()
+        self.disable_object_detection()
         self.running = False
 
         if self.thread and self.thread.is_alive():
@@ -122,6 +185,7 @@ class CameraMonitoringService:
         with self.lock:
             self.latest_frame = None
 
+        self._sync_live_state()
         return True
 
     def _capture_loop(self):
@@ -166,6 +230,18 @@ class CameraMonitoringService:
         if self.auto_behavior_enabled:
             self._run_behavior_engine(frame, gray, faces)
 
+        self.latest_face_count = len(faces)
+        self.latest_face_status = f"{len(faces)} face(s) detected" if len(faces) else "No face detected"
+        object_detections = self.cached_object_detections if self.object_detection_enabled else []
+        if self.object_detection_enabled:
+            object_detections, refreshed = self._get_object_detections(frame)
+            if refreshed:
+                self._run_object_behavior_engine(object_detections)
+        else:
+            self._update_detection_summary([])
+
+        self._update_iot_auto_control(len(faces), object_detections)
+
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         cv2.rectangle(frame, (0, 0), (w, 46), (15, 23, 42), -1)
@@ -179,16 +255,13 @@ class CameraMonitoringService:
             2,
         )
 
-        if self.auto_behavior_enabled:
-            cv2.putText(
-                frame,
-                "AUTO BEHAVIOR: ON",
-                (w - 300, 31),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.7,
-                (0, 255, 255),
-                2,
-            )
+        status_line = (
+            f"FACE: {'ON' if self.auto_face_attendance_enabled else 'OFF'}  "
+            f"OBJECT: {'ON' if self.object_detection_enabled else 'OFF'}  "
+            f"BEHAVIOR: {'ON' if self.auto_behavior_enabled else 'OFF'}  "
+            f"SESSION: #{self.monitoring_session_id or '-'}"
+        )
+        cv2.putText(frame, status_line, (w - 560, 31), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (203, 213, 225), 1)
 
         if len(faces) > 1:
             self._remember_face_attendance_event(
@@ -218,16 +291,17 @@ class CameraMonitoringService:
                 "No face visible in the camera frame.",
                 marked=False,
             )
-            cv2.rectangle(frame, (30, 65), (390, 115), (0, 0, 255), 2)
             cv2.putText(
                 frame,
-                "No face detected / attention check",
-                (45, 98),
+                "No face detected",
+                (32, 76),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.72,
-                (0, 0, 255),
+                0.58,
+                (0, 215, 255),
                 2,
             )
+
+        self._draw_object_detections(frame, object_detections)
 
         if self.recording:
             cv2.circle(frame, (w - 145, 24), 10, (0, 0, 255), -1)
@@ -239,18 +313,187 @@ class CameraMonitoringService:
             source = self.last_behavior.get("source", "manual")
             color = (0, 0, 255) if severity == "high" else (0, 165, 255)
 
-            cv2.rectangle(frame, (30, h - 92), (w - 30, h - 25), color, -1)
-            cv2.putText(
-                frame,
-                f"Behavior Event: {label} | Severity: {severity} | {source}",
-                (50, h - 50),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.78,
-                (255, 255, 255),
-                2,
-            )
+            if severity == "high":
+                cv2.rectangle(frame, (24, h - 58), (min(w - 24, 610), h - 20), color, -1)
+                cv2.putText(
+                    frame,
+                    f"Behavior: {label} | {source}",
+                    (42, h - 32),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.62,
+                    (255, 255, 255),
+                    2,
+                )
 
         return frame
+
+    def _draw_object_detections(self, frame, detections):
+        for detection in detections:
+            if detection.label == "cell phone":
+                color = (0, 0, 255)
+                label = "PHONE"
+            elif detection.label == "book":
+                color = (255, 80, 0)
+                label = "BOOK"
+            else:
+                color = (0, 180, 0)
+                label = "PERSON"
+
+            cv2.rectangle(frame, (detection.x1, detection.y1), (detection.x2, detection.y2), color, 2)
+            cv2.putText(
+                frame,
+                f"{label} {detection.confidence:.2f}",
+                (detection.x1, max(22, detection.y1 - 6)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.52,
+                color,
+                2,
+                cv2.LINE_AA,
+            )
+
+    def _get_object_detections(self, frame):
+        now = time.time()
+        if now - self.last_object_detection_run_at < OBJECT_DETECTION_INTERVAL_SECONDS:
+            return self.cached_object_detections, False
+
+        detections = object_detection_service.detect(frame)
+        self.last_object_detection_run_at = now
+        self.cached_object_detections = detections
+        self.latest_object_detections = [item.to_dict() for item in detections]
+        self._update_detection_summary(detections)
+        return detections, True
+
+    def _update_detection_summary(self, detections):
+        self.latest_person_count = sum(1 for item in detections if item.label == "person")
+        self.latest_phone_detected = any(item.label == "cell phone" for item in detections)
+        self.latest_book_detected = any(item.label == "book" for item in detections)
+        self._sync_live_state()
+
+    def _run_object_behavior_engine(self, detections):
+        now = time.time()
+        active_event_types = {detection.event_type for detection in detections if detection.event_type}
+
+        for event_type in ["phone_usage", "book_usage"]:
+            if event_type in active_event_types:
+                self.object_detection_started_at.setdefault(event_type, now)
+                stable_for = now - self.object_detection_started_at[event_type]
+                last_logged = self.last_object_event_time.get(event_type, 0)
+                if stable_for >= OBJECT_STABLE_SECONDS and now - last_logged >= OBJECT_EVENT_COOLDOWN_SECONDS:
+                    severity = "high" if event_type == "phone_usage" else "low"
+                    description = f"YOLO object detection observed stable {event_type.replace('_', ' ')} for {stable_for:.1f}s."
+                    self.last_object_event_time[event_type] = now
+                    self._log_object_behavior_event(event_type, severity, 0.82, description)
+            else:
+                self.object_detection_started_at.pop(event_type, None)
+
+    def _log_object_behavior_event(self, event_type: str, severity: str, confidence: float, description: str):
+        event_memory = {
+            "event_type": event_type,
+            "severity": severity,
+            "confidence": round(confidence, 2),
+            "description": description,
+            "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "session_id": self.monitoring_session_id,
+            "source": "object_detection_yolo",
+        }
+        self.auto_behavior_events_memory.insert(0, event_memory)
+        self.auto_behavior_events_memory = self.auto_behavior_events_memory[:20]
+        self.last_behavior = {
+            "event_type": event_type,
+            "severity": severity,
+            "source": "object_detection_yolo",
+        }
+        self.last_behavior_time = time.time()
+
+        try:
+            db = SessionLocal()
+            event = AIMonitoringEvent(
+                session_id=self.monitoring_session_id,
+                student_id=None,
+                event_type=event_type,
+                severity=severity,
+                confidence=round(confidence, 2),
+                source="object_detection_yolo",
+                description=description,
+            )
+            db.add(event)
+            db.commit()
+            db.close()
+            print(f"OBJECT BEHAVIOR LOGGED: {event_type} | {severity}")
+        except Exception as exc:
+            print(f"Object behavior DB log failed: {exc}")
+
+    def _update_iot_auto_control(self, face_count: int, detections):
+        now = time.time()
+        if now - self.last_iot_auto_update_at < IOT_AUTO_UPDATE_INTERVAL_SECONDS:
+            return
+
+        self.last_iot_auto_update_at = now
+        person_count = self.latest_person_count
+        present_count = 0
+        db = None
+
+        try:
+            db = SessionLocal()
+            if self.monitoring_session_id:
+                present_count = (
+                    db.query(AttendanceRecord)
+                    .filter(AttendanceRecord.session_id == self.monitoring_session_id)
+                    .filter(AttendanceRecord.status.in_(OCCUPIED_ATTENDANCE_STATUSES))
+                    .count()
+                )
+
+            occupancy_count = max(person_count, face_count, present_count)
+            self.latest_person_count = person_count
+            self.latest_face_count = face_count
+            self.latest_present_count = present_count
+            self.latest_occupancy_count = occupancy_count
+
+            if occupancy_count > 0:
+                self.last_occupancy_seen_at = datetime.utcnow()
+                self.iot_auto_control_status = "Active"
+                self.iot_auto_off_remaining_seconds = None
+                self._set_simulated_relay_status(db, "on")
+            else:
+                if self.last_occupancy_seen_at is None:
+                    self.iot_auto_control_status = "Waiting"
+                    self.iot_auto_off_remaining_seconds = None
+                    self._set_simulated_relay_status(db, "off")
+                else:
+                    empty_for = (datetime.utcnow() - self.last_occupancy_seen_at).total_seconds()
+                    remaining = max(0, int(IOT_EMPTY_AUTO_OFF_SECONDS - empty_for))
+                    self.iot_auto_off_remaining_seconds = remaining
+                    if remaining <= 0:
+                        self.iot_auto_control_status = "Auto Off"
+                        self._set_simulated_relay_status(db, "off")
+                    else:
+                        self.iot_auto_control_status = "Countdown"
+
+            self._refresh_relay_status(db)
+            self._sync_live_state()
+        except Exception as exc:
+            self.iot_auto_control_status = "Waiting"
+            self._sync_live_state()
+            print(f"IoT auto-control update failed: {exc}")
+        finally:
+            if db:
+                db.close()
+
+    def _set_simulated_relay_status(self, db, status: str):
+        changed = False
+        devices = db.query(Device).filter(Device.type.in_(["light", "fan"])).all()
+        for device in devices:
+            if device.status != status:
+                device.status = status
+                device.last_seen = datetime.utcnow()
+                changed = True
+        if changed:
+            db.commit()
+
+    def _refresh_relay_status(self, db):
+        relays = {item.type: item.status for item in db.query(Device).filter(Device.type.in_(["light", "fan"])).all()}
+        self.latest_light_relay = relays.get("light", "unknown")
+        self.latest_fan_relay = relays.get("fan", "unknown")
 
     def _remember_face_attendance_event(self, event_type: str, message: str, marked: bool, student_id: int | None = None):
         now = time.time()
@@ -305,11 +548,11 @@ class CameraMonitoringService:
             if confidence < FACE_ATTENDANCE_MIN_CONFIDENCE:
                 self._remember_face_attendance_event(
                     "low_confidence",
-                    f"{stu_id} - {name} low confidence {confidence:.2f}; attendance not marked.",
+                    f"Low confidence match ({confidence:.2f}); attendance not marked.",
                     marked=False,
                     student_id=student.id if student else None,
                 )
-                return f"Possible {stu_id} - {name} | low {confidence:.2f}", (0, 215, 255)
+                return f"Unknown / low confidence | conf {confidence:.2f}", (0, 140, 255)
 
             attendance_text = "FACE ready"
             session_key = f"{self.monitoring_session_id}:{student.id if student else stu_id}"
@@ -409,12 +652,13 @@ class CameraMonitoringService:
 
     def _log_auto_behavior_event(self, event_type: str, severity: str, confidence: float, description: str):
         now = time.time()
-        last_time = self.last_logged_behavior_time.get(event_type, 0)
+        cooldown_key = f"{self.monitoring_session_id or 'none'}:{event_type}"
+        last_time = self.last_logged_behavior_time.get(cooldown_key, 0)
 
-        if now - last_time < AUTO_BEHAVIOR_COOLDOWN_SECONDS:
+        if now - last_time < AUTO_BEHAVIOR_EVENT_COOLDOWN_SECONDS:
             return
 
-        self.last_logged_behavior_time[event_type] = now
+        self.last_logged_behavior_time[cooldown_key] = now
 
         event_memory = {
             "event_type": event_type,
@@ -460,6 +704,7 @@ class CameraMonitoringService:
             "source": "manual",
         }
         self.last_behavior_time = time.time()
+        self._sync_live_state()
 
     def start_recording(self, session_id: int | None = None):
         self.monitoring_session_id = session_id
@@ -491,6 +736,7 @@ class CameraMonitoringService:
         self.recording = True
         self.recording_path = path
         self.recording_started_at = datetime.utcnow()
+        self._sync_live_state()
 
         return {
             "already_recording": False,
@@ -516,6 +762,7 @@ class CameraMonitoringService:
             self.video_writer = None
             self.recording_path = None
             self.recording_started_at = None
+            self._sync_live_state()
 
         duration = None
         if started_at:
@@ -542,20 +789,53 @@ class CameraMonitoringService:
         return result
 
     def get_status(self):
-        return {
+        self._sync_live_state()
+        with self.state_lock:
+            return dict(self.live_state)
+
+    def _sync_live_state(self):
+        object_status = object_detection_service.status()
+        with self.state_lock:
+            self.live_state = {
             "running": self.running,
+            "camera_running": self.running,
             "recording": self.recording,
+            "recording_status": "Recording" if self.recording else "Idle",
             "camera_index": self.camera_index,
             "recording_path": str(self.recording_path) if self.recording_path else None,
             "frame_width": FRAME_WIDTH,
             "frame_height": FRAME_HEIGHT,
             "format": "webm_vp8",
             "auto_behavior_enabled": self.auto_behavior_enabled,
+            "behavior_detection_running": self.auto_behavior_enabled,
             "auto_face_attendance_enabled": self.auto_face_attendance_enabled,
+            "face_attendance_enabled": self.auto_face_attendance_enabled,
+            "object_detection_enabled": self.object_detection_enabled,
+            "object_detection_has_started_once": self.object_detection_has_started_once,
+            "object_detection_running": bool(self.running and self.object_detection_enabled and object_status.get("enabled")),
+            "object_detection_status": object_status,
+            "latest_object_detections": self.latest_object_detections,
+            "object_detection_interval_seconds": OBJECT_DETECTION_INTERVAL_SECONDS,
+            "person_count": self.latest_person_count,
+            "phone_detected": self.latest_phone_detected,
+            "book_detected": self.latest_book_detected,
+            "face_count": self.latest_face_count,
+            "latest_face_status": self.latest_face_status,
+            "present_count": self.latest_present_count,
+            "occupancy_count": self.latest_occupancy_count,
+            "light_relay": self.latest_light_relay,
+            "fan_relay": self.latest_fan_relay,
+            "iot_auto_control_status": self.iot_auto_control_status,
+            "last_occupancy_seen": self.last_occupancy_seen_at.isoformat() if self.last_occupancy_seen_at else None,
+            "iot_auto_off_remaining_seconds": self.iot_auto_off_remaining_seconds,
+            "auto_off_countdown_seconds": self.iot_auto_off_remaining_seconds,
+            "face_recognition_accept_threshold": FACE_RECOGNITION_ACCEPT_THRESHOLD,
             "monitoring_session_id": self.monitoring_session_id,
+            "session_id": self.monitoring_session_id,
             "recent_auto_behavior_events": self.auto_behavior_events_memory,
             "recent_face_attendance_events": self.face_attendance_events_memory,
-        }
+            "updated_at": datetime.utcnow().isoformat(),
+            }
 
     def get_jpeg_bytes(self):
         with self.lock:

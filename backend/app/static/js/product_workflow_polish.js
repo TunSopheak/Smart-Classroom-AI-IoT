@@ -51,6 +51,9 @@
         if (!location.pathname.includes("/dashboard/monitoring-workspace")) {
             return;
         }
+        // Phase 17E: monitoring controls are now rendered server-side and handled
+        // by the unified /dashboard/monitoring-workspace/start|stop routes.
+        return;
 
         insertAfterHeader(`
             <section id="workflowCommandBar" class="workflow-command-bar">
@@ -934,6 +937,9 @@
 
     function init() {
         if (!isWorkspace()) return;
+        // Phase 17E: object detection is integrated into the shared camera
+        // pipeline. Do not inject a second object-detection stream here.
+        return;
 
         const panel = ensurePanel();
         if (!panel) return;
@@ -946,6 +952,233 @@
                 refreshStatus(panel);
             }
         }, 10000);
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+})();
+
+
+// Phase 17D One Start / Stop Monitoring UX
+(function () {
+    const STREAM_BASE = "/api/object-detection/stream?camera_index=0";
+
+    function isWorkspace() {
+        return window.location.pathname.includes("/dashboard/monitoring-workspace");
+    }
+
+    function cleanText(el) {
+        return (el && el.textContent || "").replace(/\s+/g, " ").trim();
+    }
+
+    function findButtonsByText(keywordList) {
+        return Array.from(document.querySelectorAll("button, a")).filter(function (btn) {
+            const value = cleanText(btn).toLowerCase();
+            return keywordList.every(function (word) {
+                return value.includes(word);
+            });
+        });
+    }
+
+    function getObjectPanel() {
+        return document.querySelector(".workspace-object-detection-panel");
+    }
+
+    function startObjectDetectionFromUnifiedControl() {
+        const panel = getObjectPanel();
+        if (!panel) return;
+
+        const img = panel.querySelector(".workspace-od-stream");
+        const wrap = panel.querySelector(".workspace-od-stream-wrap");
+
+        if (!img || !wrap) return;
+
+        wrap.classList.remove("is-idle");
+        wrap.classList.add("is-running");
+        img.src = STREAM_BASE + "&t=" + Date.now();
+
+        panel.classList.add("unified-running");
+
+        const state = panel.querySelector(".workspace-od-running-state");
+        if (state) {
+            state.textContent = "Running with Monitoring";
+            state.className = "workspace-od-running-state running";
+        }
+    }
+
+    function stopObjectDetectionFromUnifiedControl() {
+        const panel = getObjectPanel();
+        if (!panel) return;
+
+        const img = panel.querySelector(".workspace-od-stream");
+        const wrap = panel.querySelector(".workspace-od-stream-wrap");
+
+        if (img) {
+            img.removeAttribute("src");
+        }
+
+        if (wrap) {
+            wrap.classList.add("is-idle");
+            wrap.classList.remove("is-running");
+        }
+
+        panel.classList.remove("unified-running");
+
+        const state = panel.querySelector(".workspace-od-running-state");
+        if (state) {
+            state.textContent = "Stopped";
+            state.className = "workspace-od-running-state stopped";
+        }
+    }
+
+    function cleanupObjectDetectionPanel() {
+        const panel = getObjectPanel();
+        if (!panel) return;
+
+        panel.classList.add("workspace-object-detection-panel-unified");
+
+        const title = Array.from(panel.querySelectorAll("h2, h3"))
+            .find(function (h) {
+                return cleanText(h).toLowerCase().includes("phone") ||
+                       cleanText(h).toLowerCase().includes("book");
+            });
+
+        if (title) {
+            title.textContent = "Phone / Book Detection Status";
+        }
+
+        const message = panel.querySelector(".workspace-od-message");
+        if (message) {
+            message.textContent = "Runs automatically when you click Start Monitoring.";
+        }
+
+        if (!panel.querySelector(".workspace-od-running-state")) {
+            const state = document.createElement("span");
+            state.className = "workspace-od-running-state stopped";
+            state.textContent = "Stopped";
+
+            const head = panel.querySelector(".workspace-od-head");
+            if (head) {
+                head.appendChild(state);
+            }
+        }
+
+        const controls = panel.querySelector(".workspace-od-controls");
+        if (controls) {
+            controls.classList.add("workspace-od-controls-hidden");
+
+            if (!panel.querySelector(".workspace-od-debug-row")) {
+                const debugRow = document.createElement("div");
+                debugRow.className = "workspace-od-debug-row";
+                debugRow.innerHTML = `
+                    <a class="btn btn-secondary btn-sm" href="/dashboard/object-detection">
+                        Open Debug Page
+                    </a>
+                `;
+                controls.insertAdjacentElement("afterend", debugRow);
+            }
+        }
+
+        const placeholder = panel.querySelector(".workspace-od-placeholder");
+        if (placeholder) {
+            placeholder.innerHTML = `
+                Phone/book detection will start from the main
+                <strong>Start Monitoring</strong> button.
+            `;
+        }
+
+        const hint = panel.querySelector(".workspace-od-hint");
+        if (hint) {
+            hint.innerHTML = `
+                <strong>Unified workflow:</strong>
+                Use only the main Start Monitoring / Stop Monitoring buttons. Camera, face attendance, behavior, and phone/book detection run together.
+            `;
+        }
+    }
+
+    function hideDuplicateHeaderControls() {
+        if (!isWorkspace()) return;
+
+        // Keep the "Daily Classroom Operation" control as the main control.
+        // Hide duplicate header action buttons near the page title.
+        const allStartButtons = findButtonsByText(["start", "monitoring"]);
+        const allStopButtons = findButtonsByText(["stop", "monitoring"]);
+
+        allStartButtons.forEach(function (btn, index) {
+            const cardText = cleanText(btn.closest(".card") || btn.closest("section") || document.body).toLowerCase();
+
+            if (!cardText.includes("daily classroom operation")) {
+                btn.classList.add("workspace-duplicate-monitoring-button");
+            }
+        });
+
+        allStopButtons.forEach(function (btn) {
+            const cardText = cleanText(btn.closest(".card") || btn.closest("section") || document.body).toLowerCase();
+
+            if (!cardText.includes("daily classroom operation")) {
+                btn.classList.add("workspace-duplicate-monitoring-button");
+            }
+        });
+    }
+
+    function bindUnifiedButtons() {
+        if (!isWorkspace()) return;
+
+        const startButtons = findButtonsByText(["start", "monitoring"]);
+        const stopButtons = findButtonsByText(["stop", "monitoring"]);
+
+        startButtons.forEach(function (btn) {
+            if (btn.dataset.phase17dUnifiedStart) return;
+            btn.dataset.phase17dUnifiedStart = "1";
+
+            btn.addEventListener("click", function () {
+                setTimeout(startObjectDetectionFromUnifiedControl, 500);
+            });
+        });
+
+        stopButtons.forEach(function (btn) {
+            if (btn.dataset.phase17dUnifiedStop) return;
+            btn.dataset.phase17dUnifiedStop = "1";
+
+            btn.addEventListener("click", function () {
+                stopObjectDetectionFromUnifiedControl();
+            });
+        });
+    }
+
+    function collapseAdvancedManualControls() {
+        if (!isWorkspace()) return;
+
+        Array.from(document.querySelectorAll("details")).forEach(function (details) {
+            const value = cleanText(details).toLowerCase();
+
+            if (
+                value.includes("advanced behavior controls") ||
+                value.includes("advanced face attendance controls") ||
+                value.includes("advanced camera controls")
+            ) {
+                details.removeAttribute("open");
+            }
+        });
+    }
+
+    function init() {
+        if (!isWorkspace()) return;
+        // Phase 17E: server-rendered one-click controls replaced the old
+        // JS cleanup/start-stop bridge. Keep this disabled to avoid duplicate UI.
+        return;
+
+        cleanupObjectDetectionPanel();
+        hideDuplicateHeaderControls();
+        bindUnifiedButtons();
+        collapseAdvancedManualControls();
+
+        // Re-run lightly because some workspace cards may be injected by older JS after DOMContentLoaded.
+        setTimeout(function () {
+            cleanupObjectDetectionPanel();
+            hideDuplicateHeaderControls();
+            bindUnifiedButtons();
+            collapseAdvancedManualControls();
+        }, 800);
     }
 
     document.addEventListener("DOMContentLoaded", init);

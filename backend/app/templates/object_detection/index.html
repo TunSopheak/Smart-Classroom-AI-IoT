@@ -5,16 +5,16 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <p class="eyebrow">Phase 17B</p>
+        <p class="eyebrow">Debug / Model Test Only</p>
         <h1>Phone / Book Object Detection</h1>
-        <p>YOLO/ONNX-ready camera overlay for phone and book detection.</p>
+        <p>This page is for testing the YOLO/ONNX model only. Daily classroom monitoring uses the unified Monitoring Workspace stream.</p>
     </div>
     <a class="btn btn-secondary" href="/dashboard/monitoring-workspace">Back to Monitoring</a>
 </div>
 
 <section class="card">
-    <h2>Object Detection Stream</h2>
-    <p class="muted">If the model is missing, this stream will show a safe warning instead of crashing.</p>
+    <h2>Debug Object Detection Stream</h2>
+    <p class="muted">This debug stream may open the webcam separately. Use Monitoring Workspace for real classroom operation.</p>
 
     <img class="live-recognition-frame" src="/api/object-detection/stream?camera_index=0" alt="Object detection stream">
 </section>

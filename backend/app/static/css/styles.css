@@ -4594,6 +4594,25 @@ body.page-monitoring-workspace .workflow-command-bar p {
     font-size: 0.86rem !important;
 }
 
+body.page-monitoring-workspace .monitoring-status-grid {
+    gap: 0.55rem !important;
+}
+
+body.page-monitoring-workspace .monitoring-status-grid div {
+    min-width: 0;
+    padding: 0.72rem 0.78rem !important;
+    border-radius: 12px !important;
+}
+
+body.page-monitoring-workspace .monitoring-status-grid strong {
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+}
+
+body.page-monitoring-workspace .object-status-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 /* Keep the main camera as the hero */
 body.page-monitoring-workspace .workspace-live-camera-card {
     overflow: hidden;
@@ -4771,6 +4790,11 @@ body.page-monitoring-workspace .workspace-capability-card [class*="capability"] 
 
     body.page-monitoring-workspace .workflow-command-bar {
         border-radius: 16px !important;
+    }
+
+    body.page-monitoring-workspace .object-status-grid,
+    body.page-monitoring-workspace .monitoring-status-grid {
+        grid-template-columns: 1fr !important;
     }
 }
 
@@ -5314,5 +5338,78 @@ body.page-monitoring-workspace .workspace-capability-card [class*="capability"] 
 
     .workspace-od-controls .btn {
         width: 100%;
+    }
+}
+
+
+/* Phase 17D One Start / Stop Monitoring UX */
+.workspace-duplicate-monitoring-button {
+    display: none !important;
+}
+
+.workspace-object-detection-panel-unified {
+    border-color: #dbeafe !important;
+}
+
+.workspace-object-detection-panel-unified .workspace-od-controls-hidden {
+    display: none !important;
+}
+
+.workspace-object-detection-panel-unified .workspace-od-debug-row {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 0.75rem;
+}
+
+.workspace-object-detection-panel-unified .workspace-od-head {
+    align-items: flex-start;
+}
+
+.workspace-od-running-state {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.76rem;
+    font-weight: 900;
+}
+
+.workspace-od-running-state.stopped {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.workspace-od-running-state.running {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.workspace-object-detection-panel-unified .workspace-od-stream-wrap {
+    min-height: 220px;
+}
+
+.workspace-object-detection-panel-unified .workspace-od-placeholder {
+    min-height: 220px;
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.workspace-object-detection-panel-unified .workspace-od-stream {
+    max-height: 420px;
+}
+
+.workspace-object-detection-panel-unified .workspace-od-hint {
+    font-size: 0.8rem;
+}
+
+@media (max-width: 900px) {
+    .workspace-object-detection-panel-unified .workspace-od-head {
+        gap: 0.65rem;
+    }
+
+    .workspace-od-running-state {
+        width: fit-content;
     }
 }

@@ -9,13 +9,29 @@
     <div>
         <p class="eyebrow">Daily Monitoring</p>
         <h1>Smart Monitoring Workspace</h1>
-        <p>Start one daily monitoring workflow for camera, FACE attendance, behavior logging, QR backup, and IoT status.</p>
+        <p>Start one shared classroom pipeline for camera, FACE attendance, behavior, and phone/book detection.</p>
+    </div>
+</section>
+
+<section class="workflow-command-bar one-click-monitoring-control">
+    <div>
+        <span class="workflow-eyebrow">One-click Monitoring Control</span>
+        <strong>Live classroom monitoring pipeline</strong>
+        <p>Start camera, FACE attendance, behavior detection, and YOLO phone/book detection together. Recording stays manual.</p>
+        {% if not selected_session %}
+        <p class="small-text warning-text">Create or select an active session before starting monitoring.</p>
+        {% elif not selected_session.active %}
+        <p class="small-text warning-text">Review-only mode: this session is closed, so monitoring cannot be started.</p>
+        {% endif %}
+        {% if request.query_params.get("monitoring_error") %}
+        <p class="small-text warning-text">{{ request.query_params.get("monitoring_error") }}</p>
+        {% endif %}
     </div>
     <div class="monitoring-primary-actions">
         <form method="post" action="/dashboard/monitoring-workspace/start">
             <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
             <input type="hidden" name="return_to" value="{{ workspace_url }}">
-            <button class="button" type="submit" {% if not selected_session %}disabled{% endif %}>Start Monitoring</button>
+            <button class="button" type="submit" {% if not selected_session or not selected_session.active %}disabled{% endif %}>Start Monitoring</button>
         </form>
         <form method="post" action="/dashboard/monitoring-workspace/stop">
             <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
@@ -34,7 +50,7 @@
                 <h2>{% if selected_session %}#{{ selected_session.id }} - {{ selected_session.title }}{% else %}No session selected{% endif %}</h2>
                 <p class="muted">
                     {% if selected_session %}
-                    Attendance mode: FACE confidence-gated prototype + QR backup · {% if selected_session.active %}Active{% else %}Closed/latest{% endif %}
+                    FACE attendance + QR backup · {% if selected_session.active %}Active{% else %}Closed/latest{% endif %}
                     {% else %}
                     Select a session before recording attendance or behavior events.
                     {% endif %}
@@ -58,10 +74,11 @@
     <div class="card monitoring-status-card">
         <h2>Workspace Status</h2>
         <div class="monitoring-status-grid">
-            <div><span>Camera</span><strong>{{ "Running" if camera_status.running else "Stopped" }}</strong></div>
-            <div><span>Auto Attendance</span><strong>{{ "ON" if camera_status.auto_face_attendance_enabled else "OFF" }}</strong></div>
-            <div><span>Recording</span><strong>{{ "Active" if camera_status.recording else "Idle" }}</strong></div>
-            <div><span>Occupancy</span><strong>{{ occupancy_count }}</strong></div>
+            <div><span>Camera</span><strong data-monitoring-field="camera_running" data-format="running-stopped">{{ "Running" if camera_status.running else "Stopped" }}</strong></div>
+            <div><span>Auto Attendance</span><strong data-monitoring-field="face_attendance_enabled" data-format="on-off">{{ "ON" if camera_status.auto_face_attendance_enabled else "OFF" }}</strong></div>
+            <div><span>Object Detection</span><strong data-monitoring-field="object_detection_status">{{ monitoring_status.object_detection_status }}</strong></div>
+            <div><span>Recording</span><strong data-monitoring-field="recording_status">{{ monitoring_status.recording_status }}</strong></div>
+            <div><span>Occupancy</span><strong data-monitoring-field="occupancy_count">{{ occupancy_count }}</strong></div>
         </div>
     </div>
 </section>
@@ -71,7 +88,7 @@
         <div class="section-title-row">
             <div>
                 <h2>Live Classroom Camera</h2>
-                <p class="muted">This stream uses the shared camera pipeline: OpenCV face detection, LBPH recognition, behavior overlays, and recording overlays.</p>
+                <p class="muted">Shared stream with FACE attendance, behavior checks, YOLO overlays, and optional recording.</p>
             </div>
             <details class="advanced-controls">
                 <summary>Advanced camera controls</summary>
@@ -104,14 +121,14 @@
         <div class="camera-status-row">
             <span class="camera-status-pill">Face detection: OpenCV Haar</span>
             <span class="camera-status-pill">Recognition: LBPH</span>
-            <span class="camera-status-pill">Threshold: confidence gated</span>
-            <span class="camera-status-pill">Recording overlay: timestamp + face + behavior</span>
+            <span class="camera-status-pill">Threshold: {{ camera_status.face_recognition_accept_threshold }}</span>
+            <span class="camera-status-pill">YOLO cache: {{ camera_status.object_detection_interval_seconds }}s</span>
         </div>
     </div>
 
     <aside class="card">
         <h2>Auto Attendance</h2>
-        <p class="muted">When ON, high-confidence recognized students are marked by FACE once per session. Low confidence and unknown faces are shown but not marked.</p>
+        <p class="muted">High-confidence matches mark attendance once per session. Low confidence stays unknown and is not marked.</p>
 
         <details class="advanced-controls">
             <summary>Advanced FACE attendance controls</summary>
@@ -146,26 +163,33 @@
     </aside>
 </section>
 
+<section class="card workspace-object-status-card">
+    <div class="section-title-row">
+        <div>
+            <p class="eyebrow">Object Detection</p>
+            <h2>Phone / Book Detection</h2>
+            <p class="muted">Status only. YOLO runs inside the shared camera stream and reuses cached boxes between detections.</p>
+        </div>
+        <a class="button secondary-button small-button" href="/dashboard/object-detection">Open Debug Page</a>
+    </div>
+    <div class="monitoring-status-grid object-status-grid">
+        <div><span>Status</span><strong data-monitoring-field="object_detection_status">{{ monitoring_status.object_detection_status }}</strong></div>
+        <div><span>Person Count</span><strong data-monitoring-field="person_count">{{ monitoring_status.person_count }}</strong></div>
+        <div><span>Phone</span><strong data-monitoring-field="phone_detected" data-format="detected-clear">{{ "Detected" if monitoring_status.phone_detected else "Clear" }}</strong></div>
+        <div><span>Book</span><strong data-monitoring-field="book_detected" data-format="detected-clear">{{ "Detected" if monitoring_status.book_detected else "Clear" }}</strong></div>
+        <div><span>Faces</span><strong data-monitoring-field="face_count">{{ monitoring_status.face_count }}</strong></div>
+        <div><span>Present</span><strong data-monitoring-field="present_count">{{ monitoring_status.present_count }}</strong></div>
+        <div><span>Model</span><strong>YOLOv8 ONNX</strong></div>
+        <div><span>Targets</span><strong>Person, Phone, Book</strong></div>
+        <div><span>Model File</span><strong>{{ "Ready" if object_detection_status.enabled else "Model Missing" }}</strong></div>
+    </div>
+    <p class="small-text">Stable phone/book detections log behavior events after 2.5s with a 15s cooldown.</p>
+</section>
+
 <section class="monitoring-secondary-grid">
     <div class="card">
-        <h2>QR Backup Panel</h2>
-        <p class="muted">QR is backup if face recognition fails, confidence is low, or a student has no trained face profile.</p>
-        {% if selected_session %}
-        <form class="qr-manual-row" method="post" action="/dashboard/attendance/scan-qr">
-            <input type="hidden" name="session_id" value="{{ selected_session.id }}">
-            <input class="form-control" name="qr_code" placeholder="Manual QR Input / Backup">
-            <button class="btn btn-primary" type="submit">Submit QR</button>
-        </form>
-        {% endif %}
-        <div class="settings-actions panel-action-row">
-            <a class="btn btn-secondary" href="/dashboard/qr-attendance{% if selected_session %}?session_id={{ selected_session.id }}{% endif %}">Open Camera QR Scanner</a>
-        </div>
-        <p class="small-text">Demo Tools remain on the QR Attendance page so this workspace stays focused on live classroom operation.</p>
-    </div>
-
-    <div class="card">
         <h2>Behavior Monitoring</h2>
-        <p class="muted">Rule-based prototype and manual demo buttons. Phone/book/hand/head-pose style detection is labelled honestly as model-ready, not fully automatic.</p>
+        <p class="muted">Automatic behavior detection runs from Start Monitoring. Manual buttons are backup controls.</p>
 
         <details class="advanced-controls">
             <summary>Advanced behavior controls</summary>
@@ -183,7 +207,9 @@
             </div>
         </details>
 
-        <div class="behavior-grid monitoring-behavior-grid">
+        <details class="advanced-controls">
+            <summary>Manual behavior buttons</summary>
+            <div class="behavior-grid monitoring-behavior-grid">
             {% for item in behavior_types %}
             <form method="post" action="/dashboard/camera-monitoring/behavior">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
@@ -193,7 +219,8 @@
                 <button class="btn btn-secondary" type="submit">{{ item }}</button>
             </form>
             {% endfor %}
-        </div>
+            </div>
+        </details>
 
         <h3>Recent Behavior Events</h3>
         <div class="mini-event-list compact-feed">
@@ -208,13 +235,29 @@
             {% endfor %}
         </div>
     </div>
+
+    <div class="card">
+        <h2>QR Backup Panel</h2>
+        <p class="muted">QR is backup if face recognition fails, confidence is low, or a student has no trained face profile.</p>
+        {% if selected_session %}
+        <form class="qr-manual-row" method="post" action="/dashboard/attendance/scan-qr">
+            <input type="hidden" name="session_id" value="{{ selected_session.id }}">
+            <input class="form-control" name="qr_code" placeholder="Manual QR Input / Backup">
+            <button class="btn btn-primary" type="submit">Submit QR</button>
+        </form>
+        {% endif %}
+        <div class="settings-actions panel-action-row">
+            <a class="btn btn-secondary" href="/dashboard/qr-attendance{% if selected_session %}?session_id={{ selected_session.id }}{% endif %}">Open Camera QR Scanner</a>
+        </div>
+        <p class="small-text">Demo Tools remain on the QR Attendance page so this workspace stays focused on live classroom operation.</p>
+    </div>
 </section>
 
 <section class="monitoring-secondary-grid">
     <div class="card">
         <h2>Recording Panel</h2>
-        <p class="muted">Recordings use WebM / VP8 and include timestamp, recognized face ID/name/confidence, behavior labels, and recording status overlay.</p>
-        <p class="small-text">Recording is optional and must be started manually unless an admin enables auto-recording in a future setting.</p>
+        <p class="muted">Recordings use WebM / VP8 and include the live monitoring overlay.</p>
+        <p class="small-text">Recording is optional and must be started manually.</p>
         <div class="settings-actions">
             <form method="post" action="/dashboard/camera-monitoring/record/start">
                 <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
@@ -230,7 +273,7 @@
 
         <div class="monitoring-status-grid">
             <div><span>Format</span><strong>WebM / VP8</strong></div>
-            <div><span>Status</span><strong>{{ "Recording" if camera_status.recording else "Not recording" }}</strong></div>
+            <div><span>Status</span><strong data-monitoring-field="recording_status">{{ monitoring_status.recording_status }}</strong></div>
         </div>
 
         <h3>Recent Recordings</h3>
@@ -250,14 +293,15 @@
     </div>
 
     <div class="card">
-        <h2>IoT Quick Status</h2>
-        <p class="muted">If no students are detected/present for 5 minutes, lights/fans turn off. Full device control remains in IoT Monitoring.</p>
+        <h2>IoT Auto Control</h2>
+        <p class="muted">Simulated classroom relays use occupancy from person count, face count, and attendance.</p>
         <div class="monitoring-status-grid">
-            {% for device in devices if device.type in ["light", "fan"] %}
-            <div><span>{{ device.name }}</span><strong>{{ device.status|upper }}</strong></div>
-            {% endfor %}
-            <div><span>Occupancy / Attendance</span><strong>{{ occupancy_count }}</strong></div>
-            <div><span>Latest Temp</span><strong>{{ iot_stats.latest_temperature or "-" }}</strong></div>
+            <div><span>Auto Control</span><strong data-monitoring-field="iot_auto_control_status">{{ monitoring_status.iot_auto_control_status }}</strong></div>
+            <div><span>Light Relay</span><strong data-monitoring-field="light_relay" data-format="upper">{{ monitoring_status.light_relay|upper }}</strong></div>
+            <div><span>Fan Relay</span><strong data-monitoring-field="fan_relay" data-format="upper">{{ monitoring_status.fan_relay|upper }}</strong></div>
+            <div><span>Occupancy</span><strong data-monitoring-field="occupancy_count">{{ monitoring_status.occupancy_count }}</strong></div>
+            <div><span>Last Seen</span><strong data-monitoring-field="last_occupancy_seen" data-format="datetime-or-waiting">{{ monitoring_status.last_occupancy_seen or "Waiting" }}</strong></div>
+            <div><span>Auto-off</span><strong data-monitoring-field="auto_off_countdown_seconds" data-format="countdown">{{ monitoring_status.auto_off_countdown_seconds if monitoring_status.auto_off_countdown_seconds is not none else "Waiting" }}</strong></div>
         </div>
         <a class="button secondary-button full-width" href="/dashboard/iot-monitoring">Open Full IoT Monitoring</a>
     </div>
@@ -278,4 +322,47 @@
         <div><strong>Light/Fan</strong><span>Simulated relay / Raspberry Pi-ESP32 ready</span></div>
     </div>
 </section>
+<script>
+(() => {
+    const sessionId = "{{ selected_session.id if selected_session else '' }}";
+    const fields = Array.from(document.querySelectorAll("[data-monitoring-field]"));
+    if (!fields.length) return;
+
+    function formatMonitoringValue(value, format) {
+        if (format === "running-stopped") return value ? "Running" : "Stopped";
+        if (format === "on-off") return value ? "ON" : "OFF";
+        if (format === "detected-clear") return value ? "Detected" : "Clear";
+        if (format === "upper") return value ? String(value).toUpperCase() : "UNKNOWN";
+        if (format === "datetime-or-waiting") return value || "Waiting";
+        if (format === "countdown") {
+            if (value === null || value === undefined || value === "") return "Waiting";
+            const seconds = Number(value);
+            return Number.isFinite(seconds) ? `${Math.max(0, Math.round(seconds))}s` : String(value);
+        }
+        if (typeof value === "boolean") return value ? "Yes" : "No";
+        return value === null || value === undefined || value === "" ? "-" : String(value);
+    }
+
+    async function refreshMonitoringStatus() {
+        const url = new URL("/api/monitoring/status", window.location.origin);
+        if (sessionId) url.searchParams.set("session_id", sessionId);
+
+        try {
+            const response = await fetch(url, { headers: { "Accept": "application/json" } });
+            if (!response.ok) return;
+            const status = await response.json();
+
+            fields.forEach((node) => {
+                const key = node.dataset.monitoringField;
+                node.textContent = formatMonitoringValue(status[key], node.dataset.format || "");
+            });
+        } catch (error) {
+            console.warn("Monitoring status refresh failed", error);
+        }
+    }
+
+    refreshMonitoringStatus();
+    window.setInterval(refreshMonitoringStatus, 1500);
+})();
+</script>
 {% endblock %}

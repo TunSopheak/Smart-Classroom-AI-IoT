@@ -2,14 +2,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.core.timezone import format_cambodia_datetime, format_cambodia_time
 from app.database.database import get_db
 from app.models.ai_monitoring_event import AIMonitoringEvent
+from app.models.attendance_record import AttendanceRecord
 from app.models.camera_recording import CameraRecording
 from app.models.class_session import ClassSession
 from app.schemas.ai_monitoring_schema import AIMonitoringEventCreate
@@ -18,6 +19,7 @@ from app.services.camera_monitoring_service import camera_service, convert_recor
 from app.services.face_product_service import LABELS_PATH, MODEL_PATH
 from app.services.iot_automation_service import get_current_occupancy_count
 from app.services.iot_service import get_iot_stats, list_devices, seed_demo_devices
+from app.services.object_detection_service import object_detection_service
 
 router = APIRouter(tags=["Camera Monitoring"])
 templates = Jinja2Templates(directory="app/templates")
@@ -37,6 +39,7 @@ BEHAVIOR_TYPES = [
     "unknown_face",
     "multiple_faces",
 ]
+OCCUPIED_ATTENDANCE_STATUSES = ["P", "L", "Pm"]
 
 
 def build_return_url(default_path: str, session_id: Optional[int] = None, return_to: str = ""):
@@ -47,6 +50,11 @@ def build_return_url(default_path: str, session_id: Optional[int] = None, return
     if session_id:
         url += f"?session_id={session_id}"
     return url
+
+
+def append_query_param(url: str, key: str, value: str):
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}{key}={value}"
 
 
 def get_active_or_latest_session(db: Session):
@@ -61,6 +69,91 @@ def get_active_or_latest_session(db: Session):
         return active
 
     return db.query(ClassSession).order_by(ClassSession.start_time.desc()).first()
+
+
+def get_monitoring_status(db: Session, session: ClassSession | None = None):
+    camera_status = camera_service.get_status()
+    attendance_occupancy_count, active_session = get_current_occupancy_count(db)
+    status_session = session or active_session
+    if status_session:
+        attendance_occupancy_count = (
+            db.query(AttendanceRecord)
+            .filter(AttendanceRecord.session_id == status_session.id)
+            .filter(AttendanceRecord.status.in_(OCCUPIED_ATTENDANCE_STATUSES))
+            .count()
+        )
+    object_status = camera_status.get("object_detection_status") or object_detection_service.status()
+    devices = list_devices(db)
+    relays = {item.type: item.status for item in devices if item.type in ["light", "fan"]}
+    person_count = int(camera_status.get("person_count") or 0)
+    face_count = int(camera_status.get("face_count") or 0)
+    present_count = int(camera_status.get("present_count") or attendance_occupancy_count or 0)
+    occupancy_count = max(
+        int(camera_status.get("occupancy_count") or 0),
+        person_count,
+        face_count,
+        present_count,
+    )
+    if not object_status.get("enabled"):
+        object_detection_state = "Model Missing"
+    elif camera_status.get("running") and camera_status.get("object_detection_enabled"):
+        object_detection_state = "Running"
+    elif camera_status.get("object_detection_has_started_once"):
+        object_detection_state = "Stopped"
+    else:
+        object_detection_state = "Ready"
+
+    return {
+        "session_id": status_session.id if status_session else camera_status.get("monitoring_session_id"),
+        "session_active": bool(status_session.active) if status_session else False,
+        "camera_running": bool(camera_status.get("running")),
+        "face_attendance_enabled": bool(camera_status.get("auto_face_attendance_enabled")),
+        "object_detection_enabled": bool(camera_status.get("object_detection_enabled")),
+        "object_detection_running": bool(camera_status.get("object_detection_running")),
+        "object_detection_status": object_detection_state,
+        "behavior_detection_running": bool(camera_status.get("auto_behavior_enabled")),
+        "recording_status": camera_status.get("recording_status") or ("Recording" if camera_status.get("recording") else "Idle"),
+        "occupancy_count": occupancy_count,
+        "person_count": person_count,
+        "face_count": face_count,
+        "present_count": present_count,
+        "phone_detected": bool(camera_status.get("phone_detected")),
+        "book_detected": bool(camera_status.get("book_detected")),
+        "light_relay": camera_status.get("light_relay") if camera_status.get("light_relay") != "unknown" else relays.get("light", "unknown"),
+        "fan_relay": camera_status.get("fan_relay") if camera_status.get("fan_relay") != "unknown" else relays.get("fan", "unknown"),
+        "iot_auto_control_status": camera_status.get("iot_auto_control_status") or "Off",
+        "auto_off_countdown_seconds": camera_status.get("auto_off_countdown_seconds"),
+        "last_occupancy_seen": camera_status.get("last_occupancy_seen"),
+        "latest_object_detections": camera_status.get("latest_object_detections") or [],
+        "latest_face_status": camera_status.get("latest_face_status"),
+        "updated_at": camera_status.get("updated_at"),
+        "latest_events": (
+            (camera_status.get("recent_auto_behavior_events") or [])
+            + (camera_status.get("recent_face_attendance_events") or [])
+        )[:8],
+    }
+
+
+def start_monitoring_workflow(db: Session, session_id: int | None):
+    session = db.query(ClassSession).filter(ClassSession.id == session_id).first() if session_id else get_active_or_latest_session(db)
+    if not session:
+        raise HTTPException(status_code=400, detail="Select or create an active session before starting monitoring.")
+    if not session.active:
+        raise HTTPException(status_code=400, detail="This session is closed. Monitoring is review-only for closed sessions.")
+
+    camera_service.set_session(session.id)
+    started = camera_service.start(0)
+    camera_service.enable_auto_face_attendance(session_id=session.id)
+    camera_service.enable_auto_behavior(session_id=session.id)
+    camera_service.enable_object_detection(session_id=session.id)
+    return session, started
+
+
+def stop_monitoring_workflow():
+    camera_service.disable_object_detection()
+    camera_service.disable_auto_behavior()
+    camera_service.disable_auto_face_attendance()
+    camera_service.stop()
 
 
 def get_recording_file_path(recording: CameraRecording):
@@ -175,6 +268,7 @@ def dashboard_monitoring_workspace(
 
     occupancy_count, occupancy_session = get_current_occupancy_count(db)
     devices = list_devices(db)
+    monitoring_status = get_monitoring_status(db, selected_session)
 
     return templates.TemplateResponse(
         request,
@@ -184,6 +278,7 @@ def dashboard_monitoring_workspace(
             "sessions": sessions,
             "selected_session": selected_session,
             "camera_status": camera_service.get_status(),
+            "monitoring_status": monitoring_status,
             "recordings": recordings,
             "ai_events": ai_events,
             "behavior_types": BEHAVIOR_TYPES,
@@ -191,8 +286,9 @@ def dashboard_monitoring_workspace(
             "labels_exists": LABELS_PATH.exists(),
             "devices": devices,
             "iot_stats": get_iot_stats(db),
-            "occupancy_count": occupancy_count,
+            "occupancy_count": monitoring_status.get("occupancy_count", occupancy_count),
             "occupancy_session": occupancy_session,
+            "object_detection_status": object_detection_service.status(),
             "format_kh_datetime": format_cambodia_datetime,
             "format_kh_time": format_cambodia_time,
         },
@@ -202,6 +298,24 @@ def dashboard_monitoring_workspace(
 @router.get("/api/camera-monitoring/status")
 def api_camera_status():
     return camera_service.get_status()
+
+
+@router.get("/api/monitoring/status")
+def api_monitoring_status(session_id: Optional[int] = None, db: Session = Depends(get_db)):
+    session = db.query(ClassSession).filter(ClassSession.id == session_id).first() if session_id else None
+    return get_monitoring_status(db, session)
+
+
+@router.post("/api/monitoring/start")
+def api_start_monitoring(session_id: Optional[int] = Form(None), db: Session = Depends(get_db)):
+    session, started = start_monitoring_workflow(db, session_id)
+    return {"ok": bool(started), "message": "Monitoring started." if started else "Camera could not start.", "status": get_monitoring_status(db, session)}
+
+
+@router.post("/api/monitoring/stop")
+def api_stop_monitoring(db: Session = Depends(get_db)):
+    stop_monitoring_workflow()
+    return {"ok": True, "message": "Monitoring stopped.", "status": get_monitoring_status(db, None)}
 
 
 @router.get("/api/camera-monitoring/stream")
@@ -220,19 +334,19 @@ def dashboard_start_camera(session_id: Optional[int] = Form(None), return_to: st
 
 
 @router.post("/dashboard/monitoring-workspace/start")
-def dashboard_start_monitoring(session_id: Optional[int] = Form(None), return_to: str = Form("")):
-    camera_service.set_session(session_id)
-    camera_service.start(0)
-    camera_service.enable_auto_face_attendance(session_id=session_id)
-    camera_service.enable_auto_behavior(session_id=session_id)
+def dashboard_start_monitoring(session_id: Optional[int] = Form(None), return_to: str = Form(""), db: Session = Depends(get_db)):
+    try:
+        session, _ = start_monitoring_workflow(db, session_id)
+        session_id = session.id
+    except HTTPException as exc:
+        url = append_query_param(build_return_url("/dashboard/monitoring-workspace", session_id, return_to), "monitoring_error", str(exc.detail))
+        return RedirectResponse(url=url, status_code=303)
     return RedirectResponse(url=build_return_url("/dashboard/monitoring-workspace", session_id, return_to), status_code=303)
 
 
 @router.post("/dashboard/monitoring-workspace/stop")
 def dashboard_stop_monitoring(session_id: Optional[int] = Form(None), return_to: str = Form("")):
-    camera_service.disable_auto_behavior()
-    camera_service.disable_auto_face_attendance()
-    camera_service.stop()
+    stop_monitoring_workflow()
     return RedirectResponse(url=build_return_url("/dashboard/monitoring-workspace", session_id, return_to), status_code=303)
 
 
@@ -359,7 +473,7 @@ def dashboard_log_behavior(
         event_type=event_type,
         severity=severity,
         confidence=0.85,
-        source="camera_monitoring_manual_behavior",
+        source="manual_demo_control",
         description=f"Behavior event marked during live camera monitoring: {event_type}",
     )
 
