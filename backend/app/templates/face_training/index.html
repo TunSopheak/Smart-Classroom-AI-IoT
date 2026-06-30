@@ -73,17 +73,17 @@
 
 {% if selected_student %}
 <div class="card">
-    <h2>Upload Face Photos: {{ selected_student.stu_id }} - {{ selected_student.name }}</h2>
+    <h2>Upload Face Video: {{ selected_student.stu_id }} - {{ selected_student.name }}</h2>
 
     <form method="post" action="/dashboard/face-training/upload" enctype="multipart/form-data" class="settings-form">
         <input type="hidden" name="student_id" value="{{ selected_student.id }}">
 
         <div>
-            <label>Upload face photos</label>
-            <input class="form-control" type="file" name="files" accept="image/*" multiple required>
+            <label>Upload face Video</label>
+            <input class="form-control" type="file" name="video" accept="video/*" multiple required>
         </div>
 
-        <button class="btn btn-primary" type="submit">Upload Face Photos</button>
+        <button class="btn btn-primary" type="submit">Upload Face Video</button>
     </form>
 </div>
 
