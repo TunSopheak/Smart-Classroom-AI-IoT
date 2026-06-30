@@ -37,3 +37,9 @@ backend/ai_module/object_detection/models/*.onnx
 backend/ai_module/object_detection/models/*.pt
 backend/ai_module/object_detection/models/*.tflite
 backend/ai_module/object_detection/models/*.engine
+
+# Local face training videos
+backend/ai_module/face_recognition/videos/*.mp4
+backend/ai_module/face_recognition/videos/*.avi
+backend/ai_module/face_recognition/videos/*.mov
+backend/ai_module/face_recognition/videos/*.mkv
