@@ -1,3 +1,5 @@
+from app.routers.object_detection_page_router import router as object_detection_page_router
+from app.routers.object_detection_stream_router import router as object_detection_stream_router
 from app.routers.object_detection_router import router as object_detection_router
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -179,3 +181,9 @@ app.include_router(academic_lifecycle_router)
 
 # Phase 17A Object Detection API
 app.include_router(object_detection_router)
+
+# Phase 17B Object Detection Stream
+app.include_router(object_detection_stream_router)
+
+# Phase 17B Object Detection Page
+app.include_router(object_detection_page_router)
