@@ -760,3 +760,193 @@
 
     document.addEventListener("DOMContentLoaded", fixClassSetupStudentResponsibility);
 })();
+
+
+// Phase 17C Unified Monitoring Workspace Object Detection Panel
+(function () {
+    const STREAM_BASE = "/api/object-detection/stream?camera_index=0";
+
+    function isWorkspace() {
+        return window.location.pathname.includes("/dashboard/monitoring-workspace");
+    }
+
+    function text(el) {
+        return (el && el.textContent || "").replace(/\s+/g, " ").trim();
+    }
+
+    function findButtonByText(words) {
+        const buttons = Array.from(document.querySelectorAll("button, a"));
+        return buttons.find(function (btn) {
+            const value = text(btn).toLowerCase();
+            return words.every(function (word) {
+                return value.includes(word);
+            });
+        });
+    }
+
+    function ensurePanel() {
+        if (!isWorkspace()) return null;
+
+        let panel = document.querySelector(".workspace-object-detection-panel");
+        if (panel) return panel;
+
+        panel = document.createElement("section");
+        panel.className = "card workspace-object-detection-panel";
+        panel.innerHTML = `
+            <div class="workspace-od-head">
+                <div>
+                    <p class="eyebrow">Object Detection</p>
+                    <h2>Phone / Book Detection</h2>
+                    <p class="muted workspace-od-message">Checking model status...</p>
+                </div>
+                <span class="workspace-od-pill">Checking</span>
+            </div>
+
+            <div class="workspace-od-controls">
+                <button type="button" class="btn btn-primary workspace-od-start">Start Object Detection</button>
+                <button type="button" class="btn btn-secondary workspace-od-stop">Stop</button>
+                <a class="btn btn-secondary" href="/dashboard/object-detection">Debug Page</a>
+            </div>
+
+            <div class="workspace-od-stream-wrap is-idle">
+                <div class="workspace-od-placeholder">
+                    Click <strong>Start Monitoring</strong> or <strong>Start Object Detection</strong> to start phone/book overlay.
+                </div>
+                <img class="workspace-od-stream" alt="Phone and book detection stream">
+            </div>
+
+            <div class="workspace-od-hint">
+                <strong>Unified workflow:</strong>
+                Start Monitoring should run camera, face attendance, behavior detection, and phone/book detection together.
+            </div>
+        `;
+
+        const targetHeading = Array.from(document.querySelectorAll("h2, h3"))
+            .find(function (h) {
+                const value = text(h).toLowerCase();
+                return value.includes("live") || value.includes("camera") || value.includes("monitoring");
+            });
+
+        if (targetHeading) {
+            const card = targetHeading.closest(".card") || targetHeading.closest("section") || targetHeading.parentElement;
+            card.insertAdjacentElement("afterend", panel);
+        } else {
+            const main = document.querySelector("main") || document.querySelector(".content") || document.body;
+            main.appendChild(panel);
+        }
+
+        return panel;
+    }
+
+    function setStatus(panel, status) {
+        const pill = panel.querySelector(".workspace-od-pill");
+        const message = panel.querySelector(".workspace-od-message");
+
+        if (!pill || !message) return;
+
+        if (status.enabled) {
+            pill.textContent = "Ready";
+            pill.className = "workspace-od-pill ready";
+            message.textContent = "YOLO model is ready. Phone, book, and person boxes can be shown.";
+        } else {
+            pill.textContent = "Model Missing";
+            pill.className = "workspace-od-pill warning";
+            message.textContent = status.message || "Object detection model is not installed.";
+        }
+    }
+
+    function refreshStatus(panel) {
+        fetch("/api/object-detection/status")
+            .then(function (res) { return res.json(); })
+            .then(function (data) { setStatus(panel, data); })
+            .catch(function () {
+                const pill = panel.querySelector(".workspace-od-pill");
+                const message = panel.querySelector(".workspace-od-message");
+                if (pill) {
+                    pill.textContent = "Offline";
+                    pill.className = "workspace-od-pill warning";
+                }
+                if (message) {
+                    message.textContent = "Could not read object detection status.";
+                }
+            });
+    }
+
+    function startObjectDetection(panel) {
+        const img = panel.querySelector(".workspace-od-stream");
+        const wrap = panel.querySelector(".workspace-od-stream-wrap");
+
+        if (!img || !wrap) return;
+
+        wrap.classList.remove("is-idle");
+        wrap.classList.add("is-running");
+
+        img.src = STREAM_BASE + "&t=" + Date.now();
+    }
+
+    function stopObjectDetection(panel) {
+        const img = panel.querySelector(".workspace-od-stream");
+        const wrap = panel.querySelector(".workspace-od-stream-wrap");
+
+        if (!img || !wrap) return;
+
+        img.removeAttribute("src");
+        wrap.classList.add("is-idle");
+        wrap.classList.remove("is-running");
+    }
+
+    function bindPanel(panel) {
+        const startBtn = panel.querySelector(".workspace-od-start");
+        const stopBtn = panel.querySelector(".workspace-od-stop");
+
+        if (startBtn && !startBtn.dataset.bound) {
+            startBtn.dataset.bound = "1";
+            startBtn.addEventListener("click", function () {
+                startObjectDetection(panel);
+            });
+        }
+
+        if (stopBtn && !stopBtn.dataset.bound) {
+            stopBtn.dataset.bound = "1";
+            stopBtn.addEventListener("click", function () {
+                stopObjectDetection(panel);
+            });
+        }
+
+        const mainStart = findButtonByText(["start", "monitor"]);
+        if (mainStart && !mainStart.dataset.objectDetectionBound) {
+            mainStart.dataset.objectDetectionBound = "1";
+            mainStart.addEventListener("click", function () {
+                setTimeout(function () {
+                    startObjectDetection(panel);
+                }, 700);
+            });
+        }
+
+        const mainStop = findButtonByText(["stop"]);
+        if (mainStop && !mainStop.dataset.objectDetectionStopBound) {
+            mainStop.dataset.objectDetectionStopBound = "1";
+            mainStop.addEventListener("click", function () {
+                stopObjectDetection(panel);
+            });
+        }
+    }
+
+    function init() {
+        if (!isWorkspace()) return;
+
+        const panel = ensurePanel();
+        if (!panel) return;
+
+        refreshStatus(panel);
+        bindPanel(panel);
+
+        setInterval(function () {
+            if (document.body.contains(panel)) {
+                refreshStatus(panel);
+            }
+        }, 10000);
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+})();
