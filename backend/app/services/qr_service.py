@@ -1,7 +1,16 @@
 from pathlib import Path
 import re
+import hmac
+import hashlib
 
 import qrcode
+
+from app.core.auth import AUTH_SECRET_KEY
+
+
+SIGNED_QR_PREFIX = "SCQR"
+SIGNED_QR_VERSION = "v1"
+SIGNATURE_LENGTH = 16
 
 
 def safe_filename(value: str) -> str:
@@ -9,8 +18,35 @@ def safe_filename(value: str) -> str:
     return cleaned or "qr_code"
 
 
+def _sign_student_id(stu_id: str) -> str:
+    return hmac.new(
+        AUTH_SECRET_KEY.encode("utf-8"),
+        stu_id.strip().upper().encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()[:SIGNATURE_LENGTH]
+
+
 def build_student_qr_code(stu_id: str) -> str:
-    return f"SC-STUDENT-{stu_id.strip().upper()}"
+    clean_stu_id = stu_id.strip().upper()
+    return f"{SIGNED_QR_PREFIX}:{SIGNED_QR_VERSION}:{clean_stu_id}:{_sign_student_id(clean_stu_id)}"
+
+
+def parse_signed_student_qr(qr_value: str) -> str | None:
+    parts = qr_value.strip().split(":")
+    if len(parts) != 4:
+        return None
+
+    prefix, version, stu_id, signature = parts
+    clean_stu_id = stu_id.strip().upper()
+
+    if prefix != SIGNED_QR_PREFIX or version != SIGNED_QR_VERSION or not clean_stu_id:
+        return None
+
+    expected_signature = _sign_student_id(clean_stu_id)
+    if not hmac.compare_digest(signature, expected_signature):
+        return None
+
+    return clean_stu_id
 
 
 def generate_qr_image(qr_value: str, output_dir: Path, filename: str) -> str:

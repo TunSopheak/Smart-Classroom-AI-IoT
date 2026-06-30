@@ -30,13 +30,25 @@
 <div class="card">
     <h2>Product Readiness Checklist</h2>
 
-    <div class="readiness-grid">
-        {% for item in readiness_items %}
-        <div class="readiness-item">
-            <span>{% if item.ready %}✅{% else %}❌{% endif %}</span>
-            <strong>{{ item.label }}</strong>
-        </div>
-        {% endfor %}
+    <div class="table-responsive">
+        <table class="data-table compact-table readiness-table">
+            <thead>
+                <tr>
+                    <th>Module</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in readiness_items %}
+                <tr>
+                    <td><strong class="compact-name">{{ item.module }}</strong></td>
+                    <td><span class="event-badge readiness-{{ item.status|lower }}">{{ item.status }}</span></td>
+                    <td class="wrap-cell small-text">{{ item.notes }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 

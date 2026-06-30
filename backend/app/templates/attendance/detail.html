@@ -2,9 +2,9 @@
 {% block content %}
 <section class="page-header">
     <div>
-        <p class="eyebrow">Phase 2 Attendance</p>
+        <p class="eyebrow">Session Attendance Review</p>
         <h1>{{ session.title }}</h1>
-        <p class="muted">QR scans create attendance events and update final records per session.</p>
+        <p class="muted">Review attendance records, correct statuses, and inspect scan/face audit events for this session.</p>
     </div>
 
     <div class="action-row">
@@ -19,6 +19,10 @@
                 <button class="secondary-button" type="submit">Reopen Session</button>
             </form>
         {% endif %}
+        <a class="button" href="/dashboard/qr-attendance?session_id={{ session.id }}">Open QR Scanner</a>
+        <a class="button secondary-button" href="/dashboard/monitoring-workspace?session_id={{ session.id }}">Open Monitoring Workspace</a>
+        <a class="button secondary-button" href="/dashboard/reports?session_id={{ session.id }}">Open Reports</a>
+        <a class="button secondary-button" href="/dashboard/reports/attendance.csv?session_id={{ session.id }}">Export Attendance</a>
         <a class="button secondary-button" href="/dashboard/sessions">Back Sessions</a>
     </div>
 </section>
@@ -31,102 +35,68 @@
 
 {% if scan_message %}
 <section class="alert alert-{{ scan_result }}">
-    <strong>Scan result:</strong> {{ scan_message }}
+    <strong>Attendance update:</strong> {{ scan_message }}
 </section>
 {% endif %}
 
-<section class="panel scan-panel">
-    <h2>QR Attendance Scan</h2>
-
-    {% if session.active %}
-        <form class="form-row" action="/dashboard/attendance/scan-qr" method="post">
-            <input type="hidden" name="session_id" value="{{ session.id }}">
-            <input name="qr_code" placeholder="Paste or scan QR value, e.g. SC-STUDENT-S001" required autofocus>
-            <button type="submit">Scan QR</button>
-        </form>
-
-        <div class="quick-scan-list">
-            <span class="muted">Quick demo scan:</span>
-            {% for qr in ["SC-STUDENT-S001", "SC-STUDENT-S002", "SC-STUDENT-S003", "SC-STUDENT-S004", "SC-STUDENT-S005"] %}
-                <form action="/dashboard/attendance/scan-qr" method="post">
-                    <input type="hidden" name="session_id" value="{{ session.id }}">
-                    <input type="hidden" name="qr_code" value="{{ qr }}">
-                    <button class="qr-chip" type="submit">{{ qr }}</button>
-                </form>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p class="muted">This session is closed. Reopen it first if you need to test more QR scans.</p>
-    {% endif %}
-</section>
-
-
-<section class="panel face-panel">
-    <h2>Face Recognition Prototype</h2>
-    <p class="muted">This simulates face recognition output. Later, OpenCV will call the same attendance workflow automatically.</p>
-
-    {% if session.active %}
-        <div class="quick-face-list">
-            {% for record in records %}
-                <form action="/dashboard/attendance/face-simulate" method="post">
-                    <input type="hidden" name="session_id" value="{{ session.id }}">
-                    <input type="hidden" name="student_id" value="{{ record.student.id }}">
-                    <input type="hidden" name="confidence" value="0.86">
-                    <button class="face-chip" type="submit">Face: {{ record.student.stu_id }}</button>
-                </form>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p class="muted">This session is closed. Reopen it first if you need to test face recognition attendance.</p>
-    {% endif %}
-</section>
-
 <section class="panel">
-    <h2>Attendance Records</h2>
-    <table>
-        <thead>
-            <tr><th>Student</th><th>Status</th><th>Method</th><th>First Seen</th><th>Confidence</th><th>Override</th></tr>
-        </thead>
-        <tbody>
-        {% for record in records %}
-            <tr>
-                <td>
-                    <strong>{{ record.student.stu_id }} - {{ record.student.name }}</strong><br>
-                    <span class="small-text">QR: <code>{{ record.student.qr_code }}</code></span>
-                </td>
-                <td><span class="badge status-{{ record.status|lower }}">{{ record.status }}</span></td>
-                <td>{{ record.method }}</td>
-                <td>{{ record.first_seen_time or '-' }}</td>
-                <td>{{ '%.2f'|format(record.confidence) if record.confidence is not none else '-' }}</td>
-                <td>
-                    <form class="inline-form" action="/dashboard/attendance/{{ record.id }}/override" method="post">
-                        <select name="status">
-                            {% for status in statuses %}
-                                <option value="{{ status.value }}" {% if record.status == status.value %}selected{% endif %}>{{ status.value }}</option>
-                            {% endfor %}
-                        </select>
-                        <input name="override_reason" placeholder="Reason" required>
-                        <button type="submit">Save</button>
-                    </form>
-                    {% if record.override_reason %}<p class="small-text">Reason: {{ record.override_reason }}</p>{% endif %}
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <div class="section-title-row">
+        <div>
+            <h2>Attendance Records</h2>
+            <p class="muted">Use manual override only to correct final attendance status.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table compact-table">
+            <thead>
+                <tr><th>Student Code</th><th>Name</th><th>Status</th><th>Method</th><th>First Seen</th><th>Confidence</th><th>Manual Override</th></tr>
+            </thead>
+            <tbody>
+            {% for record in records %}
+                <tr>
+                    <td><strong class="student-code">{{ record.student.stu_id }}</strong></td>
+                    <td>{{ record.student.name }}</td>
+                    <td><span class="badge status-{{ record.status|lower }}">{{ record.status }}</span></td>
+                    <td><span class="small-text">{{ record.method or '-' }}</span></td>
+                    <td>{{ record.first_seen_time or '-' }}</td>
+                    <td>{{ '%.2f'|format(record.confidence) if record.confidence is not none else '-' }}</td>
+                    <td>
+                        <form class="inline-form compact-override-form" action="/dashboard/attendance/{{ record.id }}/override" method="post">
+                            <select name="status">
+                                {% for status in statuses %}
+                                    <option value="{{ status.value }}" {% if record.status == status.value %}selected{% endif %}>{{ status.value }}</option>
+                                {% endfor %}
+                            </select>
+                            <input name="override_reason" placeholder="Reason" required>
+                            <button type="submit">Save</button>
+                        </form>
+                        {% if record.override_reason %}<p class="small-text">Reason: {{ record.override_reason }}</p>{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 
 <section class="panel">
     <h2>Recent Attendance Events</h2>
     {% if events %}
-        <table>
+        <table class="data-table compact-table">
             <thead><tr><th>Time</th><th>Student</th><th>Method</th><th>Result</th><th>Confidence</th><th>Source</th><th>Note</th></tr></thead>
             <tbody>
             {% for event in events %}
                 <tr>
                     <td>{{ event.timestamp }}</td>
-                    <td>{{ event.student.name if event.student else 'Unknown' }}</td>
-                    <td>{{ event.method }}</td>
+                    <td>
+                        {% if event.student %}
+                        <strong class="student-code">{{ event.student.stu_id }}</strong>
+                        <span class="small-text">{{ event.student.name }}</span>
+                        {% else %}
+                        Unknown
+                        {% endif %}
+                    </td>
+                    <td><span class="event-badge">{{ event.method }}</span></td>
                     <td><span class="event-result result-{{ event.result }}">{{ event.result }}</span></td>
                     <td>{{ '%.2f'|format(event.confidence) if event.confidence is not none else '-' }}</td>
                     <td>{{ event.raw_source or '-' }}</td>
@@ -136,7 +106,7 @@
             </tbody>
         </table>
     {% else %}
-        <p class="muted">No scan events yet. Use the QR scan form above.</p>
+        <p class="muted">No scan or face attendance events yet. Use QR Attendance or Monitoring Workspace to record attendance.</p>
     {% endif %}
 </section>
 

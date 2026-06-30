@@ -18,6 +18,7 @@ from app.services.attendance_service import (
 )
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
+FACE_ATTENDANCE_MIN_CONFIDENCE = 0.75
 
 
 def get_dataset_path(student: Student) -> str:
@@ -117,6 +118,37 @@ def simulate_face_attendance(
         }
 
     record = get_or_create_attendance_record(db, session.id, student.id)
+
+    if confidence < FACE_ATTENDANCE_MIN_CONFIDENCE:
+        event = log_attendance_event(
+            db=db,
+            session=session,
+            student_id=student.id,
+            method=AttendanceMethod.FACE,
+            event_time=event_time,
+            confidence=confidence,
+            raw_source=raw_source,
+            result=AttendanceEventResult.LOW_CONFIDENCE,
+            note=(
+                "Face recognition confidence was below the attendance threshold "
+                f"({FACE_ATTENDANCE_MIN_CONFIDENCE:.2f})."
+            ),
+        )
+        db.commit()
+        db.refresh(event)
+        db.refresh(record)
+        return {
+            "ok": False,
+            "message": (
+                f"{student.name} recognition confidence is too low "
+                f"({confidence:.2f}); attendance was not changed."
+            ),
+            "result": AttendanceEventResult.LOW_CONFIDENCE.value,
+            "student_id": student.id,
+            "record_id": record.id,
+            "event_id": event.id,
+            "status": record.status,
+        }
 
     if event_time > session.close_time:
         event = log_attendance_event(

@@ -86,11 +86,12 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Student</th>
+                    <th>Student Code</th>
+                    <th>Name</th>
                     <th>Status</th>
                     <th>Method</th>
-                    <th>Confidence</th>
                     <th>First Seen</th>
+                    <th>Confidence</th>
                     <th>Override Reason</th>
                 </tr>
             </thead>
@@ -99,21 +100,21 @@
                 <tr>
                     <td>
                         {% if record.student %}
-                            <strong>{{ record.student.stu_id }}</strong><br>
-                            <span class="muted">{{ record.student.name }}</span>
+                            <strong class="student-code">{{ record.student.stu_id }}</strong>
                         {% else %}
                             Student #{{ record.student_id }}
                         {% endif %}
                     </td>
-                    <td><span class="status-badge status-{{ record.status }}">{{ record.status }}</span></td>
-                    <td>{{ record.method or "-" }}</td>
-                    <td>{{ "%.2f"|format(record.confidence) if record.confidence is not none else "-" }}</td>
+                    <td>{{ record.student.name if record.student else "-" }}</td>
+                    <td><span class="badge status-{{ record.status|lower }}">{{ record.status }}</span></td>
+                    <td><span class="small-text">{{ record.method or "-" }}</span></td>
                     <td>{{ record.first_seen_time.strftime("%Y-%m-%d %H:%M:%S") if record.first_seen_time else "-" }}</td>
-                    <td>{{ record.override_reason or "-" }}</td>
+                    <td>{{ "%.2f"|format(record.confidence) if record.confidence is not none else "-" }}</td>
+                    <td class="wrap-cell">{{ record.override_reason or "-" }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="muted">No attendance records found for this session.</td>
+                    <td colspan="7" class="muted">No attendance records found for this session.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -142,7 +143,7 @@
                     <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
                     <td>
                         {% if event.student %}
-                            <strong>{{ event.student.stu_id }}</strong><br>
+                            <strong class="student-code">{{ event.student.stu_id }}</strong><br>
                             <span class="muted">{{ event.student.name }}</span>
                         {% else %}
                             Classroom / Unknown
@@ -151,7 +152,7 @@
                     <td><span class="badge badge-ai">{{ event.event_type }}</span></td>
                     <td><span class="severity severity-{{ event.severity }}">{{ event.severity }}</span></td>
                     <td>{{ "%.2f"|format(event.confidence) if event.confidence is not none else "-" }}</td>
-                    <td>{{ event.description or "-" }}</td>
+                    <td class="wrap-cell">{{ event.description or "-" }}</td>
                 </tr>
                 {% else %}
                 <tr>

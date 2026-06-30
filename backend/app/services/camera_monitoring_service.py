@@ -49,6 +49,9 @@ class CameraMonitoringService:
         self.eyes_missing_started_at = None
         self.last_logged_behavior_time = {}
         self.auto_behavior_events_memory = []
+        self.auto_face_attendance_enabled = True
+        self.face_attendance_events_memory = []
+        self.face_attendance_marked_keys = set()
 
         face_cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         eye_cascade_path = cv2.data.haarcascades + "haarcascade_eye.xml"
@@ -70,6 +73,15 @@ class CameraMonitoringService:
         self.auto_behavior_enabled = False
         self.no_face_started_at = None
         self.eyes_missing_started_at = None
+        return self.get_status()
+
+    def enable_auto_face_attendance(self, session_id: int | None = None):
+        self.monitoring_session_id = session_id
+        self.auto_face_attendance_enabled = True
+        return self.get_status()
+
+    def disable_auto_face_attendance(self):
+        self.auto_face_attendance_enabled = False
         return self.get_status()
 
     def start(self, camera_index: int = 0):
@@ -178,19 +190,34 @@ class CameraMonitoringService:
                 2,
             )
 
+        if len(faces) > 1:
+            self._remember_face_attendance_event(
+                "multiple_faces",
+                f"{len(faces)} faces detected. Attendance requires a confident single-student match.",
+                marked=False,
+            )
+
         if len(faces) > 0:
             for idx, (x, y, fw, fh) in enumerate(faces, start=1):
-                cv2.rectangle(frame, (x, y), (x + fw, y + fh), (0, 255, 0), 3)
+                face_gray = gray[y:y + fh, x:x + fw]
+                label, color = self._recognize_face_label(face_gray, idx)
+
+                cv2.rectangle(frame, (x, y), (x + fw, y + fh), color, 3)
                 cv2.putText(
                     frame,
-                    f"Face #{idx}",
+                    label,
                     (x, max(35, y - 10)),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.78,
-                    (0, 255, 0),
+                    0.66,
+                    color,
                     2,
                 )
         else:
+            self._remember_face_attendance_event(
+                "no_face_detected",
+                "No face visible in the camera frame.",
+                marked=False,
+            )
             cv2.rectangle(frame, (30, 65), (390, 115), (0, 0, 255), 2)
             cv2.putText(
                 frame,
@@ -224,6 +251,104 @@ class CameraMonitoringService:
             )
 
         return frame
+
+    def _remember_face_attendance_event(self, event_type: str, message: str, marked: bool, student_id: int | None = None):
+        now = time.time()
+        dedupe_key = f"{event_type}:{message}:{student_id or ''}"
+        last_key = getattr(self, "_last_face_memory_key", None)
+        last_time = getattr(self, "_last_face_memory_time", 0)
+
+        if dedupe_key == last_key and now - last_time < 4:
+            return
+
+        self._last_face_memory_key = dedupe_key
+        self._last_face_memory_time = now
+        self.face_attendance_events_memory.insert(
+            0,
+            {
+                "event_type": event_type,
+                "message": message,
+                "marked": marked,
+                "student_id": student_id,
+                "session_id": self.monitoring_session_id,
+                "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            },
+        )
+        self.face_attendance_events_memory = self.face_attendance_events_memory[:20]
+
+    def _recognize_face_label(self, face_gray, index: int):
+        try:
+            from app.models.student import Student
+            from app.services.face_product_service import live_face_recognizer
+            from app.services.face_service import FACE_ATTENDANCE_MIN_CONFIDENCE, simulate_face_attendance
+        except Exception:
+            return f"Face #{index} | recognition unavailable", (0, 0, 255)
+
+        prediction = live_face_recognizer.predict_face(face_gray)
+
+        if not prediction:
+            self._remember_face_attendance_event(
+                "unknown_face",
+                "Unknown face detected. Face model is missing, labels are missing, or the face did not match a trained student.",
+                marked=False,
+            )
+            return "Unknown face | model not ready", (0, 0, 255)
+
+        confidence = float(prediction.get("confidence") or 0)
+        stu_id = prediction.get("stu_id")
+
+        db = SessionLocal()
+        try:
+            student = db.query(Student).filter(Student.stu_id == stu_id).first()
+            name = student.name if student else "Unknown Student"
+
+            if confidence < FACE_ATTENDANCE_MIN_CONFIDENCE:
+                self._remember_face_attendance_event(
+                    "low_confidence",
+                    f"{stu_id} - {name} low confidence {confidence:.2f}; attendance not marked.",
+                    marked=False,
+                    student_id=student.id if student else None,
+                )
+                return f"Possible {stu_id} - {name} | low {confidence:.2f}", (0, 215, 255)
+
+            attendance_text = "FACE ready"
+            session_key = f"{self.monitoring_session_id}:{student.id if student else stu_id}"
+
+            if self.auto_face_attendance_enabled and student and self.monitoring_session_id:
+                if session_key in self.face_attendance_marked_keys:
+                    attendance_text = "already marked"
+                else:
+                    result = simulate_face_attendance(
+                        db=db,
+                        student_id=student.id,
+                        session_id=self.monitoring_session_id,
+                        confidence=confidence,
+                        raw_source="monitoring_workspace_face_recognition",
+                    )
+                    attendance_text = result["result"]
+                    if result.get("ok"):
+                        self.face_attendance_marked_keys.add(session_key)
+                    self._remember_face_attendance_event(
+                        "face_attendance",
+                        f"{stu_id} - {name} marked {result.get('status')} by FACE.",
+                        marked=bool(result.get("ok")),
+                        student_id=student.id,
+                    )
+            elif not self.auto_face_attendance_enabled:
+                attendance_text = "auto attendance off"
+            elif not self.monitoring_session_id:
+                attendance_text = "no session"
+
+            return f"{stu_id} - {name} | conf {confidence:.2f} | {attendance_text}", (0, 255, 0)
+        except Exception as exc:
+            self._remember_face_attendance_event(
+                "face_attendance_error",
+                f"Face attendance could not be processed: {exc}",
+                marked=False,
+            )
+            return f"{stu_id or 'Face'} | attendance error", (0, 165, 255)
+        finally:
+            db.close()
 
     def _run_behavior_engine(self, frame, gray, faces):
         now = time.time()
@@ -426,8 +551,10 @@ class CameraMonitoringService:
             "frame_height": FRAME_HEIGHT,
             "format": "webm_vp8",
             "auto_behavior_enabled": self.auto_behavior_enabled,
+            "auto_face_attendance_enabled": self.auto_face_attendance_enabled,
             "monitoring_session_id": self.monitoring_session_id,
             "recent_auto_behavior_events": self.auto_behavior_events_memory,
+            "recent_face_attendance_events": self.face_attendance_events_memory,
         }
 
     def get_jpeg_bytes(self):

@@ -92,6 +92,10 @@ def check_camera_service() -> dict:
 def check_required_pages() -> list[dict]:
     pages = [
         ("Dashboard", "/dashboard"),
+        ("Product Center", "/dashboard/product-center"),
+        ("QR Attendance", "/dashboard/qr-attendance"),
+        ("Face Training", "/dashboard/face-training"),
+        ("Live Recognition", "/dashboard/face-recognition-live"),
         ("Students", "/dashboard/students"),
         ("Sessions", "/dashboard/sessions"),
         ("AI Monitoring", "/dashboard/ai-monitoring"),
@@ -174,17 +178,16 @@ def system_health_page(request: Request):
     route_checks = check_required_pages()
 
     readiness_items = [
-        {"label": "QR attendance workflow", "ready": True},
-        {"label": "Face recognition attendance workflow", "ready": True},
-        {"label": "AI monitoring events", "ready": True},
-        {"label": "Camera monitoring and recording", "ready": True},
-        {"label": "Browser-compatible WebM playback", "ready": True},
-        {"label": "Behavior detection engine", "ready": True},
-        {"label": "IoT monitoring and automation", "ready": True},
-        {"label": "Reports and CSV export", "ready": True},
-        {"label": "Final demo and defense package", "ready": True},
-        {"label": "Product settings and health checks", "ready": True},
-        {"label": "Storage and privacy admin management", "ready": True},
+        {"module": "QR Attendance", "status": "Ready", "notes": "Camera scanner, manual backup, signed QR, and legacy QR support."},
+        {"module": "Face Recognition Attendance", "status": "Prototype", "notes": "LBPH recognition with confidence-gated attendance."},
+        {"module": "AI Monitoring Events", "status": "Ready", "notes": "Session event history with severity, source, and export support."},
+        {"module": "Camera Monitoring & Recording", "status": "Ready", "notes": "Live stream and optional WebM recording."},
+        {"module": "WebM Playback", "status": "Ready", "notes": "Browser playback for saved recordings."},
+        {"module": "Behavior Detection Engine", "status": "Prototype", "notes": "Rule-based/manual prototype; YOLO/MediaPipe remains future work."},
+        {"module": "IoT Monitoring & Automation", "status": "Prototype", "notes": "Simulated relay and sensor workflow prepared for hardware."},
+        {"module": "Reports & CSV Export", "status": "Ready", "notes": "Attendance, AI events, IoT readings, and automation CSV exports."},
+        {"module": "Product Settings & Health", "status": "Ready", "notes": "Settings and health checks are available to admins."},
+        {"module": "Privacy & Admin Storage", "status": "Ready", "notes": "Privacy page plus admin storage controls."},
     ]
 
     return templates.TemplateResponse(

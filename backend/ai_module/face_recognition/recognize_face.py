@@ -55,7 +55,13 @@ def get_student_id_by_stu_id(stu_id: str) -> int | None:
         db.close()
 
 
-def send_face_attendance(api_url: str, session_id: int, student_id: int, confidence: float) -> dict | None:
+def send_face_attendance(
+    api_url: str,
+    session_id: int,
+    student_id: int,
+    confidence: float,
+    api_key: str = "",
+) -> dict | None:
     payload = {
         "session_id": session_id,
         "student_id": student_id,
@@ -65,10 +71,14 @@ def send_face_attendance(api_url: str, session_id: int, student_id: int, confide
 
     data = json.dumps(payload).encode("utf-8")
 
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["x-smart-classroom-device-key"] = api_key
+
     request = urllib.request.Request(
         url=f"{api_url.rstrip('/')}/api/attendance/face-recognize",
         data=data,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
 
@@ -98,6 +108,7 @@ def main():
     parser.add_argument("--send-api", action="store_true", help="Send recognized attendance to FastAPI.")
     parser.add_argument("--session-id", type=int, default=None, help="Required when --send-api is used.")
     parser.add_argument("--api-url", default="http://127.0.0.1:8000")
+    parser.add_argument("--api-key", default="", help="Device API key for protected attendance API.")
     parser.add_argument("--cooldown", type=int, default=10, help="Seconds between API sends per student if --allow-repeat is used.")
     parser.add_argument("--allow-repeat", action="store_true", help="Allow repeated API sends for the same student.")
     args = parser.parse_args()
@@ -196,6 +207,7 @@ def main():
                                     session_id=args.session_id,
                                     student_id=student_id,
                                     confidence=confidence,
+                                    api_key=args.api_key,
                                 )
 
                                 if result is not None:

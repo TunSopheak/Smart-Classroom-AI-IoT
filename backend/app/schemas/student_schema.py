@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class StudentBase(BaseModel):
-    stu_id: str = Field(min_length=1, max_length=50)
+    stu_id: str | None = Field(default=None, max_length=50)
     name: str = Field(min_length=1, max_length=120)
     gender: str | None = None
     qr_code: str | None = None
@@ -28,6 +28,7 @@ class StudentUpdate(BaseModel):
 
 class StudentRead(StudentBase):
     id: int
+    stu_id: str
     created_at: datetime
     updated_at: datetime
 

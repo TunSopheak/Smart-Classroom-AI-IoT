@@ -1,4 +1,5 @@
 import csv
+import re
 from io import StringIO
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -18,16 +19,42 @@ from app.crud.student_crud import (
 from app.database.database import get_db
 from app.models.classroom import Classroom
 from app.models.enrollment import Enrollment
+from app.models.student import Student
 from app.schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
-from app.services.qr_service import build_student_qr_code, generate_student_qr_image
+from app.services.qr_service import build_student_qr_code, generate_student_qr_image, parse_signed_student_qr
 
 router = APIRouter(tags=["Students"])
 templates = Jinja2Templates(directory="app/templates")
+STUDENT_CODE_PATTERN = re.compile(r"^S(\d+)$", re.IGNORECASE)
+
+
+def generate_next_student_code(db: Session) -> str:
+    """Generate the next S001-style code while preserving existing manual IDs."""
+    max_number = 0
+    for (stu_id,) in db.query(Student.stu_id).all():
+        match = STUDENT_CODE_PATTERN.match(stu_id or "")
+        if match:
+            max_number = max(max_number, int(match.group(1)))
+
+    next_number = max_number + 1
+    while True:
+        candidate = f"S{next_number:03d}"
+        existing = db.query(Student).filter(Student.stu_id == candidate).first()
+        if not existing:
+            return candidate
+        next_number += 1
+
+
+def normalize_or_generate_student_code(db: Session, stu_id: str | None) -> str:
+    clean_stu_id = (stu_id or "").strip().upper()
+    if clean_stu_id:
+        return clean_stu_id
+    return generate_next_student_code(db)
 
 
 def ensure_student_qr(db: Session, student):
     """Make sure a student has QR value and QR image path."""
-    if not student.qr_code:
+    if not student.qr_code or parse_signed_student_qr(student.qr_code) != student.stu_id:
         student.qr_code = build_student_qr_code(student.stu_id)
 
     student.qr_image_path = generate_student_qr_image(student.stu_id, student.qr_code)
@@ -102,6 +129,10 @@ def api_list_students(db: Session = Depends(get_db)):
 @router.post("/api/students", response_model=StudentRead)
 def api_create_student(data: StudentCreate, db: Session = Depends(get_db)):
     try:
+        clean_stu_id = normalize_or_generate_student_code(db, data.stu_id)
+        data.stu_id = clean_stu_id
+        data.qr_code = data.qr_code or build_student_qr_code(clean_stu_id)
+        data.face_dataset_path = data.face_dataset_path or f"ai_module/face_recognition/datasets/{clean_stu_id}"
         student = create_student(db, data)
         enroll_student_to_first_classroom(db, student.id)
         ensure_student_qr(db, student)
@@ -193,12 +224,12 @@ def dashboard_students(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/dashboard/students/create")
 def dashboard_create_student(
-    stu_id: str = Form(...),
+    stu_id: str = Form(""),
     name: str = Form(...),
     gender: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    clean_stu_id = stu_id.strip().upper()
+    clean_stu_id = normalize_or_generate_student_code(db, stu_id)
     data = StudentCreate(
         stu_id=clean_stu_id,
         name=name.strip(),

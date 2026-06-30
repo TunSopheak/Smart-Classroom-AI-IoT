@@ -216,7 +216,7 @@
                     <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
                     <td>
                         {% if event.student %}
-                            <strong>{{ event.student.stu_id }}</strong><br>
+                            <strong class="student-code">{{ event.student.stu_id }}</strong><br>
                             <span class="muted">{{ event.student.name }}</span>
                         {% else %}
                             Classroom / Unknown
@@ -225,8 +225,8 @@
                     <td><span class="badge badge-ai">{{ event.event_type }}</span></td>
                     <td><span class="severity severity-{{ event.severity }}">{{ event.severity }}</span></td>
                     <td>{{ "%.2f"|format(event.confidence) if event.confidence is not none else "-" }}</td>
-                    <td>{{ event.source }}</td>
-                    <td>{{ event.description or "-" }}</td>
+                    <td><span class="small-text">{{ event.source }}</span></td>
+                    <td class="wrap-cell">{{ event.description or "-" }}</td>
                 </tr>
                 {% else %}
                 <tr>

@@ -16,6 +16,7 @@ AUTH_SECRET_KEY = os.getenv(
     "SMART_CLASSROOM_AUTH_SECRET",
     "smart-classroom-demo-secret-change-in-production",
 )
+DEVICE_API_KEY = os.getenv("SMART_CLASSROOM_DEVICE_API_KEY", "")
 
 
 DEMO_USERS = {
@@ -54,10 +55,20 @@ PUBLIC_PREFIXES = (
 
 PROTECTED_PREFIXES = (
     "/dashboard",
+    "/api/attendance",
+    "/api/sessions",
+    "/api/students",
+    "/api/teachers",
+    "/api/classrooms",
+    "/api/subjects",
+    "/api/iot",
+    "/api/ai-monitoring",
+    "/api/face",
     "/api/admin",
     "/api/system-health",
     "/api/camera-monitoring",
     "/api/reports",
+    "/api/face-recognition-live",
 )
 
 
@@ -71,6 +82,19 @@ ADMIN_ONLY_PREFIXES = (
 
 
 TEACHER_OR_ADMIN_PREFIXES = (
+    "/api/attendance",
+    "/api/sessions",
+    "/api/students",
+    "/api/teachers",
+    "/api/classrooms",
+    "/api/subjects",
+    "/api/iot",
+    "/api/ai-monitoring",
+    "/api/face",
+    "/dashboard/product-center",
+    "/dashboard/qr-attendance",
+    "/dashboard/face-training",
+    "/dashboard/face-recognition-live",
     "/dashboard/students",
     "/dashboard/sessions",
     "/dashboard/ai-monitoring",
@@ -82,10 +106,28 @@ TEACHER_OR_ADMIN_PREFIXES = (
 )
 
 
-VIEWER_ALLOWED_PREFIXES = (
+VIEWER_ALLOWED_EXACT_PATHS = (
     "/dashboard",
+    "/dashboard/product-center",
+)
+
+
+VIEWER_ALLOWED_PREFIXES = (
     "/dashboard/final-demo",
     "/dashboard/privacy",
+)
+
+
+ACADEMIC_PREFIXES = (
+    "/dashboard/final-demo",
+)
+
+
+DEVICE_API_PREFIXES = (
+    "/api/attendance/face-recognize",
+    "/api/attendance/scan-qr",
+    "/api/iot/sensor-readings",
+    "/api/iot/status",
 )
 
 
@@ -165,6 +207,24 @@ def get_current_user_from_request(request: Request) -> Optional[dict]:
     return read_session_cookie(cookie_value)
 
 
+def get_device_user_from_request(request: Request) -> Optional[dict]:
+    if not any(request.url.path.startswith(prefix) for prefix in DEVICE_API_PREFIXES):
+        return None
+
+    if not DEVICE_API_KEY:
+        return None
+
+    provided_key = request.headers.get("x-smart-classroom-device-key", "")
+    if not hmac.compare_digest(provided_key, DEVICE_API_KEY):
+        return None
+
+    return {
+        "username": "device",
+        "role": "teacher",
+        "display_name": "Trusted Classroom Device",
+    }
+
+
 def is_public_path(path: str) -> bool:
     return path == "/" or any(path.startswith(prefix) for prefix in PUBLIC_PREFIXES)
 
@@ -182,10 +242,16 @@ def user_can_access_path(user: dict, path: str) -> bool:
     if any(path.startswith(prefix) for prefix in ADMIN_ONLY_PREFIXES):
         return False
 
+    if any(path.startswith(prefix) for prefix in ACADEMIC_PREFIXES):
+        return role == "viewer"
+
     if role == "teacher":
         return True
 
     if role == "viewer":
+        if path in VIEWER_ALLOWED_EXACT_PATHS:
+            return True
+
         return any(path == prefix or path.startswith(prefix + "/") for prefix in VIEWER_ALLOWED_PREFIXES)
 
     return False

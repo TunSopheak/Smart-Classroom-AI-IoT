@@ -1,10 +1,10 @@
 {
   "product_name": "Smart Classroom AI Monitoring",
-  "school_name": "RUPP",
+  "school_name": "Royal University of Phnom Penh",
   "timezone": "Asia/Phnom_Penh",
   "camera_index": 0,
   "recording_format": "webm_vp8",
-  "auto_behavior_default": false,
+  "auto_behavior_default": true,
   "attention_low_seconds": 2.5,
   "leaving_seat_seconds": 5.0,
   "sleeping_seconds": 4.0,

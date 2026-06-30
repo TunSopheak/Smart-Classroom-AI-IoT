@@ -5,16 +5,16 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <p class="eyebrow">Phase 10 Behavior Detection Engine</p>
+        <p class="eyebrow">Advanced / Legacy Camera View</p>
         <h1>Camera Monitoring & Behavior Detection</h1>
-        <p>Live camera stream, browser-compatible recording, and automatic behavior detection.</p>
+        <p>This advanced page remains for recording history and camera debugging. Daily classroom operation now belongs in Smart Monitoring Workspace.</p>
     </div>
-    <a class="btn btn-secondary" href="/dashboard/final-demo">Back Final Demo</a>
+    <a class="btn btn-primary" href="/dashboard/monitoring-workspace{% if selected_session %}?session_id={{ selected_session.id }}{% endif %}">Open Monitoring Workspace</a>
 </div>
 
 <div class="product-note">
-    <strong>Product Goal:</strong>
-    The system can now automatically detect basic behavior signals such as attention low, leaving seat, and sleeping using camera heuristics.
+    <strong>Advanced view:</strong>
+    Use the workspace for daily monitoring because it combines recognized face overlays, FACE attendance, behavior events, recording, IoT, and QR backup.
 </div>
 
 <div class="card">

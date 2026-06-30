@@ -76,7 +76,7 @@
             <tbody>
                 {% for device in devices %}
                 <tr>
-                    <td><strong>{{ device.name }}</strong></td>
+                    <td><strong class="device-name">{{ device.name }}</strong></td>
                     <td><span class="badge badge-ai">{{ device.type }}</span></td>
                     <td>{{ device.location or "-" }}</td>
                     <td>
@@ -131,7 +131,7 @@
                 {% for reading in readings %}
                 <tr>
                     <td>{{ reading.timestamp.strftime("%Y-%m-%d %H:%M:%S") if reading.timestamp else "-" }}</td>
-                    <td>{{ reading.device.name if reading.device else "Unknown Device" }}</td>
+                    <td><strong class="device-name">{{ reading.device.name if reading.device else "Unknown Device" }}</strong></td>
                     <td>{{ "%.1f"|format(reading.temperature) if reading.temperature is not none else "-" }}°C</td>
                     <td>{{ "%.1f"|format(reading.humidity) if reading.humidity is not none else "-" }}%</td>
                     <td>{{ "%.1f"|format(reading.noise_level) if reading.noise_level is not none else "-" }}</td>

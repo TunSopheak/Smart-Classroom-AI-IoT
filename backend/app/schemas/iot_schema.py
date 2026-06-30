@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from app.core.constants import DeviceStatus
+
 
 class DeviceRead(BaseModel):
     id: int
@@ -31,4 +33,4 @@ class SensorReadingRead(BaseModel):
 
 
 class DeviceControlRequest(BaseModel):
-    status: str = Field(..., min_length=2, max_length=30)
+    status: DeviceStatus = Field(...)

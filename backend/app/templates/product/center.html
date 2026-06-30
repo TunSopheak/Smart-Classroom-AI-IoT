@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Product Center{% endblock %}
+
+{% block content %}
+{% set role = request.state.current_user.role if request.state.current_user else "guest" %}
+{% set can_teach = role in ["admin", "teacher"] %}
+{% set is_admin = role == "admin" %}
+
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Feature Home</p>
+        <h1>Product Center</h1>
+        <p>Choose the classroom workflow you need. Daily operations are separated from academic presentation tools.</p>
+    </div>
+    {% if can_teach %}
+    <a class="button" href="/dashboard/qr-attendance{% if active_session %}?session_id={{ active_session.id }}{% endif %}">Start Attendance</a>
+    {% else %}
+    <a class="button secondary-button" href="/dashboard/final-demo">Academic Demo</a>
+    {% endif %}
+</div>
+
+{% if not can_teach %}
+<div class="product-note">
+    <strong>Viewer mode:</strong>
+    You can review what the platform does, but operational controls are reserved for teachers and admins. Privacy remains visible to all authenticated roles.
+</div>
+{% endif %}
+
+<div class="product-note">
+    <strong>Future schedule architecture:</strong>
+    Class Groups → Courses / Subjects → Weekly Schedule → Auto-generated sessions, with Manual session override for demo or emergency use.
+</div>
+
+<div class="feature-center-grid">
+    <a class="feature-center-card" href="{% if can_teach %}/dashboard/qr-attendance{% if active_session %}?session_id={{ active_session.id }}{% endif %}{% else %}/dashboard/final-demo{% endif %}">
+        <span>QR</span>
+        <h2>How do I take attendance?</h2>
+        <p>Use QR attendance as the reliable backup workflow, with event logs for unknown, duplicate, late, and after-close scans.</p>
+        <strong>{% if can_teach %}Open QR Attendance{% else %}View academic overview{% endif %}</strong>
+    </a>
+
+    <a class="feature-center-card" href="{% if can_teach %}/dashboard/face-training{% else %}/dashboard/final-demo{% endif %}">
+        <span>AI</span>
+        <h2>How do I train faces?</h2>
+        <p>Upload or capture samples, train the LBPH model, and prepare live face recognition attendance.</p>
+        <strong>{% if can_teach %}Open Face Training{% else %}Teacher-only workflow{% endif %}</strong>
+    </a>
+
+    <a class="feature-center-card" href="{% if can_teach %}/dashboard/monitoring-workspace{% if active_session %}?session_id={{ active_session.id }}{% endif %}{% else %}/dashboard/final-demo{% endif %}">
+        <span>CAM</span>
+        <h2>How do I monitor the classroom?</h2>
+        <p>Use one workspace for live camera, FACE attendance, QR backup, behavior events, recording, and IoT status.</p>
+        <strong>{% if can_teach %}Open Monitoring Workspace{% else %}Protected for classroom privacy{% endif %}</strong>
+    </a>
+
+    <a class="feature-center-card" href="{% if can_teach %}/dashboard/iot-monitoring{% else %}/dashboard/final-demo{% endif %}">
+        <span>IoT</span>
+        <h2>How do I check devices?</h2>
+        <p>Review sensor readings, device states, and automation decisions for lights and fans.</p>
+        <strong>{% if can_teach %}Open IoT Monitoring{% else %}Teacher-only workflow{% endif %}</strong>
+    </a>
+
+    <a class="feature-center-card" href="{% if can_teach %}/dashboard/reports{% if active_session %}?session_id={{ active_session.id }}{% endif %}{% else %}/dashboard/final-demo{% endif %}">
+        <span>REP</span>
+        <h2>How do I generate reports?</h2>
+        <p>Export attendance, AI monitoring, IoT, and automation records for review and documentation.</p>
+        <strong>{% if can_teach %}Open Reports{% else %}Restricted data{% endif %}</strong>
+    </a>
+
+    <a class="feature-center-card" href="/dashboard/final-demo">
+        <span>AC</span>
+        <h2>Academic presentation mode</h2>
+        <p>Use the defense package only for project presentation. It is separated from daily classroom operations.</p>
+        <strong>Open Academic Demo</strong>
+    </a>
+</div>
+
+<div class="card">
+    <h2>Readiness Overview</h2>
+
+    <div class="settings-summary-grid">
+        <div>
+            <span>Active / Latest Session</span>
+            <strong>{% if active_session %}#{{ active_session.id }} - {{ active_session.title }}{% else %}No session{% endif %}</strong>
+        </div>
+        <div>
+            <span>Active Students</span>
+            <strong>{{ students|length }}</strong>
+        </div>
+        <div>
+            <span>Face Model</span>
+            <strong>{% if model_exists %}Ready{% else %}Not trained{% endif %}</strong>
+        </div>
+        <div>
+            <span>Face Labels</span>
+            <strong>{% if labels_exists %}Ready{% else %}Missing{% endif %}</strong>
+        </div>
+        <div>
+            <span>Product Mode</span>
+            <strong>Daily operations</strong>
+        </div>
+        <div>
+            <span>Current Role</span>
+            <strong>{{ role|capitalize }}</strong>
+        </div>
+    </div>
+</div>
+
+{% if is_admin %}
+<div class="card">
+    <div class="section-title-row">
+        <div>
+            <h2>Admin Tools</h2>
+            <p class="muted">Settings, health checks, storage controls, and privacy management are grouped under Admin in the sidebar.</p>
+        </div>
+        <div class="settings-actions">
+            <a class="button secondary-button" href="/dashboard/product-settings">Product Settings</a>
+            <a class="button secondary-button" href="/dashboard/system-health">System Health</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -15,6 +15,9 @@ from app.models.class_session import ClassSession
 from app.schemas.ai_monitoring_schema import AIMonitoringEventCreate
 from app.services.ai_monitoring_service import create_ai_monitoring_event
 from app.services.camera_monitoring_service import camera_service, convert_recording_to_webm
+from app.services.face_product_service import LABELS_PATH, MODEL_PATH
+from app.services.iot_automation_service import get_current_occupancy_count
+from app.services.iot_service import get_iot_stats, list_devices, seed_demo_devices
 
 router = APIRouter(tags=["Camera Monitoring"])
 templates = Jinja2Templates(directory="app/templates")
@@ -27,8 +30,23 @@ BEHAVIOR_TYPES = [
     "sleeping",
     "leaving_seat",
     "attention_low",
+    "looking_around",
+    "book_usage",
     "hand_raising",
+    "no_face_detected",
+    "unknown_face",
+    "multiple_faces",
 ]
+
+
+def build_return_url(default_path: str, session_id: Optional[int] = None, return_to: str = ""):
+    if return_to and return_to.startswith("/dashboard/"):
+        return return_to
+
+    url = default_path
+    if session_id:
+        url += f"?session_id={session_id}"
+    return url
 
 
 def get_active_or_latest_session(db: Session):
@@ -122,6 +140,65 @@ def dashboard_camera_monitoring(
     )
 
 
+@router.get("/dashboard/monitoring-workspace")
+def dashboard_monitoring_workspace(
+    request: Request,
+    session_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    sessions = db.query(ClassSession).order_by(ClassSession.start_time.desc()).limit(30).all()
+    selected_session = db.query(ClassSession).filter(ClassSession.id == session_id).first() if session_id else get_active_or_latest_session(db)
+
+    if selected_session:
+        camera_service.set_session(selected_session.id)
+
+    if not list_devices(db):
+        seed_demo_devices(db)
+
+    ai_events = []
+    if selected_session:
+        ai_events = (
+            db.query(AIMonitoringEvent)
+            .filter(AIMonitoringEvent.session_id == selected_session.id)
+            .order_by(AIMonitoringEvent.created_at.desc())
+            .limit(10)
+            .all()
+        )
+
+    recordings = (
+        db.query(CameraRecording)
+        .order_by(CameraRecording.started_at.desc())
+        .limit(6)
+        .all()
+    )
+    recordings = [enrich_recording_file_info(item) for item in recordings]
+
+    occupancy_count, occupancy_session = get_current_occupancy_count(db)
+    devices = list_devices(db)
+
+    return templates.TemplateResponse(
+        request,
+        "monitoring/workspace.html",
+        {
+            "request": request,
+            "sessions": sessions,
+            "selected_session": selected_session,
+            "camera_status": camera_service.get_status(),
+            "recordings": recordings,
+            "ai_events": ai_events,
+            "behavior_types": BEHAVIOR_TYPES,
+            "model_exists": MODEL_PATH.exists(),
+            "labels_exists": LABELS_PATH.exists(),
+            "devices": devices,
+            "iot_stats": get_iot_stats(db),
+            "occupancy_count": occupancy_count,
+            "occupancy_session": occupancy_session,
+            "format_kh_datetime": format_cambodia_datetime,
+            "format_kh_time": format_cambodia_time,
+        },
+    )
+
+
 @router.get("/api/camera-monitoring/status")
 def api_camera_status():
     return camera_service.get_status()
@@ -136,49 +213,69 @@ def api_camera_stream():
 
 
 @router.post("/dashboard/camera-monitoring/start")
-def dashboard_start_camera(session_id: Optional[int] = Form(None)):
+def dashboard_start_camera(session_id: Optional[int] = Form(None), return_to: str = Form("")):
     camera_service.set_session(session_id)
     camera_service.start(0)
-    url = "/dashboard/camera-monitoring"
-    if session_id:
-        url += f"?session_id={session_id}"
-    return RedirectResponse(url=url, status_code=303)
+    return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
+
+
+@router.post("/dashboard/monitoring-workspace/start")
+def dashboard_start_monitoring(session_id: Optional[int] = Form(None), return_to: str = Form("")):
+    camera_service.set_session(session_id)
+    camera_service.start(0)
+    camera_service.enable_auto_face_attendance(session_id=session_id)
+    camera_service.enable_auto_behavior(session_id=session_id)
+    return RedirectResponse(url=build_return_url("/dashboard/monitoring-workspace", session_id, return_to), status_code=303)
+
+
+@router.post("/dashboard/monitoring-workspace/stop")
+def dashboard_stop_monitoring(session_id: Optional[int] = Form(None), return_to: str = Form("")):
+    camera_service.disable_auto_behavior()
+    camera_service.disable_auto_face_attendance()
+    camera_service.stop()
+    return RedirectResponse(url=build_return_url("/dashboard/monitoring-workspace", session_id, return_to), status_code=303)
 
 
 @router.post("/dashboard/camera-monitoring/stop")
-def dashboard_stop_camera(session_id: Optional[int] = Form(None)):
+def dashboard_stop_camera(session_id: Optional[int] = Form(None), return_to: str = Form("")):
     camera_service.stop()
-    url = "/dashboard/camera-monitoring"
-    if session_id:
-        url += f"?session_id={session_id}"
-    return RedirectResponse(url=url, status_code=303)
+    return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
 
 
 @router.post("/dashboard/camera-monitoring/behavior-auto/start")
-def dashboard_start_auto_behavior(session_id: Optional[int] = Form(None)):
+def dashboard_start_auto_behavior(session_id: Optional[int] = Form(None), return_to: str = Form("")):
     camera_service.enable_auto_behavior(session_id=session_id)
 
     if not camera_service.running:
         camera_service.start(0)
 
-    url = "/dashboard/camera-monitoring"
-    if session_id:
-        url += f"?session_id={session_id}"
-    return RedirectResponse(url=url, status_code=303)
+    return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
 
 
 @router.post("/dashboard/camera-monitoring/behavior-auto/stop")
-def dashboard_stop_auto_behavior(session_id: Optional[int] = Form(None)):
+def dashboard_stop_auto_behavior(session_id: Optional[int] = Form(None), return_to: str = Form("")):
     camera_service.disable_auto_behavior()
-    url = "/dashboard/camera-monitoring"
-    if session_id:
-        url += f"?session_id={session_id}"
-    return RedirectResponse(url=url, status_code=303)
+    return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
+
+
+@router.post("/dashboard/camera-monitoring/face-attendance/start")
+def dashboard_start_auto_face_attendance(session_id: Optional[int] = Form(None), return_to: str = Form("")):
+    camera_service.enable_auto_face_attendance(session_id=session_id)
+    if not camera_service.running:
+        camera_service.start(0)
+    return RedirectResponse(url=build_return_url("/dashboard/monitoring-workspace", session_id, return_to), status_code=303)
+
+
+@router.post("/dashboard/camera-monitoring/face-attendance/stop")
+def dashboard_stop_auto_face_attendance(session_id: Optional[int] = Form(None), return_to: str = Form("")):
+    camera_service.disable_auto_face_attendance()
+    return RedirectResponse(url=build_return_url("/dashboard/monitoring-workspace", session_id, return_to), status_code=303)
 
 
 @router.post("/dashboard/camera-monitoring/record/start")
 def dashboard_start_recording(
     session_id: Optional[int] = Form(None),
+    return_to: str = Form(""),
     db: Session = Depends(get_db),
 ):
     result = camera_service.start_recording(session_id=session_id)
@@ -196,10 +293,7 @@ def dashboard_start_recording(
         db.commit()
         db.refresh(recording)
 
-    url = "/dashboard/camera-monitoring"
-    if session_id:
-        url += f"?session_id={session_id}"
-    return RedirectResponse(url=url, status_code=303)
+    return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
 
 
 
@@ -207,6 +301,7 @@ def dashboard_start_recording(
 @router.post("/dashboard/camera-monitoring/record/stop")
 def dashboard_stop_recording(
     session_id: Optional[int] = Form(None),
+    return_to: str = Form(""),
     db: Session = Depends(get_db),
 ):
     result = None
@@ -248,16 +343,14 @@ def dashboard_stop_recording(
                     latest.duration_seconds = (latest.stopped_at - latest.started_at).total_seconds()
                 db.commit()
 
-    url = "/dashboard/camera-monitoring"
-    if session_id:
-        url += f"?session_id={session_id}"
-    return RedirectResponse(url=url, status_code=303)
+    return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
 
 @router.post("/dashboard/camera-monitoring/behavior")
 def dashboard_log_behavior(
     session_id: Optional[int] = Form(None),
     event_type: str = Form(...),
     severity: str = Form("medium"),
+    return_to: str = Form(""),
     db: Session = Depends(get_db),
 ):
     payload = AIMonitoringEventCreate(
@@ -273,10 +366,7 @@ def dashboard_log_behavior(
     create_ai_monitoring_event(db, payload)
     camera_service.set_behavior_overlay(event_type=event_type, severity=severity)
 
-    url = "/dashboard/camera-monitoring"
-    if session_id:
-        url += f"?session_id={session_id}"
-    return RedirectResponse(url=url, status_code=303)
+    return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
 
 
 
@@ -284,6 +374,7 @@ def dashboard_log_behavior(
 @router.post("/dashboard/camera-monitoring/recordings/fix-stuck")
 def dashboard_fix_stuck_recordings(
     session_id: Optional[int] = Form(None),
+    return_to: str = Form(""),
     db: Session = Depends(get_db),
 ):
     stuck_recordings = (
@@ -308,10 +399,7 @@ def dashboard_fix_stuck_recordings(
     db.commit()
     print(f"Fixed stuck recordings: {fixed_count}")
 
-    url = "/dashboard/camera-monitoring"
-    if session_id:
-        url += f"?session_id={session_id}"
-    return RedirectResponse(url=url, status_code=303)
+    return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
 
 
 @router.get("/dashboard/camera-monitoring/recordings/{recording_id}")

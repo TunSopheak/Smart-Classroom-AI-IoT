@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Face Training Center{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Phase 14 Face Training</p>
+        <h1>Face Training Center</h1>
+        <p>Upload face photos, capture samples from camera, train LBPH model, and prepare live recognition.</p>
+    </div>
+    <a class="btn btn-secondary" href="/dashboard/face-recognition-live">Live Recognition</a>
+</div>
+
+<div class="product-note">
+    <strong>Teacher Demo:</strong>
+    This page makes face training visible in the system instead of only running terminal scripts.
+</div>
+
+{% if message %}
+<div class="success-note">✅ {{ message }}</div>
+{% endif %}
+
+<div class="health-grid">
+    <div class="health-card {% if model_exists %}health-ok{% else %}health-error{% endif %}">
+        <h3>LBPH Model</h3>
+        <strong>{% if model_exists %}READY{% else %}MISSING{% endif %}</strong>
+        <p>{{ model_path }}</p>
+    </div>
+
+    <div class="health-card {% if labels_exists %}health-ok{% else %}health-error{% endif %}">
+        <h3>Label Map</h3>
+        <strong>{% if labels_exists %}READY{% else %}MISSING{% endif %}</strong>
+        <p>{{ labels_path }}</p>
+    </div>
+
+    <div class="health-card health-ok">
+        <h3>Students</h3>
+        <strong>{{ students|length }}</strong>
+        <p>Active students available for training.</p>
+    </div>
+
+    <div class="health-card health-ok">
+        <h3>Dataset</h3>
+        <strong>Local</strong>
+        <p>Stored in ai_module/face_recognition/datasets.</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Select Student</h2>
+
+    <form method="get" action="/dashboard/face-training" class="settings-grid">
+        <div>
+            <label>Student</label>
+            <select class="form-control" name="student_id">
+                {% for student in students %}
+                <option value="{{ student.id }}" {% if selected_student and selected_student.id == student.id %}selected{% endif %}>
+                    {{ student.stu_id }} - {{ student.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="settings-actions">
+            <button class="btn btn-primary" type="submit">Use Student</button>
+            {% if selected_student %}
+            <a class="btn btn-secondary" href="/dashboard/students/{{ selected_student.id }}/face-profile">Open Face Profile</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% if selected_student %}
+<div class="card">
+    <h2>Upload Face Photos: {{ selected_student.stu_id }} - {{ selected_student.name }}</h2>
+
+    <form method="post" action="/dashboard/face-training/upload" enctype="multipart/form-data" class="settings-form">
+        <input type="hidden" name="student_id" value="{{ selected_student.id }}">
+
+        <div>
+            <label>Upload face photos</label>
+            <input class="form-control" type="file" name="files" accept="image/*" multiple required>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Upload Face Photos</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Capture Face Samples from Camera</h2>
+
+    <form method="post" action="/dashboard/face-training/capture" class="settings-grid">
+        <input type="hidden" name="student_id" value="{{ selected_student.id }}">
+
+        <div>
+            <label>Samples</label>
+            <input class="form-control" type="number" name="samples" value="20" min="5" max="100">
+        </div>
+
+        <div>
+            <label>Camera Index</label>
+            <input class="form-control" type="number" name="camera_index" value="0" min="0">
+        </div>
+
+        <div class="settings-actions">
+            <button class="btn btn-primary" type="submit">Capture Samples</button>
+        </div>
+    </form>
+
+    <p class="muted">Note: If the live camera is already running, stop it first before capturing samples here.</p>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="section-title-row">
+        <h2>Train Face Recognition Model</h2>
+        <form method="post" action="/dashboard/face-training/train">
+            <button class="btn btn-warning" type="submit">Train LBPH Model</button>
+        </form>
+    </div>
+
+    <p class="muted">Training reads all dataset folders and updates model + labels automatically.</p>
+</div>
+
+<div class="card">
+    <h2>Student Dataset Summary</h2>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Name</th>
+                    <th>Samples</th>
+                    <th>Dataset Path</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for card in student_cards %}
+                <tr>
+                    <td>{{ card.student.stu_id }}</td>
+                    <td>{{ card.student.name }}</td>
+                    <td><span class="file-size-good">{{ card.sample_count }}</span></td>
+                    <td><code>{{ card.dataset_path }}</code></td>
+                    <td>
+                        <a class="btn btn-secondary btn-sm" href="/dashboard/face-training?student_id={{ card.student.id }}">Select</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

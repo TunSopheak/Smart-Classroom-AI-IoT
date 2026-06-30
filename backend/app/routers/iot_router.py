@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -85,7 +85,11 @@ def api_control_device(
     payload: DeviceControlRequest,
     db: Session = Depends(get_db),
 ):
-    device = update_device_status(db, device_id, payload.status)
+    try:
+        device = update_device_status(db, device_id, payload.status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     if not device:
         return {
             "success": False,
@@ -175,7 +179,10 @@ def dashboard_control_device(
     status: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    update_device_status(db, device_id, status)
+    try:
+        update_device_status(db, device_id, status)
+    except ValueError:
+        pass
     return RedirectResponse(url="/dashboard/iot-monitoring", status_code=303)
 
 

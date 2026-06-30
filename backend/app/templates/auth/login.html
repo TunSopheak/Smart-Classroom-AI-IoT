@@ -2,174 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Smart Classroom</title>
+    <title>Login - Smart Classroom AI Monitoring Platform</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
-            background:
-                radial-gradient(circle at top left, #dbeafe, transparent 30%),
-                linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #2563eb 100%);
-            display: grid;
-            place-items: center;
-            color: #0f172a;
-        }
-
-        .login-shell {
-            width: min(1000px, 94vw);
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            background: rgba(255, 255, 255, 0.96);
-            border-radius: 28px;
-            overflow: hidden;
-            box-shadow: 0 30px 90px rgba(15, 23, 42, 0.35);
-        }
-
-        .login-info {
-            padding: 3rem;
-            background: #0f172a;
-            color: #ffffff;
-        }
-
-        .login-info .eyebrow {
-            color: #93c5fd;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            font-weight: 800;
-            font-size: 0.8rem;
-        }
-
-        .login-info h1 {
-            font-size: 2.6rem;
-            line-height: 1.05;
-            margin: 0.5rem 0 1rem;
-        }
-
-        .login-info p {
-            color: #cbd5e1;
-            line-height: 1.65;
-        }
-
-        .feature-list {
-            margin-top: 2rem;
-            display: grid;
-            gap: 0.75rem;
-        }
-
-        .feature-list div {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 999px;
-            padding: 0.7rem 1rem;
-        }
-
-        .login-form-wrap {
-            padding: 3rem;
-            display: grid;
-            align-content: center;
-        }
-
-        .login-form-wrap h2 {
-            font-size: 2rem;
-            margin: 0 0 0.25rem;
-        }
-
-        .muted {
-            color: #64748b;
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group {
-            display: grid;
-            gap: 0.4rem;
-            margin-bottom: 1rem;
-        }
-
-        label {
-            font-weight: 800;
-            color: #334155;
-        }
-
-        input {
-            width: 100%;
-            border: 1px solid #cbd5e1;
-            border-radius: 12px;
-            padding: 0.85rem 1rem;
-            font-size: 1rem;
-        }
-
-        button {
-            width: 100%;
-            border: none;
-            border-radius: 14px;
-            padding: 0.95rem 1.1rem;
-            background: #2563eb;
-            color: #ffffff;
-            font-size: 1rem;
-            font-weight: 900;
-            cursor: pointer;
-            margin-top: 0.5rem;
-        }
-
-        .demo-box {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 16px;
-            padding: 1rem;
-            margin-top: 1.25rem;
-            color: #1e3a8a;
-            line-height: 1.55;
-        }
-
-        .error-box {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-            border-radius: 14px;
-            padding: 0.8rem 1rem;
-            margin-bottom: 1rem;
-            font-weight: 800;
-        }
-
-        @media (max-width: 800px) {
-            .login-shell {
-                grid-template-columns: 1fr;
-            }
-
-            .login-info,
-            .login-form-wrap {
-                padding: 2rem;
-            }
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
 </head>
-<body>
+<body class="login-body">
     <main class="login-shell">
         <section class="login-info">
-            <p class="eyebrow">Phase 13 Authentication</p>
-            <h1>Smart Classroom AI Monitoring</h1>
+            <p class="eyebrow">Smart Classroom AI Monitoring Platform</p>
+            <h1>Academic classroom operations, organized in one calm workspace.</h1>
             <p>
-                Login protects sensitive classroom pages such as camera recordings,
-                reports, admin storage, student identity, and system settings.
+                Manage attendance, AI monitoring, IoT status, reports, and privacy controls with role-based access for admin, teacher, and viewer users.
             </p>
 
-            <div class="feature-list">
-                <div>✅ Role-based access</div>
-                <div>✅ Admin / Teacher / Viewer demo accounts</div>
-                <div>✅ Product-ready privacy protection foundation</div>
+            <div class="login-feature-list">
+                <div><strong>Attendance</strong><span>QR backup and face-recognition workflows</span></div>
+                <div><strong>Monitoring</strong><span>AI events, live camera, and behavior logs</span></div>
+                <div><strong>Operations</strong><span>IoT automation, reports, and admin controls</span></div>
             </div>
         </section>
 
         <section class="login-form-wrap">
+            <p class="eyebrow">Secure access</p>
             <h2>Sign in</h2>
-            <p class="muted">Use a demo account for project presentation.</p>
+            <p class="muted">Sign in with an assigned role for the academic prototype.</p>
 
             {% if error %}
             <div class="error-box">{{ error }}</div>
@@ -179,25 +38,48 @@
                 <input type="hidden" name="next" value="{{ next }}">
 
                 <div class="form-group">
-                    <label>Username</label>
-                    <input name="username" placeholder="admin" required autofocus>
+                    <label for="loginUsername">Username</label>
+                    <input id="loginUsername" name="username" autocomplete="username" placeholder="Enter username" required autofocus>
                 </div>
 
                 <div class="form-group">
-                    <label>Password</label>
-                    <input name="password" type="password" placeholder="admin123" required>
+                    <label for="loginPassword">Password</label>
+                    <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Enter password" required>
                 </div>
 
-                <button type="submit">Login</button>
+                <button class="button" type="submit">Sign in</button>
             </form>
 
             <div class="demo-box">
-                <strong>Demo accounts</strong><br>
-                Admin: admin / admin123<br>
-                Teacher: teacher / teacher123<br>
-                Viewer: viewer / viewer123
+                <div>
+                    <strong>Demo access</strong>
+                    <span>Demo accounts are for academic presentation only.</span>
+                </div>
+                <div class="demo-role-buttons" aria-label="Demo account shortcuts">
+                    <button class="button secondary-button" type="button" data-demo-user="admin" data-demo-pass="admin123">Use Admin Demo</button>
+                    <button class="button secondary-button" type="button" data-demo-user="teacher" data-demo-pass="teacher123">Use Teacher Demo</button>
+                    <button class="button secondary-button" type="button" data-demo-user="viewer" data-demo-pass="viewer123">Use Viewer Demo</button>
+                </div>
+                <details class="demo-details">
+                    <summary>Show demo account usernames</summary>
+                    <span>Admin: admin</span>
+                    <span>Teacher: teacher</span>
+                    <span>Viewer: viewer</span>
+                </details>
+                <small>Accounts are created by admin in this prototype.</small>
             </div>
         </section>
     </main>
+    <script>
+        document.querySelectorAll("[data-demo-user]").forEach((button) => {
+            button.addEventListener("click", () => {
+                document.getElementById("loginUsername").value = button.dataset.demoUser;
+                const passwordInput = document.getElementById("loginPassword");
+                passwordInput.type = "password";
+                passwordInput.value = button.dataset.demoPass;
+                passwordInput.focus();
+            });
+        });
+    </script>
 </body>
 </html>

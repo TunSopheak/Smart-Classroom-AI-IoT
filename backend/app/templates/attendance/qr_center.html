@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}QR Attendance{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Attendance</p>
+        <h1>QR Attendance</h1>
+        <p>Use the camera scanner as the primary attendance workflow. Manual input and demo buttons are available as backup tools.</p>
+    </div>
+    {% if selected_session %}
+    <a class="btn btn-secondary" href="/dashboard/sessions/{{ selected_session.id }}/attendance">Open Attendance Records</a>
+    {% else %}
+    <a class="btn btn-secondary" href="/dashboard/sessions">Manage Sessions</a>
+    {% endif %}
+</div>
+
+<section class="qr-session-card">
+    <div>
+        <p class="eyebrow">Selected Session</p>
+        {% if selected_session %}
+        <h2>#{{ selected_session.id }} - {{ selected_session.title }}</h2>
+        <p class="muted">
+            {% if selected_session.active %}Active session{% else %}Latest / selected session{% endif %}
+            · Late after {{ selected_session.late_time }}
+            · Closes {{ selected_session.close_time }}
+        </p>
+        {% else %}
+        <h2>No session selected</h2>
+        <p class="muted">Select a class session before scanning attendance QR codes.</p>
+        {% endif %}
+    </div>
+
+    <form method="get" action="/dashboard/qr-attendance" class="qr-session-form">
+        <label for="sessionSelect">Change session</label>
+        <div class="qr-session-controls">
+            <select id="sessionSelect" class="form-control" name="session_id">
+                {% for session in sessions %}
+                <option value="{{ session.id }}" {% if selected_session and selected_session.id == session.id %}selected{% endif %}>
+                    #{{ session.id }} - {{ session.title }}{% if session.active %} (Active){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-secondary" type="submit">Use Session</button>
+        </div>
+    </form>
+</section>
+
+<section class="qr-layout">
+    <div class="card qr-camera-card">
+        <div class="section-title-row">
+            <div>
+                <h2>Camera QR Scanner</h2>
+                <p class="muted">Start the scanner, point the QR card at the camera, and attendance will be submitted automatically.</p>
+            </div>
+            <div class="settings-actions">
+                <button id="startScannerBtn" class="btn btn-primary" type="button" {% if not selected_session %}disabled{% endif %}>Start Scanner</button>
+                <button id="stopScannerBtn" class="btn btn-secondary" type="button" disabled>Stop Scanner</button>
+            </div>
+        </div>
+
+        <div class="qr-camera-preview" id="qrPreviewBox">
+            <video id="qrVideo" playsinline muted></video>
+            <div class="qr-scan-frame" aria-hidden="true"></div>
+            <div id="qrPreviewEmpty" class="qr-preview-empty">
+                <strong>Camera preview</strong>
+                <span>Press Start Scanner to request camera access.</span>
+            </div>
+        </div>
+
+        <div id="scannerStatus" class="qr-status waiting">Waiting for QR code...</div>
+        <div id="scannerFallback" class="qr-fallback" hidden>
+            Camera QR scanning is not supported in this browser. Please use manual QR input.
+        </div>
+    </div>
+
+    <aside class="card qr-feedback-card">
+        <h2>Recent Scan Result</h2>
+        <div id="qrResult" class="qr-result qr-result-idle">
+            <strong>No scan yet</strong>
+            <span>Scan a QR code to see attendance feedback here.</span>
+        </div>
+        <p class="small-text">Accepted scans update the selected session immediately and create an attendance event log.</p>
+    </aside>
+</section>
+
+<section class="card">
+    <h2>Manual QR Input / Backup</h2>
+    <p class="muted">Use this if the browser camera is unavailable, blocked, or the QR card cannot be read by the camera.</p>
+
+    {% if selected_session %}
+    <div class="qr-manual-row">
+        <input id="qrInput" class="form-control qr-big-input" placeholder="Paste or type student QR value">
+        <button class="btn btn-primary" type="button" onclick="scanManualQr()">Submit Manual QR</button>
+    </div>
+    {% else %}
+    <p class="muted">Select a session before using manual QR input.</p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Demo Tools</h2>
+    <p class="muted">Use these buttons only for classroom demo or project presentation. Real attendance should use the camera scanner or a physical QR value.</p>
+
+    {% if selected_session %}
+    <div class="quick-button-row">
+        {% for student in students %}
+        <button class="btn btn-secondary btn-sm" type="button" onclick="quickScan('{{ student.qr_code }}')">
+            {{ student.stu_id }} - {{ student.name }}
+        </button>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">Demo buttons become available after selecting a session.</p>
+    {% endif %}
+</section>
+
+<script src="/static/js/jsQR.min.js"></script>
+<script>
+const selectedSessionId = {{ selected_session.id if selected_session else "null" }};
+const qrVideo = document.getElementById("qrVideo");
+const qrPreviewEmpty = document.getElementById("qrPreviewEmpty");
+const startScannerBtn = document.getElementById("startScannerBtn");
+const stopScannerBtn = document.getElementById("stopScannerBtn");
+const scannerStatus = document.getElementById("scannerStatus");
+const scannerFallback = document.getElementById("scannerFallback");
+const resultBox = document.getElementById("qrResult");
+
+let qrStream = null;
+let barcodeDetector = null;
+let scanLoopId = null;
+let isSubmittingQr = false;
+let lastDetectedQr = "";
+let lastDetectedAt = 0;
+let scannerMode = "barcode_detector";
+let qrCanvas = document.createElement("canvas");
+let qrCanvasContext = qrCanvas.getContext("2d", {willReadFrequently: true});
+
+function setScannerStatus(message, state = "waiting") {
+    scannerStatus.className = `qr-status ${state}`;
+    scannerStatus.textContent = message;
+}
+
+function setFallbackMessage(message, isError = false) {
+    scannerFallback.hidden = false;
+    scannerFallback.classList.toggle("error", isError);
+    scannerFallback.textContent = message;
+}
+
+function setResult(data, sourceLabel) {
+    const result = data.result || "unknown";
+    const statusText = data.status ? `Status: ${data.status}` : "No attendance status changed";
+
+    const labels = {
+        success: "Attendance marked",
+        duplicate: "Duplicate scan",
+        unknown: "Unknown QR",
+        invalid: "Invalid QR",
+        after_close: "After close time",
+        low_confidence: "Low confidence"
+    };
+
+    resultBox.className = `qr-result qr-result-${result}`;
+    resultBox.innerHTML = `
+        <strong>${labels[result] || "Scan processed"}</strong>
+        <span>${data.message || "Attendance scan completed."}</span>
+        <small>${statusText} · Source: ${sourceLabel}</small>
+    `;
+}
+
+function setErrorResult(message) {
+    resultBox.className = "qr-result qr-result-error";
+    resultBox.innerHTML = `
+        <strong>Scan failed</strong>
+        <span>${message}</span>
+    `;
+}
+
+async function submitQr(qrCode, rawSource) {
+    if (!selectedSessionId) {
+        setErrorResult("Please select a session before scanning.");
+        return;
+    }
+
+    if (!qrCode) {
+        setErrorResult("Please provide a QR code.");
+        return;
+    }
+
+    isSubmittingQr = true;
+    setScannerStatus("QR detected. Submitting attendance...", "busy");
+
+    try {
+        const response = await fetch("/api/attendance/scan-qr", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                session_id: selectedSessionId,
+                qr_code: qrCode,
+                raw_source: rawSource
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            setErrorResult(data.detail || "Attendance API rejected this QR code.");
+            setScannerStatus("Waiting for QR code...", "waiting");
+            return;
+        }
+
+        setResult(data, rawSource);
+        setScannerStatus("Scan complete. Ready for the next QR code.", data.ok ? "success" : "warning");
+    } catch (error) {
+        setErrorResult(String(error));
+        setScannerStatus("Could not submit QR. Please try manual input.", "error");
+    } finally {
+        window.setTimeout(() => {
+            isSubmittingQr = false;
+            if (qrStream) {
+                setScannerStatus("Waiting for QR code...", "waiting");
+            }
+        }, 1200);
+    }
+}
+
+async function scanFrame() {
+    if (!barcodeDetector || !qrStream || isSubmittingQr) {
+        if (scannerMode === "jsqr" && qrStream && !isSubmittingQr) {
+            scanFrameWithJsQr();
+        }
+        scanLoopId = window.requestAnimationFrame(scanFrame);
+        return;
+    }
+
+    try {
+        const barcodes = await barcodeDetector.detect(qrVideo);
+        const qr = barcodes.find((item) => item.rawValue);
+
+        if (qr) {
+            handleDetectedQrValue(qr.rawValue);
+        }
+    } catch (error) {
+        setScannerStatus("Camera frame could not be scanned. Please use manual input.", "error");
+    }
+
+    scanLoopId = window.requestAnimationFrame(scanFrame);
+}
+
+function handleDetectedQrValue(qrValue) {
+    const now = Date.now();
+    const cleanQr = qrValue.trim();
+    const isRepeat = cleanQr === lastDetectedQr && now - lastDetectedAt < 3500;
+
+    if (!isRepeat) {
+        lastDetectedQr = cleanQr;
+        lastDetectedAt = now;
+        submitQr(cleanQr, scannerMode === "jsqr" ? "browser_camera_jsqr_fallback" : "browser_camera_qr_scanner");
+    }
+}
+
+function scanFrameWithJsQr() {
+    if (!window.jsQR || !qrVideo.videoWidth || !qrVideo.videoHeight) {
+        return;
+    }
+
+    qrCanvas.width = qrVideo.videoWidth;
+    qrCanvas.height = qrVideo.videoHeight;
+    qrCanvasContext.drawImage(qrVideo, 0, 0, qrCanvas.width, qrCanvas.height);
+
+    const imageData = qrCanvasContext.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+    const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+    });
+
+    if (code && code.data) {
+        handleDetectedQrValue(code.data);
+    }
+}
+
+async function startScanner() {
+    if (!selectedSessionId) {
+        setErrorResult("Please select a session before starting the scanner.");
+        return;
+    }
+
+    try {
+        if ("BarcodeDetector" in window) {
+            const supportedFormats = typeof window.BarcodeDetector.getSupportedFormats === "function"
+                ? await window.BarcodeDetector.getSupportedFormats()
+                : ["qr_code"];
+
+            if (supportedFormats.includes("qr_code")) {
+                barcodeDetector = new window.BarcodeDetector({formats: ["qr_code"]});
+                scannerMode = "barcode_detector";
+            }
+        }
+
+        if (!barcodeDetector) {
+            if (window.jsQR) {
+                scannerMode = "jsqr";
+                setFallbackMessage("Using fallback QR scanner.");
+            } else {
+                setFallbackMessage("Camera QR scanning is not supported in this browser. Please use manual QR input.", true);
+                setScannerStatus("Camera QR scanning is not supported in this browser.", "error");
+                return;
+            }
+        }
+
+        qrStream = await navigator.mediaDevices.getUserMedia({
+            video: {facingMode: "environment"},
+            audio: false
+        });
+
+        qrVideo.srcObject = qrStream;
+        await qrVideo.play();
+
+        qrPreviewEmpty.hidden = true;
+        scannerFallback.hidden = scannerMode !== "jsqr";
+        startScannerBtn.disabled = true;
+        stopScannerBtn.disabled = false;
+        setScannerStatus(scannerMode === "jsqr" ? "Using fallback QR scanner. Waiting for QR code..." : "Waiting for QR code...", "waiting");
+        scanLoopId = window.requestAnimationFrame(scanFrame);
+    } catch (error) {
+        setFallbackMessage("Camera could not start. Please allow camera access or use manual input.", true);
+        setScannerStatus("Camera could not start. Please allow camera access or use manual input.", "error");
+    }
+}
+
+function stopScanner() {
+    if (scanLoopId) {
+        window.cancelAnimationFrame(scanLoopId);
+        scanLoopId = null;
+    }
+
+    if (qrStream) {
+        qrStream.getTracks().forEach((track) => track.stop());
+        qrStream = null;
+    }
+
+    qrVideo.srcObject = null;
+    qrPreviewEmpty.hidden = false;
+    startScannerBtn.disabled = !selectedSessionId;
+    stopScannerBtn.disabled = true;
+    setScannerStatus("Scanner stopped. Start again when ready.", "waiting");
+}
+
+function scanManualQr() {
+    const input = document.getElementById("qrInput");
+    const qrCode = input.value.trim();
+    submitQr(qrCode, "manual_qr_backup");
+    input.value = "";
+    input.focus();
+}
+
+function quickScan(qrCode) {
+    submitQr(qrCode, "demo_tools_quick_button");
+}
+
+if (startScannerBtn) {
+    startScannerBtn.addEventListener("click", startScanner);
+}
+
+if (stopScannerBtn) {
+    stopScannerBtn.addEventListener("click", stopScanner);
+}
+
+window.addEventListener("beforeunload", stopScanner);
+</script>
+{% endblock %}

@@ -115,6 +115,26 @@ def evaluate_auto_off_rule(db: Session, simulate_empty: bool = False):
             "event_id": event.id,
         }
 
+    if not active_session:
+        reason = "Automation skipped because there is no active class session to evaluate occupancy."
+        event = create_automation_event(
+            db=db,
+            rule_name=rule_name,
+            action=action,
+            status="skipped",
+            occupancy_count=occupancy_count,
+            reason=reason,
+        )
+        return {
+            "success": True,
+            "executed": False,
+            "occupancy_count": occupancy_count,
+            "active_session_id": None,
+            "affected_devices": [],
+            "message": reason,
+            "event_id": event.id,
+        }
+
     if occupancy_count > 0:
         reason = (
             f"Automation skipped because {occupancy_count} student(s) are currently marked present/late/permission "

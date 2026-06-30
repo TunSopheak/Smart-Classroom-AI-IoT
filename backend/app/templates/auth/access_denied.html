@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Access Denied - Smart Classroom AI Monitoring Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="auth-message-body">
+    <main class="auth-message-card">
+        <p class="eyebrow">Role-based access</p>
+        <h1>Access Denied</h1>
+        <p class="muted">This page belongs to a restricted workflow. Your current role cannot open it.</p>
+        <div class="access-role-row">
+            <span>Signed in role</span>
+            <strong class="role-badge">{{ role }}</strong>
+        </div>
+        <div class="settings-actions">
+            <a class="button" href="/dashboard">Back to Dashboard</a>
+            <a class="button secondary-button" href="/logout">Logout</a>
+        </div>
+    </main>
+</body>
+</html>

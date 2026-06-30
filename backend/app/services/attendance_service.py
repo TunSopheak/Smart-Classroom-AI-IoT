@@ -9,6 +9,7 @@ from app.models.attendance_record import AttendanceRecord
 from app.models.class_session import ClassSession
 from app.models.enrollment import Enrollment
 from app.models.student import Student
+from app.services.qr_service import parse_signed_student_qr
 
 
 def calculate_attendance_status(event_time: datetime, session: ClassSession) -> AttendanceStatus:
@@ -72,10 +73,20 @@ def get_active_session(db: Session) -> ClassSession | None:
 
 
 def get_student_by_qr_code(db: Session, qr_code: str) -> Student | None:
-    """Find active student by QR code value."""
+    """Find active student by signed QR value, with legacy QR fallback."""
+    clean_qr = qr_code.strip()
+    signed_stu_id = parse_signed_student_qr(clean_qr)
+
+    if signed_stu_id:
+        return (
+            db.query(Student)
+            .filter(Student.stu_id == signed_stu_id, Student.active.is_(True))
+            .first()
+        )
+
     return (
         db.query(Student)
-        .filter(Student.qr_code == qr_code.strip(), Student.active.is_(True))
+        .filter(Student.qr_code == clean_qr, Student.active.is_(True))
         .first()
     )
 

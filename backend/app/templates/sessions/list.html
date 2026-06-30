@@ -1,23 +1,33 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="page-header">
+<section class="page-header sessions-page-header">
     <div>
-        <p class="eyebrow">Class Session Management</p>
+        <p class="eyebrow">Class Sessions</p>
         <h1>Sessions</h1>
-        <p class="muted">Create, open, close, and manage attendance sessions without PowerShell.</p>
+        <p class="muted">Manage today's class sessions and start monitoring or attendance for a class.</p>
     </div>
-    <a class="button secondary-button" href="/dashboard">Back Dashboard</a>
+    <a class="button secondary-button" href="/dashboard/product-center">Product Center</a>
 </section>
 
 {% if active_session %}
-<section class="panel active-session-banner">
-    <div>
-        <p class="eyebrow">Current Active Session</p>
+<section class="panel sessions-active-card">
+    <div class="sessions-active-main">
+        <p class="eyebrow">Today's Active Session</p>
         <h2>{{ active_session.title }}</h2>
-        <p class="muted">Start: {{ active_session.start_time }} | Late: {{ active_session.late_time }} | Close: {{ active_session.close_time }}</p>
+        <div class="session-chip-row">
+            <span class="event-badge">{{ active_session.classroom.code if active_session.classroom else "Class Group" }}</span>
+            <span class="event-badge">{{ active_session.subject.code if active_session.subject else "Course" }}</span>
+            <span class="badge-soft active-badge no-wrap">Active</span>
+        </div>
+        <div class="session-time-row">
+            <span><strong>Start</strong> {{ active_session.start_time }}</span>
+            <span><strong>Late</strong> {{ active_session.late_time }}</span>
+            <span><strong>Close</strong> {{ active_session.close_time }}</span>
+        </div>
     </div>
-    <div class="action-row">
-        <a class="button" href="/dashboard/sessions/{{ active_session.id }}/attendance">Open Attendance</a>
+    <div class="sessions-active-actions">
+        <a class="button" href="/dashboard/monitoring-workspace?session_id={{ active_session.id }}">Open Monitoring Workspace</a>
+        <a class="button secondary-button" href="/dashboard/sessions/{{ active_session.id }}/attendance">Open Attendance Review</a>
         <form action="/dashboard/sessions/{{ active_session.id }}/close" method="post">
             <button class="danger-button" type="submit">Close Session</button>
         </form>
@@ -25,71 +35,171 @@
 </section>
 {% endif %}
 
-<form class="form-card" action="/dashboard/sessions/create" method="post">
-    <h2>Create New Live Session</h2>
-    <div class="form-row">
-        <select name="classroom_id" required>
-            {% for c in classes %}<option value="{{ c.id }}">{{ c.code }} - {{ c.name }}</option>{% endfor %}
-        </select>
-        <select name="subject_id" required>
-            {% for s in subjects %}<option value="{{ s.id }}">{{ s.code }} - {{ s.name }}</option>{% endfor %}
-        </select>
-        <input name="title" placeholder="Session title" value="Live QR Attendance Test" required>
-        <button type="submit">Create & Open</button>
+<form class="form-card session-start-card" action="/dashboard/sessions/create" method="post">
+    <div class="section-title-row">
+        <div>
+            <h2>Quick Start Session</h2>
+            <p class="muted">Used for demo or emergency. In a full product, sessions should be generated from weekly schedules.</p>
+        </div>
     </div>
-    <p class="muted">This creates a session starting now, late after 15 minutes, close after 2 hours. Other active sessions will be closed automatically.</p>
+
+    <div class="session-form-grid session-form-grid-polished">
+        <div>
+            <label>Class Group</label>
+            {% if classes|length == 1 %}
+                {% set c = classes[0] %}
+                <input type="hidden" name="classroom_id" value="{{ c.id }}">
+                <div class="readonly-chip-card">
+                    <span>Selected</span>
+                    <strong>{{ c.code }}</strong>
+                    <small>{{ c.name }}{% if c.section %} / {{ c.section }}{% endif %}</small>
+                </div>
+            {% else %}
+                <select name="classroom_id" required>
+                    {% for c in classes %}
+                    <option value="{{ c.id }}">{{ c.code }} - {{ c.name }}{% if c.section %} / {{ c.section }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <div>
+            <label>Course</label>
+            {% if subjects|length == 1 %}
+                {% set s = subjects[0] %}
+                <input type="hidden" name="subject_id" value="{{ s.id }}">
+                <div class="readonly-chip-card">
+                    <span>Selected</span>
+                    <strong>{{ s.code }}</strong>
+                    <small>{{ s.name }}</small>
+                </div>
+            {% else %}
+                <select name="subject_id" required>
+                    {% for s in subjects %}
+                    <option value="{{ s.id }}">{{ s.code }} - {{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        <div class="session-form-title">
+            <label>Session title</label>
+            <input name="title" placeholder="Example: IoT Project - Week 8" value="Live Classroom Session" required>
+        </div>
+
+        <div>
+            <label>Start time</label>
+            <select name="start_time_option">
+                <option value="now">Now</option>
+                <option value="custom" disabled>Custom time (future)</option>
+            </select>
+            <small class="small-text">Current backend starts immediately.</small>
+        </div>
+
+        <div>
+            <label>Late threshold</label>
+            <select name="late_threshold_option">
+                <option value="15">15 minutes after start</option>
+                <option value="30" disabled>30 minutes after start (future)</option>
+                <option value="custom" disabled>Custom (future)</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Close time</label>
+            <select name="close_time_option">
+                <option value="120">2 hours after start</option>
+                <option value="custom" disabled>Custom (future)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-footer-actions">
+        <span class="small-text">Starting a new session closes other active sessions automatically.</span>
+        <button type="submit">Start Session</button>
+    </div>
 </form>
 
-<section class="panel">
-    <h2>Session List</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Start</th>
-                <th>Late Time</th>
-                <th>Close</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for session in sessions %}
-            <tr class="{% if session.active %}active-row{% endif %}">
-                <td>{{ session.id }}</td>
-                <td>
-                    <strong>{{ session.title }}</strong>
-                    {% if session.active %}<span class="badge-soft active-badge">Current</span>{% endif %}
-                </td>
-                <td>{{ session.start_time }}</td>
-                <td>{{ session.late_time }}</td>
-                <td>{{ session.close_time }}</td>
-                <td>
-                    {% if session.active %}
-                        <span class="badge-soft active-badge">Active</span>
-                    {% else %}
-                        <span class="badge-soft closed-badge">Closed</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <div class="table-actions">
-                        <a class="button small-button" href="/dashboard/sessions/{{ session.id }}/attendance">Attendance</a>
+<section class="panel sessions-table-card">
+    <div class="panel-title-row">
+        <div>
+            <h2>Active / Recent Sessions</h2>
+            <p class="muted">Use active sessions for live work. Closed sessions stay available for review and reports.</p>
+        </div>
+        <span class="muted">{{ sessions|length }} session(s)</span>
+    </div>
 
+    <div class="table-responsive">
+        <table class="data-table compact-table sessions-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Class</th>
+                    <th>Course</th>
+                    <th>Session</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for session in sessions %}
+                <tr class="{% if session.active %}active-row{% endif %}">
+                    <td><span class="small-text">#{{ session.id }}</span></td>
+                    <td>
+                        <strong class="compact-name">{{ session.classroom.code if session.classroom else "-" }}</strong>
+                        <span class="small-text">{{ session.classroom.name if session.classroom else "" }}</span>
+                    </td>
+                    <td>
+                        <span class="event-badge no-wrap">{{ session.subject.code if session.subject else "-" }}</span>
+                        <span class="small-text">{{ session.subject.name if session.subject else "" }}</span>
+                    </td>
+                    <td><strong class="compact-name">{{ session.title }}</strong></td>
+                    <td class="session-time-cell">
+                        <span><strong>Start</strong> {{ session.start_time }}</span>
+                        <span><strong>Late</strong> {{ session.late_time }}</span>
+                        <span><strong>Close</strong> {{ session.close_time }}</span>
+                    </td>
+                    <td>
                         {% if session.active %}
-                            <form action="/dashboard/sessions/{{ session.id }}/close" method="post">
-                                <button class="danger-button small-button" type="submit">Close</button>
-                            </form>
+                            <span class="badge-soft active-badge no-wrap">Active</span>
                         {% else %}
-                            <form action="/dashboard/sessions/{{ session.id }}/open" method="post">
-                                <button class="secondary-button small-button" type="submit">Open</button>
-                            </form>
+                            <span class="badge-soft closed-badge no-wrap">Closed</span>
                         {% endif %}
-                    </div>
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+                    </td>
+                    <td>
+                        <div class="table-actions sessions-actions">
+                            {% if session.active %}
+                                <a class="button small-button" href="/dashboard/monitoring-workspace?session_id={{ session.id }}">Open Monitoring</a>
+                                <a class="button secondary-button small-button" href="/dashboard/sessions/{{ session.id }}/attendance">Attendance Review</a>
+                                <form action="/dashboard/sessions/{{ session.id }}/close" method="post">
+                                    <button class="danger-button small-button" type="submit">Close</button>
+                                </form>
+                            {% else %}
+                                <a class="button secondary-button small-button" href="/dashboard/sessions/{{ session.id }}/attendance">Attendance Review</a>
+                                <a class="button secondary-button small-button" href="/dashboard/reports?session_id={{ session.id }}">Reports</a>
+                                <form action="/dashboard/sessions/create" method="post">
+                                    <input type="hidden" name="classroom_id" value="{{ session.classroom_id }}">
+                                    <input type="hidden" name="subject_id" value="{{ session.subject_id }}">
+                                    <input type="hidden" name="title" value="{{ session.title }}">
+                                    <button class="secondary-button small-button" type="submit">Start New From This</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="7" class="muted">No sessions yet. Start a class session above.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
+
+<details class="panel future-schedule-note">
+    <summary>Future Schedule Automation</summary>
+    <p class="muted">In the full product, sessions should be generated from weekly schedules: Class Groups → Courses → Weekly Schedule → Auto Sessions.</p>
+</details>
 {% endblock %}

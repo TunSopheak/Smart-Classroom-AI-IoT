@@ -321,3 +321,17 @@ viewer / viewer123
 ```
 
 This phase adds login, logout, role-based page protection, and authenticated recording playback.
+
+
+## Phase 14 Product AI and Attendance Integration Center
+
+Product pages:
+
+```text
+http://127.0.0.1:8000/dashboard/product-center
+http://127.0.0.1:8000/dashboard/qr-attendance
+http://127.0.0.1:8000/dashboard/face-training
+http://127.0.0.1:8000/dashboard/face-recognition-live
+```
+
+This phase makes QR attendance, face training, live face recognition, behavior monitoring, and reports easier to access from one teacher-friendly product center.

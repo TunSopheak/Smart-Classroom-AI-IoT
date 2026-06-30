@@ -3,6 +3,7 @@ from statistics import mean
 
 from sqlalchemy.orm import Session
 
+from app.core.constants import DeviceStatus
 from app.models.device import Device
 from app.models.sensor_reading import SensorReading
 from app.schemas.iot_schema import SensorReadingCreate
@@ -95,7 +96,12 @@ def update_device_status(db: Session, device_id: int, status: str):
     if not device:
         return None
 
-    device.status = status.strip().lower()
+    clean_status = status.value if isinstance(status, DeviceStatus) else str(status).strip().lower()
+    valid_statuses = {item.value for item in DeviceStatus}
+    if clean_status not in valid_statuses:
+        raise ValueError(f"Invalid device status: {status}")
+
+    device.status = clean_status
     device.last_seen = datetime.utcnow()
     db.commit()
     db.refresh(device)

@@ -1,17 +1,50 @@
 from sqlalchemy.orm import Session
 
 from app.models.ai_monitoring_event import AIMonitoringEvent
+from app.models.class_session import ClassSession
+from app.models.enrollment import Enrollment
+from app.models.student import Student
 from app.schemas.ai_monitoring_schema import AIMonitoringEventCreate
 
 
 def _payload_to_dict(payload: AIMonitoringEventCreate) -> dict:
     if hasattr(payload, "model_dump"):
-        return payload.model_dump()
+        return payload.model_dump(mode="json")
     return payload.dict()
+
+
+def _validate_event_scope(db: Session, data: dict) -> None:
+    session_id = data.get("session_id")
+    student_id = data.get("student_id")
+
+    session = None
+    if session_id is not None:
+        session = db.get(ClassSession, session_id)
+        if not session:
+            raise ValueError("Session not found.")
+
+    if student_id is not None:
+        student = db.get(Student, student_id)
+        if not student or not student.active:
+            raise ValueError("Student not found or inactive.")
+
+        if session:
+            enrollment = (
+                db.query(Enrollment)
+                .filter(
+                    Enrollment.classroom_id == session.classroom_id,
+                    Enrollment.student_id == student_id,
+                    Enrollment.active.is_(True),
+                )
+                .first()
+            )
+            if not enrollment:
+                raise ValueError("Student is not enrolled in this session classroom.")
 
 
 def create_ai_monitoring_event(db: Session, payload: AIMonitoringEventCreate) -> AIMonitoringEvent:
     data = _payload_to_dict(payload)
+    _validate_event_scope(db, data)
 
     confidence = data.get("confidence")
     if confidence is not None:

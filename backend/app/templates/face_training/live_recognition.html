@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Live Face Recognition{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Debug / Training View</p>
+        <h1>Live Face Recognition</h1>
+        <p>This standalone page is kept for face-training checks. Daily classroom monitoring now happens in Smart Monitoring Workspace.</p>
+    </div>
+    <a class="btn btn-primary" href="/dashboard/monitoring-workspace{% if active_session %}?session_id={{ active_session.id }}{% endif %}">Open Monitoring Workspace</a>
+</div>
+
+<div class="product-note">
+    <strong>Debug view:</strong>
+    Use this page only to verify face training and recognition output. The unified workspace combines recognition, attendance, behavior, recording, IoT, and QR backup.
+</div>
+
+<div class="health-grid">
+    <div class="health-card {% if model_exists %}health-ok{% else %}health-error{% endif %}">
+        <h3>Model</h3>
+        <strong>{% if model_exists %}READY{% else %}MISSING{% endif %}</strong>
+        <p>LBPH face model.</p>
+    </div>
+
+    <div class="health-card {% if labels_exists %}health-ok{% else %}health-error{% endif %}">
+        <h3>Labels</h3>
+        <strong>{% if labels_exists %}READY{% else %}MISSING{% endif %}</strong>
+        <p>Student ID label map.</p>
+    </div>
+
+    <div class="health-card health-ok">
+        <h3>Session</h3>
+        <strong>{% if active_session %}#{{ active_session.id }}{% else %}-{% endif %}</strong>
+        <p>{% if active_session %}{{ active_session.title }}{% else %}No active/latest session{% endif %}</p>
+    </div>
+
+    <div class="health-card health-ok">
+        <h3>Recognition Output</h3>
+        <strong>ID + Name</strong>
+        <p>Overlay shows student identity and confidence.</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Live Recognition Stream</h2>
+
+    <img class="live-recognition-frame" src="/api/face-recognition-live/stream?camera_index=0" alt="Live face recognition stream">
+
+    <div class="settings-actions" style="margin-top: 1rem;">
+        <a class="btn btn-primary" href="/dashboard/camera-monitoring{% if active_session %}?session_id={{ active_session.id }}{% endif %}">Open Camera Monitoring</a>
+        <a class="btn btn-secondary" href="/dashboard/face-training">Train / Upload More Faces</a>
+    </div>
+</div>
+
+<div class="danger-note">
+    <strong>Privacy:</strong>
+    Use volunteer/demo faces only. Do not record or publish classroom faces without permission.
+</div>
+{% endblock %}

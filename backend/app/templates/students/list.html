@@ -2,9 +2,9 @@
 {% block content %}
 <section class="page-header">
     <div>
-        <p class="eyebrow">Phase 3.1 QR Demo Workflow</p>
+        <p class="eyebrow">Student Management</p>
         <h1>Students</h1>
-        <p class="muted">Manage student identity, QR images, printable QR cards, search, and filters.</p>
+        <p class="muted">Manage student identities, QR cards, face profiles, and future class-group enrollment.</p>
     </div>
     <div class="action-row">
         <form action="/dashboard/students/generate-all-qr" method="post">
@@ -30,13 +30,23 @@
 
 <form class="form-card" action="/dashboard/students/create" method="post">
     <h2>Add Student</h2>
-    <div class="form-row">
-        <input name="stu_id" placeholder="Student ID, e.g. S006" required>
-        <input name="name" placeholder="Student Name" required>
-        <input name="gender" placeholder="Gender">
+    <p class="muted">Student code will be generated automatically. Existing/manual codes are still supported when needed.</p>
+    <div class="student-form-grid">
+        <div>
+            <label>Student code (optional)</label>
+            <input name="stu_id" placeholder="Auto, e.g. S006">
+        </div>
+        <div>
+            <label>Student name</label>
+            <input name="name" placeholder="Student Name" required>
+        </div>
+        <div>
+            <label>Gender</label>
+            <input name="gender" placeholder="Optional">
+        </div>
         <button type="submit">Add Student</button>
     </div>
-    <p class="muted">New students are automatically given QR value, QR image, face dataset path, and demo classroom enrollment.</p>
+    <p class="small-text">Students should belong to class groups. Full class-group enrollment is planned for the next data-architecture phase.</p>
 </form>
 
 <section class="panel">
@@ -80,7 +90,8 @@
                     {% endif %}
                 </td>
                 <td>
-                    <strong>{{ student.stu_id }} - {{ student.name }}</strong><br>
+                    <strong class="student-code">{{ student.stu_id }}</strong>
+                    <span class="compact-name">{{ student.name }}</span><br>
                     <span class="small-text">Gender: {{ student.gender or '-' }}</span>
                 </td>
                 <td><code>{{ student.qr_code or '-' }}</code></td>

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -76,7 +76,10 @@ def api_create_ai_event(
     payload: AIMonitoringEventCreate,
     db: Session = Depends(get_db),
 ):
-    event = create_ai_monitoring_event(db, payload)
+    try:
+        event = create_ai_monitoring_event(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
         "success": True,
         "message": "AI monitoring event logged successfully.",
@@ -89,7 +92,10 @@ def api_simulate_ai_event(
     payload: AIMonitoringEventCreate,
     db: Session = Depends(get_db),
 ):
-    event = create_ai_monitoring_event(db, payload)
+    try:
+        event = create_ai_monitoring_event(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
         "success": True,
         "message": f"Simulated AI event: {event.event_type}",
@@ -185,7 +191,10 @@ def dashboard_simulate_ai_event(
         description=description or f"Manual simulation for {event_type}",
     )
 
-    create_ai_monitoring_event(db, payload)
+    try:
+        create_ai_monitoring_event(db, payload)
+    except ValueError:
+        pass
 
     return RedirectResponse(
         url=f"/dashboard/ai-monitoring?session_id={session_id}",

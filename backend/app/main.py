@@ -89,7 +89,9 @@ app.include_router(phase12_admin_router)
 
 # Phase 13 Authentication and Role-Based Access
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 from app.core.auth import (
+    get_device_user_from_request,
     get_current_user_from_request,
     is_protected_path,
     is_public_path,
@@ -98,13 +100,14 @@ from app.core.auth import (
 from app.routers.auth_router import router as phase13_auth_router
 
 app.include_router(phase13_auth_router)
+auth_templates = Jinja2Templates(directory="app/templates")
 
 
 @app.middleware("http")
 async def phase13_auth_middleware(request, call_next):
     path = request.url.path
 
-    current_user = get_current_user_from_request(request)
+    current_user = get_current_user_from_request(request) or get_device_user_from_request(request)
     request.state.current_user = current_user
 
     if is_public_path(path):
@@ -134,46 +137,19 @@ async def phase13_auth_middleware(request, call_next):
                     },
                 )
 
-            return HTMLResponse(
-                content=f'''
-                <html>
-                    <head>
-                        <title>Access Denied</title>
-                        <style>
-                            body {{
-                                font-family: Arial, sans-serif;
-                                background: #f8fafc;
-                                display: grid;
-                                place-items: center;
-                                min-height: 100vh;
-                                margin: 0;
-                                color: #0f172a;
-                            }}
-                            .box {{
-                                max-width: 560px;
-                                background: white;
-                                border-radius: 24px;
-                                padding: 2rem;
-                                box-shadow: 0 18px 60px rgba(15, 23, 42, 0.16);
-                            }}
-                            a {{
-                                color: #2563eb;
-                                font-weight: 800;
-                            }}
-                        </style>
-                    </head>
-                    <body>
-                        <div class="box">
-                            <h1>403 - Access Denied</h1>
-                            <p>Your role does not have permission to open this page.</p>
-                            <p><strong>Current role:</strong> {current_user.get("role")}</p>
-                            <a href="/dashboard">Back Dashboard</a> ·
-                            <a href="/logout">Logout</a>
-                        </div>
-                    </body>
-                </html>
-                ''',
+            return auth_templates.TemplateResponse(
+                request,
+                "auth/access_denied.html",
+                {
+                    "request": request,
+                    "role": current_user.get("role"),
+                },
                 status_code=403,
             )
 
     return await call_next(request)
+
+
+# Phase 14 Product AI and Attendance Integration Center
+from app.routers.product_integration_router import router as phase14_product_integration_router
+app.include_router(phase14_product_integration_router)
