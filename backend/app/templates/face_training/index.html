@@ -206,15 +206,6 @@
     const faceSizeWarning = document.getElementById("face-size-warning");
     let stream = null;
     let capturing = false;
-    let faceSizeTimer = null;
-
-    if (studentSelect) {
-        studentSelect.addEventListener("change", function () {
-            if (studentSelect.value) {
-                window.location.href = "/dashboard/face-training?student_id=" + encodeURIComponent(studentSelect.value);
-            }
-        });
-    }
 
     function setStatus(message, isError) {
         statusBox.hidden = false;

@@ -92,39 +92,10 @@ def save_face_crop(image, output_path: Path) -> dict:
         return {"saved": False, "reason": "too_small", "message": "Face too small, move closer."}
 
     face_crop = gray[y:y + h, x:x + w]
-    blur_score = cv2.Laplacian(face_crop, cv2.CV_64F).var()
-    if blur_score < BLUR_VARIANCE_THRESHOLD:
-        return {"saved": False, "reason": "blurry", "message": "Image too blurry, try again."}
+    face_crop = cv2.resize(face_crop, FACE_SIZE)
 
-    processed = preprocess_face_crop(face_crop)
-    cv2.imwrite(str(output_path), processed, [int(cv2.IMWRITE_JPEG_QUALITY), JPG_QUALITY])
-    return {"saved": True, "reason": "saved", "message": "Sample saved."}
-
-
-def build_skip_summary(skipped: dict[str, int]) -> str:
-    messages = []
-    if skipped.get("too_small"):
-        messages.append(f"{skipped['too_small']} face too small, move closer.")
-    if skipped.get("blurry"):
-        messages.append(f"{skipped['blurry']} image too blurry, try again.")
-    if skipped.get("no_face"):
-        messages.append(f"{skipped['no_face']} no face detected.")
-    if skipped.get("limit"):
-        messages.append(f"{skipped['limit']} skipped because the student reached the {MAX_SAMPLES_PER_STUDENT} sample limit.")
-    if skipped.get("invalid"):
-        messages.append(f"{skipped['invalid']} invalid file(s).")
-    return " ".join(messages)
-
-
-def merge_skip_counts(target: dict[str, int], source: dict[str, int] | None) -> None:
-    for key, value in (source or {}).items():
-        target[key] = target.get(key, 0) + int(value or 0)
-
-
-def augment_training_image(image: np.ndarray) -> list[np.ndarray]:
-    flipped = cv2.flip(image, 1)
-    brighter = cv2.convertScaleAbs(image, alpha=1.0, beta=12)
-    return [image, flipped, brighter]
+    cv2.imwrite(str(output_path), face_crop)
+    return True
 
 
 def upload_image_face_samples(db: Session, student_id: int, files, source: str = "image") -> dict:
@@ -204,14 +175,6 @@ def upload_video_face_samples(db: Session, student_id: int, video_file) -> dict:
 
     folder = get_student_dataset_path(student.stu_id)
     existing = count_student_samples(student.stu_id)
-    if existing >= MAX_SAMPLES_PER_STUDENT:
-        return {
-            "success": False,
-            "message": f"{student.stu_id} already has {existing} sample(s). Limit is {MAX_SAMPLES_PER_STUDENT}; remove old samples before adding more.",
-            "saved": 0,
-            "failed": 1,
-            "skipped": {"limit": 1},
-        }
 
     VIDEO_DIR.mkdir(parents=True, exist_ok=True)
     video_file_path = VIDEO_DIR / f"{student.stu_id}_{uuid.uuid4().hex}{suffix}"
@@ -341,16 +304,6 @@ def capture_face_samples(db: Session, student_id: int, samples: int = 30, camera
         }
 
     existing = count_student_samples(student.stu_id)
-    if existing >= MAX_SAMPLES_PER_STUDENT:
-        cap.release()
-        return {
-            "success": False,
-            "message": f"{student.stu_id} already has {existing} sample(s). Limit is {MAX_SAMPLES_PER_STUDENT}; remove old samples before adding more.",
-            "saved": 0,
-            "failed": 1,
-            "skipped": {"limit": 1},
-        }
-
     saved = 0
     failed = 0
     skipped = {"too_small": 0, "blurry": 0, "no_face": 0, "limit": 0, "invalid": 0}
