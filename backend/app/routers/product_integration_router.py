@@ -1,10 +1,11 @@
 import time
 from typing import Optional
+from urllib.parse import quote
 
 import cv2
 import numpy as np
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -20,6 +21,8 @@ from app.services.face_product_service import (
     live_face_recognizer,
     train_lbph_model,
     upload_face_samples,
+    upload_image_face_samples,
+    upload_video_face_samples,
 )
 from app.services.face_service import FACE_ATTENDANCE_MIN_CONFIDENCE, simulate_face_attendance
 
@@ -127,58 +130,42 @@ def face_training_page(request: Request, student_id: Optional[int] = None, db: S
     )
 
 
-@router.post("/dashboard/face-training/upload")
-# def face_training_upload(
-#     student_id: int = Form(...),
-#     files: list[UploadFile] = File(...),
-#     db: Session = Depends(get_db),
-# ):
-#     result = upload_face_samples(db=db, student_id=student_id, files=files)
-#     return RedirectResponse(
-#         url=f"/dashboard/face-training?student_id={student_id}&message={result['message']}",
-#         status_code=303,
-#     )
+def face_training_redirect(student_id: Optional[int], message: str) -> RedirectResponse:
+    selected = f"student_id={student_id}&" if student_id else ""
+    return RedirectResponse(
+        url=f"/dashboard/face-training?{selected}message={quote(message, safe='')}",
+        status_code=303,
+    )
 
-def face_training_upload(
+
+@router.post("/dashboard/face-training/upload-images")
+def face_training_upload_images(
+    student_id: int = Form(...),
+    images: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    result = upload_face_samples(db=db, student_id=student_id, files=images)
+    return face_training_redirect(student_id, result["message"])
+
+
+@router.post("/dashboard/face-training/upload-video")
+def face_training_upload_video(
     student_id: int = Form(...),
     video: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    result = upload_face_samples(db, student_id, video)
+    result = upload_video_face_samples(db, student_id, video)
+    return face_training_redirect(student_id, result["message"])
 
-    return RedirectResponse(
-        url=f"/dashboard/face-training?student_id={student_id}&message={result['message']}",
-        status_code=303,
-    )
-# def face_training_upload(
-#     student_id: int = Form(...),
-#     video: UploadFile = File(...),
-#     db: Session = Depends(get_db),
-# ):
-#     result = upload_face_samples(db=db, student_id=student_id, files=video)
-#     return RedirectResponse(
-#         url=f"/dashboard/face-training?student_id={student_id}&message={result['message']}",
-#         status_code=303,
-#     )
-    # video_dir = Path("ai_module/videos")
-    # video_dir.mkdir(parents=True, exist_ok=True)
 
-    # video_path = video_dir / video.filename
-
-    # with open(video_path, "wb") as buffer:
-    #     shutil.copyfileobj(video.file, buffer)
-
-    # # 👉 Call your AI function here
-    # result = process_video_to_dataset(
-    #     db=db,
-    #     student_id=student_id,
-    #     video_path=str(video_path)
-    # )
-
-    # return RedirectResponse(
-    #     url=f"/dashboard/face-training?student_id={student_id}&message={result['message']}",
-    #     status_code=303,
-    # )
+@router.post("/dashboard/face-training/upload")
+def face_training_upload_legacy(
+    student_id: int = Form(...),
+    video: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    result = upload_video_face_samples(db, student_id, video)
+    return face_training_redirect(student_id, result["message"])
 
 
 @router.post("/dashboard/face-training/capture")
@@ -195,19 +182,30 @@ def face_training_capture(
         camera_index=camera_index,
     )
 
-    return RedirectResponse(
-        url=f"/dashboard/face-training?student_id={student_id}&message={result['message']}",
-        status_code=303,
-    )
+    return face_training_redirect(student_id, result["message"])
+
+
+@router.post("/dashboard/face-training/capture-browser")
+def face_training_capture_browser(
+    student_id: int = Form(...),
+    images: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    result = upload_image_face_samples(db=db, student_id=student_id, files=images, source="camera")
+    status_code = 200 if result["success"] else 400
+    return JSONResponse(result, status_code=status_code)
 
 
 @router.post("/dashboard/face-training/train")
-def face_training_train(db: Session = Depends(get_db)):
+def face_training_train(student_id: Optional[int] = Form(None), db: Session = Depends(get_db)):
     result = train_lbph_model(db)
-    return RedirectResponse(
-        url=f"/dashboard/face-training?message={result['message']}",
-        status_code=303,
-    )
+    message = result["message"]
+    if result.get("success"):
+        message = (
+            f"{message} Trained students: {result.get('trained_students', 0)}. "
+            f"Sample count: {result.get('total_images', 0)}. Trained time: {result.get('trained_at')}."
+        )
+    return face_training_redirect(student_id, message)
 
 
 @router.get("/dashboard/face-recognition-live")

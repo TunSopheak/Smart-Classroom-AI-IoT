@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -17,8 +18,11 @@ DATASET_DIR = FACE_ROOT / "datasets"
 MODEL_DIR = FACE_ROOT / "models"
 MODEL_PATH = MODEL_DIR / "lbph_face_model.yml"
 LABELS_PATH = MODEL_DIR / "labels.json"
+VIDEO_DIR = FACE_ROOT / "videos"
 
 FACE_SIZE = (200, 200)
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv"}
 
 
 def ensure_face_dirs() -> None:
@@ -62,66 +66,72 @@ def save_face_crop(image, output_path: Path) -> bool:
     return True
 
 
-# def upload_face_samples(db: Session, student_id: int, files) -> dict:
-#     ensure_face_dirs()
+def upload_image_face_samples(db: Session, student_id: int, files, source: str = "image") -> dict:
+    ensure_face_dirs()
 
-#     student = db.query(Student).filter(Student.id == student_id).first()
-#     if not student:
-#         return {"success": False, "message": "Student not found.", "saved": 0, "failed": 0}
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        return {"success": False, "message": "Student not found.", "saved": 0, "failed": 0}
 
-#     folder = get_student_dataset_path(student.stu_id)
-#     existing = count_student_samples(student.stu_id)
+    folder = get_student_dataset_path(student.stu_id)
+    existing = count_student_samples(student.stu_id)
+    saved = 0
+    failed = 0
 
-#     saved = 0
-#     failed = 0
+    for file in files:
+        suffix = Path(file.filename or "").suffix.lower()
+        if suffix not in IMAGE_EXTENSIONS:
+            failed += 1
+            continue
 
-#     for index, file in enumerate(files, start=1):
-#         raw = file.file.read()
-#         np_array = np.frombuffer(raw, np.uint8)
-#         image = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
+        raw = file.file.read()
+        np_array = np.frombuffer(raw, np.uint8)
+        image = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
 
-#         if image is None:
-#             failed += 1
-#             continue
+        if image is None:
+            failed += 1
+            continue
 
-#         output = folder / f"{student.stu_id}_upload_{existing + saved + 1:03d}.jpg"
+        output = folder / f"{student.stu_id}_{source}_{existing + saved + 1:03d}.jpg"
+        if save_face_crop(image, output):
+            saved += 1
+        else:
+            failed += 1
 
-#         if save_face_crop(image, output):
-#             saved += 1
-#         else:
-#             failed += 1
+    refresh_face_profile(db, student)
 
-#     refresh_face_profile(db, student)
+    return {
+        "success": saved > 0,
+        "message": f"Added {saved} face sample(s) for {student.stu_id}. {failed} file(s) skipped.",
+        "saved": saved,
+        "failed": failed,
+        "dataset_path": str(folder),
+    }
 
-#     return {
-#         "success": True,
-#         "message": f"Uploaded face samples. Saved {saved}, failed {failed}.",
-#         "saved": saved,
-#         "failed": failed,
-#         "dataset_path": str(folder),
-#     }
 
-def upload_face_samples(db: Session, student_id: int, video_file) -> dict:
+def upload_face_samples(db: Session, student_id: int, files) -> dict:
+    return upload_image_face_samples(db=db, student_id=student_id, files=files, source="image")
+
+
+def upload_video_face_samples(db: Session, student_id: int, video_file) -> dict:
     ensure_face_dirs()
 
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         return {"success": False, "message": "Student not found.", "saved": 0}
 
+    suffix = Path(video_file.filename or "").suffix.lower()
+    if suffix not in VIDEO_EXTENSIONS:
+        return {"success": False, "message": "Unsupported video type. Use MP4, AVI, MOV, or MKV.", "saved": 0}
+
     folder = get_student_dataset_path(student.stu_id)
     existing = count_student_samples(student.stu_id)
 
-    # Save video first
-    video_path = FACE_ROOT / "videos"
-    video_path.mkdir(parents=True, exist_ok=True)
-
-    video_file_path = video_path / f"{student.stu_id}.mp4"
+    VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+    video_file_path = VIDEO_DIR / f"{student.stu_id}_{uuid.uuid4().hex}{suffix}"
 
     with open(video_file_path, "wb") as f:
         f.write(video_file.file.read())
-
-    # Process video
-    import cv2
 
     cap = cv2.VideoCapture(str(video_file_path))
 
@@ -130,37 +140,37 @@ def upload_face_samples(db: Session, student_id: int, video_file) -> dict:
     saved = 0
     frame_id = 0
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        faces = detector.detectMultiScale(gray, 1.2, 5, minSize=(70, 70))
+            faces = detector.detectMultiScale(gray, 1.2, 5, minSize=(70, 70))
 
-        for (x, y, w, h) in faces:
-            face = gray[y:y+h, x:x+w]
-            face = cv2.resize(face, FACE_SIZE)
+            for (x, y, w, h) in faces:
+                face = gray[y:y+h, x:x+w]
+                face = cv2.resize(face, FACE_SIZE)
 
-            # skip duplicates
-            if frame_id % 3 == 0:
-                output = folder / f"{student.stu_id}_video_{existing + saved + 1:03d}.jpg"
-                cv2.imwrite(str(output), face)
-                saved += 1
+                if frame_id % 3 == 0:
+                    output = folder / f"{student.stu_id}_video_{existing + saved + 1:03d}.jpg"
+                    cv2.imwrite(str(output), face)
+                    saved += 1
 
-        frame_id += 1
-
-    cap.release()
+            frame_id += 1
+    finally:
+        cap.release()
+        video_file_path.unlink(missing_ok=True)
 
     refresh_face_profile(db, student)
 
     return {
         "success": True,
-        "message": f"Video processed. Saved {saved} face images.",
+        "message": f"Video processed. Added {saved} face sample(s) for {student.stu_id}.",
         "saved": saved,
         "dataset_path": str(folder),
-        "video_path": str(video_file_path)
     }
 
 def capture_face_samples(db: Session, student_id: int, samples: int = 30, camera_index: int = 0) -> dict:
@@ -284,6 +294,8 @@ def train_lbph_model(db: Session) -> dict:
         "success": True,
         "message": f"Training completed with {len(images)} image(s) and {len(label_map)} student label(s).",
         "total_images": len(images),
+        "trained_students": len(label_map),
+        "trained_at": trained_at.isoformat(),
         "labels": label_map,
         "model_path": str(MODEL_PATH),
     }

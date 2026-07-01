@@ -5,21 +5,20 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <p class="eyebrow">Phase 14 Face Training</p>
+        <p class="eyebrow">Face Training</p>
         <h1>Face Training Center</h1>
-        <p>Upload face photos, capture samples from camera, train LBPH model, and prepare Monitoring Workspace recognition.</p>
+        <p>Add Training Media for selected students, then train the LBPH model used by Monitoring Workspace.</p>
     </div>
     <a class="btn btn-primary" href="/dashboard/monitoring-workspace">Open Monitoring Workspace</a>
-    <a class="btn btn-secondary" href="/dashboard/face-recognition-live">Debug / Legacy Recognition</a>
 </div>
 
 <div class="product-note">
-    <strong>Teacher Demo:</strong>
-    This page makes face training visible in the system instead of only running terminal scripts.
+    <strong>Dataset preparation only:</strong>
+    Keep Monitoring Workspace as the final demo page. Use this page to add samples and retrain the face model.
 </div>
 
 {% if message %}
-<div class="success-note">✅ {{ message }}</div>
+<div class="success-note">{{ message }}</div>
 {% endif %}
 
 <div class="health-grid">
@@ -49,12 +48,24 @@
 </div>
 
 <div class="card">
-    <h2>Select Student</h2>
+    <div class="section-title-row">
+        <div>
+            <h2>Select Student</h2>
+            {% if selected_student %}
+            <p class="muted">Current training target: <strong>{{ selected_student.stu_id }} - {{ selected_student.name }}</strong></p>
+            {% else %}
+            <p class="muted">Add an active student before preparing face samples.</p>
+            {% endif %}
+        </div>
+        {% if selected_student %}
+        <a class="btn btn-secondary" href="/dashboard/students/{{ selected_student.id }}/face-profile">Open Face Profile</a>
+        {% endif %}
+    </div>
 
     <form method="get" action="/dashboard/face-training" class="settings-grid">
         <div>
             <label>Student</label>
-            <select class="form-control" name="student_id">
+            <select class="form-control" name="student_id" required>
                 {% for student in students %}
                 <option value="{{ student.id }}" {% if selected_student and selected_student.id == student.id %}selected{% endif %}>
                     {{ student.stu_id }} - {{ student.name }}
@@ -65,63 +76,103 @@
 
         <div class="settings-actions">
             <button class="btn btn-primary" type="submit">Use Student</button>
-            {% if selected_student %}
-            <a class="btn btn-secondary" href="/dashboard/students/{{ selected_student.id }}/face-profile">Open Face Profile</a>
-            {% endif %}
         </div>
     </form>
 </div>
 
 {% if selected_student %}
-<div class="card">
-    <h2>Upload Face Video: {{ selected_student.stu_id }} - {{ selected_student.name }}</h2>
-
-    <form method="post" action="/dashboard/face-training/upload" enctype="multipart/form-data" class="settings-form">
-        <input type="hidden" name="student_id" value="{{ selected_student.id }}">
-
+<div class="card training-sources-card" data-student-id="{{ selected_student.id }}" data-student-label="{{ selected_student.stu_id }} - {{ selected_student.name }}">
+    <div class="section-title-row">
         <div>
-            <label>Upload face Video</label>
-            <input class="form-control" type="file" name="video" accept="video/*" multiple required>
+            <p class="eyebrow">Add Training Media</p>
+            <h2>Training Sources for {{ selected_student.stu_id }} - {{ selected_student.name }}</h2>
+            <p class="muted">For best results, use images from different angles and the same lighting as the final demo.</p>
         </div>
+    </div>
 
-        <button class="btn btn-primary" type="submit">Upload Face Video</button>
-    </form>
-</div>
+    <div class="training-source-grid">
+        <section class="training-source-panel">
+            <h3>Add Images</h3>
+            <p class="muted">Upload JPG, JPEG, or PNG face images for {{ selected_student.stu_id }} - {{ selected_student.name }}.</p>
 
-<div class="card">
-    <h2>Capture Face Samples from Camera</h2>
+            <form method="post" action="/dashboard/face-training/upload-images" enctype="multipart/form-data" class="settings-form">
+                <input type="hidden" name="student_id" value="{{ selected_student.id }}">
 
-    <form method="post" action="/dashboard/face-training/capture" class="settings-grid">
-        <input type="hidden" name="student_id" value="{{ selected_student.id }}">
+                <div>
+                    <label>Face images</label>
+                    <input class="form-control" type="file" name="images" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple required>
+                </div>
 
-        <div>
-            <label>Samples</label>
-            <input class="form-control" type="number" name="samples" value="20" min="5" max="100">
-        </div>
+                <button class="btn btn-primary" type="submit">Add Images</button>
+            </form>
+        </section>
 
-        <div>
-            <label>Camera Index</label>
-            <input class="form-control" type="number" name="camera_index" value="0" min="0">
-        </div>
+        <section class="training-source-panel">
+            <h3>Add Video</h3>
+            <p class="muted">Upload a short local video and extract face samples for {{ selected_student.stu_id }} - {{ selected_student.name }}.</p>
 
-        <div class="settings-actions">
-            <button class="btn btn-primary" type="submit">Capture Samples</button>
-        </div>
-    </form>
+            <form method="post" action="/dashboard/face-training/upload-video" enctype="multipart/form-data" class="settings-form">
+                <input type="hidden" name="student_id" value="{{ selected_student.id }}">
 
-    <p class="muted">Note: If the live camera is already running, stop it first before capturing samples here.</p>
+                <div>
+                    <label>Face video</label>
+                    <input class="form-control" type="file" name="video" accept=".mp4,.avi,.mov,.mkv,video/mp4,video/quicktime,video/x-msvideo" required>
+                </div>
+
+                <button class="btn btn-primary" type="submit">Add Video</button>
+            </form>
+        </section>
+
+        <section class="training-source-panel training-camera-panel">
+            <h3>Capture from Camera</h3>
+            <p class="muted">Preview first, adjust face position and lighting, then capture browser frames for {{ selected_student.stu_id }} - {{ selected_student.name }}.</p>
+
+            <input type="hidden" id="camera-student-id" value="{{ selected_student.id }}">
+
+            <div class="camera-preview-wrap">
+                <video id="face-camera-preview" class="face-camera-preview" autoplay muted playsinline></video>
+                <canvas id="face-camera-canvas" class="hidden-canvas"></canvas>
+            </div>
+
+            <div class="settings-grid">
+                <div>
+                    <label>Samples</label>
+                    <input class="form-control" type="number" id="camera-sample-count" value="100" min="5" max="100">
+                </div>
+                <div>
+                    <label>Capture progress</label>
+                    <div class="capture-progress">
+                        <div class="capture-progress-bar" id="capture-progress-bar"></div>
+                    </div>
+                    <p class="muted" id="capture-progress-text">0/100</p>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button class="btn btn-secondary" type="button" id="start-camera-preview">Start Camera Preview</button>
+                <button class="btn btn-primary" type="button" id="start-camera-capture" disabled>Start Capture Samples</button>
+                <button class="btn btn-secondary" type="button" id="stop-camera" disabled>Stop Camera</button>
+            </div>
+
+            <div class="success-note camera-status-note" id="camera-status" hidden></div>
+        </section>
+    </div>
 </div>
 {% endif %}
 
 <div class="card">
     <div class="section-title-row">
-        <h2>Train Face Recognition Model</h2>
+        <div>
+            <h2>Train Model</h2>
+            <p class="muted">Training reads all student dataset folders, updates the LBPH model and labels, then syncs face profile metadata.</p>
+        </div>
         <form method="post" action="/dashboard/face-training/train">
-            <button class="btn btn-warning" type="submit">Train LBPH Model</button>
+            {% if selected_student %}
+            <input type="hidden" name="student_id" value="{{ selected_student.id }}">
+            {% endif %}
+            <button class="btn btn-warning" type="submit">Train / Retrain Face Model</button>
         </form>
     </div>
-
-    <p class="muted">Training reads all dataset folders and updates model + labels automatically.</p>
 </div>
 
 <div class="card">
@@ -154,4 +205,127 @@
         </table>
     </div>
 </div>
+
+{% if selected_student %}
+<script>
+(function () {
+    const studentId = document.getElementById("camera-student-id").value;
+    const video = document.getElementById("face-camera-preview");
+    const canvas = document.getElementById("face-camera-canvas");
+    const sampleInput = document.getElementById("camera-sample-count");
+    const previewButton = document.getElementById("start-camera-preview");
+    const captureButton = document.getElementById("start-camera-capture");
+    const stopButton = document.getElementById("stop-camera");
+    const progressBar = document.getElementById("capture-progress-bar");
+    const progressText = document.getElementById("capture-progress-text");
+    const statusBox = document.getElementById("camera-status");
+    let stream = null;
+    let capturing = false;
+
+    function setStatus(message, isError) {
+        statusBox.hidden = false;
+        statusBox.textContent = message;
+        statusBox.classList.toggle("camera-status-error", Boolean(isError));
+    }
+
+    function setProgress(done, total) {
+        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+        progressBar.style.width = percent + "%";
+        progressText.textContent = done + "/" + total;
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach((track) => track.stop());
+        }
+        stream = null;
+        video.srcObject = null;
+        captureButton.disabled = true;
+        stopButton.disabled = true;
+        previewButton.disabled = false;
+    }
+
+    function wait(ms) {
+        return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function canvasBlob() {
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+    }
+
+    previewButton.addEventListener("click", async function () {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            video.srcObject = stream;
+            previewButton.disabled = true;
+            captureButton.disabled = false;
+            stopButton.disabled = false;
+            setStatus("Camera preview started. Adjust face position and lighting before capture.", false);
+        } catch (error) {
+            setStatus("Could not start camera preview: " + error.message, true);
+        }
+    });
+
+    captureButton.addEventListener("click", async function () {
+        if (!stream || capturing) {
+            return;
+        }
+
+        capturing = true;
+        captureButton.disabled = true;
+        previewButton.disabled = true;
+
+        const total = Math.max(5, Math.min(100, Number(sampleInput.value) || 100));
+        sampleInput.value = total;
+        setProgress(0, total);
+        setStatus("Capturing samples...", false);
+
+        const formData = new FormData();
+        formData.append("student_id", studentId);
+
+        for (let index = 1; index <= total; index += 1) {
+            const blob = await canvasBlob();
+            if (blob) {
+                formData.append("images", blob, "camera_" + String(index).padStart(3, "0") + ".jpg");
+            }
+            setProgress(index, total);
+            await wait(80);
+        }
+
+        try {
+            const response = await fetch("/dashboard/face-training/capture-browser", {
+                method: "POST",
+                body: formData
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "Camera capture upload failed.");
+            }
+            setStatus(result.message, false);
+            window.setTimeout(function () {
+                const params = new URLSearchParams({
+                    student_id: studentId,
+                    message: result.message
+                });
+                window.location.href = "/dashboard/face-training?" + params.toString();
+            }, 900);
+        } catch (error) {
+            setStatus(error.message, true);
+        } finally {
+            capturing = false;
+            stopCamera();
+        }
+    });
+
+    stopButton.addEventListener("click", function () {
+        stopCamera();
+        setStatus("Camera stopped.", false);
+    });
+}());
+</script>
+{% endif %}
 {% endblock %}
