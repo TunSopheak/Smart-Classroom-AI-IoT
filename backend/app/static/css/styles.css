@@ -1231,11 +1231,20 @@ label {
 
 .training-source-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.85fr);
     gap: 1rem;
+    align-items: start;
 }
 
 .training-source-panel {
+    min-height: 0;
+}
+
+.training-source-panel.card {
+    margin: 0;
+}
+
+.training-source-panel:not(.card) {
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     padding: 1rem;
@@ -1256,6 +1265,7 @@ label {
     border-radius: 8px;
     overflow: hidden;
     aspect-ratio: 4 / 3;
+    max-height: 260px;
 }
 
 .face-camera-preview {
@@ -1295,8 +1305,18 @@ label {
     color: #991b1b !important;
 }
 
+.camera-capture-controls {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.7fr) minmax(0, 1fr);
+    gap: 1rem;
+}
+
 @media (max-width: 1100px) {
     .training-source-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .camera-capture-controls {
         grid-template-columns: 1fr;
     }
 }

@@ -81,49 +81,35 @@
 </div>
 
 {% if selected_student %}
-<div class="card training-sources-card" data-student-id="{{ selected_student.id }}" data-student-label="{{ selected_student.stu_id }} - {{ selected_student.name }}">
+<div class="training-sources-card" data-student-id="{{ selected_student.id }}" data-student-label="{{ selected_student.stu_id }} - {{ selected_student.name }}">
     <div class="section-title-row">
         <div>
-            <p class="eyebrow">Add Training Media</p>
             <h2>Training Sources for {{ selected_student.stu_id }} - {{ selected_student.name }}</h2>
             <p class="muted">For best results, use images from different angles and the same lighting as the final demo.</p>
         </div>
     </div>
 
     <div class="training-source-grid">
-        <section class="training-source-panel">
-            <h3>Add Images</h3>
-            <p class="muted">Upload JPG, JPEG, or PNG face images for {{ selected_student.stu_id }} - {{ selected_student.name }}.</p>
+        <section class="card training-source-panel">
+            <h3>Add Training Media</h3>
+            <p class="muted">Upload images and/or videos for the selected student.</p>
+            <p class="muted">You can upload multiple images and videos at the same time.</p>
 
-            <form method="post" action="/dashboard/face-training/upload-images" enctype="multipart/form-data" class="settings-form">
+            <form method="post" action="/dashboard/face-training/upload-media" enctype="multipart/form-data" class="settings-form">
                 <input type="hidden" name="student_id" value="{{ selected_student.id }}">
 
                 <div>
-                    <label>Face images</label>
-                    <input class="form-control" type="file" name="images" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple required>
+                    <label>Training media</label>
+                    <input class="form-control" type="file" name="media" accept=".jpg,.jpeg,.png,.mp4,.avi,.mov,.mkv,image/jpeg,image/png,video/mp4,video/quicktime,video/x-msvideo" multiple required>
                 </div>
 
-                <button class="btn btn-primary" type="submit">Add Images</button>
+                <button class="btn btn-primary" type="submit">Upload Media</button>
             </form>
+
+            <p class="muted">Accepted: JPG, JPEG, PNG, MP4, AVI, MOV, MKV. Only cropped face samples are saved.</p>
         </section>
 
-        <section class="training-source-panel">
-            <h3>Add Video</h3>
-            <p class="muted">Upload a short local video and extract face samples for {{ selected_student.stu_id }} - {{ selected_student.name }}.</p>
-
-            <form method="post" action="/dashboard/face-training/upload-video" enctype="multipart/form-data" class="settings-form">
-                <input type="hidden" name="student_id" value="{{ selected_student.id }}">
-
-                <div>
-                    <label>Face video</label>
-                    <input class="form-control" type="file" name="video" accept=".mp4,.avi,.mov,.mkv,video/mp4,video/quicktime,video/x-msvideo" required>
-                </div>
-
-                <button class="btn btn-primary" type="submit">Add Video</button>
-            </form>
-        </section>
-
-        <section class="training-source-panel training-camera-panel">
+        <section class="card training-source-panel training-camera-panel">
             <h3>Capture from Camera</h3>
             <p class="muted">Preview first, adjust face position and lighting, then capture browser frames for {{ selected_student.stu_id }} - {{ selected_student.name }}.</p>
 
@@ -134,7 +120,7 @@
                 <canvas id="face-camera-canvas" class="hidden-canvas"></canvas>
             </div>
 
-            <div class="settings-grid">
+            <div class="camera-capture-controls">
                 <div>
                     <label>Samples</label>
                     <input class="form-control" type="number" id="camera-sample-count" value="100" min="5" max="100">
