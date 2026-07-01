@@ -15,6 +15,7 @@ from app.models.class_session import ClassSession
 from app.models.iot_automation_event import IoTAutomationEvent
 from app.models.sensor_reading import SensorReading
 from app.models.student import Student
+from app.services.attendance_service import ensure_attendance_records_for_session
 
 router = APIRouter(tags=["Reports"])
 templates = Jinja2Templates(directory="app/templates")
@@ -142,6 +143,8 @@ def dashboard_reports(
 
     selected_session = get_report_session(db, session_id)
     selected_session_id = selected_session.id if selected_session else None
+    if selected_session:
+        ensure_attendance_records_for_session(db, selected_session)
 
     attendance_records = get_attendance_records(db, selected_session_id)
     attendance_events = get_attendance_events(db, selected_session_id)
@@ -175,6 +178,8 @@ def export_attendance_csv(
 ):
     selected_session = get_report_session(db, session_id)
     selected_session_id = selected_session.id if selected_session else None
+    if selected_session:
+        ensure_attendance_records_for_session(db, selected_session)
     records = get_attendance_records(db, selected_session_id)
 
     output = io.StringIO()
@@ -322,6 +327,8 @@ def api_session_summary(
 ):
     selected_session = get_report_session(db, session_id)
     selected_session_id = selected_session.id if selected_session else None
+    if selected_session:
+        ensure_attendance_records_for_session(db, selected_session)
 
     attendance_records = get_attendance_records(db, selected_session_id)
     ai_events = get_ai_events(db, selected_session_id, limit=500)

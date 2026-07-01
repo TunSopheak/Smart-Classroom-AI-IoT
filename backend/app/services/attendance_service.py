@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.constants import AttendanceEventResult, AttendanceMethod, AttendanceStatus
 from app.models.attendance_event import AttendanceEvent
 from app.models.attendance_record import AttendanceRecord
+from app.models.academic import StudentEnrollment
 from app.models.class_session import ClassSession
 from app.models.enrollment import Enrollment
 from app.models.student import Student
@@ -20,38 +21,70 @@ def calculate_attendance_status(event_time: datetime, session: ClassSession) -> 
     A  = no valid event before close_time or event after close_time
     Pm = manual override only
     """
+    if session.late_time is None:
+        return AttendanceStatus.PRESENT
+
     if event_time <= session.late_time:
         return AttendanceStatus.PRESENT
-    if event_time <= session.close_time:
+
+    if session.close_time is None or event_time <= session.close_time:
         return AttendanceStatus.LATE
+
     return AttendanceStatus.ABSENT
 
 
-def ensure_attendance_records_for_session(db: Session, session: ClassSession) -> list[AttendanceRecord]:
-    """Create default absent records for all active students enrolled in this session's classroom."""
-    enrollments = (
-        db.query(Enrollment)
-        .filter(
-            Enrollment.classroom_id == session.classroom_id,
-            Enrollment.active.is_(True),
+def get_session_student_ids(db: Session, session: ClassSession) -> list[int]:
+    """Return active students for the session's class group, with classroom enrollment fallback."""
+    if session.class_group_id:
+        return [
+            item.student_id
+            for item in (
+                db.query(StudentEnrollment)
+                .join(Student, Student.id == StudentEnrollment.student_id)
+                .filter(
+                    StudentEnrollment.class_group_id == session.class_group_id,
+                    StudentEnrollment.active.is_(True),
+                    Student.active.is_(True),
+                )
+                .order_by(Student.stu_id.asc())
+                .all()
+            )
+        ]
+
+    return [
+        item.student_id
+        for item in (
+            db.query(Enrollment)
+            .join(Student, Student.id == Enrollment.student_id)
+            .filter(
+                Enrollment.classroom_id == session.classroom_id,
+                Enrollment.active.is_(True),
+                Student.active.is_(True),
+            )
+            .order_by(Student.stu_id.asc())
+            .all()
         )
-        .all()
-    )
+    ]
+
+
+def ensure_attendance_records_for_session(db: Session, session: ClassSession) -> list[AttendanceRecord]:
+    """Create default absent records for all active students enrolled in this session."""
+    student_ids = get_session_student_ids(db, session)
 
     records: list[AttendanceRecord] = []
-    for enrollment in enrollments:
+    for student_id in student_ids:
         record = (
             db.query(AttendanceRecord)
             .filter(
                 AttendanceRecord.session_id == session.id,
-                AttendanceRecord.student_id == enrollment.student_id,
+                AttendanceRecord.student_id == student_id,
             )
             .first()
         )
         if record is None:
             record = AttendanceRecord(
                 session_id=session.id,
-                student_id=enrollment.student_id,
+                student_id=student_id,
                 status=AttendanceStatus.ABSENT.value,
                 method=AttendanceMethod.SYSTEM.value,
             )
@@ -92,7 +125,19 @@ def get_student_by_qr_code(db: Session, qr_code: str) -> Student | None:
 
 
 def is_student_enrolled(db: Session, session: ClassSession, student_id: int) -> bool:
-    """Check whether a student belongs to the session classroom."""
+    """Check whether a student belongs to the session class group or legacy classroom."""
+    if session.class_group_id:
+        return (
+            db.query(StudentEnrollment)
+            .filter(
+                StudentEnrollment.class_group_id == session.class_group_id,
+                StudentEnrollment.student_id == student_id,
+                StudentEnrollment.active.is_(True),
+            )
+            .first()
+            is not None
+        )
+
     return (
         db.query(Enrollment)
         .filter(
@@ -131,6 +176,31 @@ def get_or_create_attendance_record(
     db.add(record)
     db.flush()
     return record
+
+
+def is_placeholder_attendance_record(record: AttendanceRecord) -> bool:
+    """Default absent rows are placeholders and can be upgraded by QR/FACE."""
+    method = (record.method or AttendanceMethod.SYSTEM.value).upper()
+    return (
+        (record.status is None or record.status == AttendanceStatus.ABSENT.value)
+        and method == AttendanceMethod.SYSTEM.value
+    )
+
+
+def mark_attendance_record(
+    record: AttendanceRecord,
+    status: AttendanceStatus,
+    method: AttendanceMethod,
+    event_time: datetime,
+    confidence: float | None,
+) -> None:
+    record.first_seen_time = event_time
+    record.status = status.value
+    record.method = method.value
+    record.confidence = confidence
+    record.override_reason = None
+    record.overridden_by = None
+    record.updated_at = datetime.utcnow()
 
 
 def log_attendance_event(
@@ -222,7 +292,7 @@ def scan_qr_attendance(
             confidence=1.0,
             raw_source=raw_source,
             result=AttendanceEventResult.INVALID,
-            note="Student exists but is not enrolled in this session classroom.",
+            note="Student exists but is not enrolled in this session class/group.",
         )
         db.commit()
         db.refresh(event)
@@ -238,7 +308,7 @@ def scan_qr_attendance(
 
     record = get_or_create_attendance_record(db, session.id, student.id)
 
-    if event_time > session.close_time:
+    if session.close_time is not None and event_time > session.close_time:
         event = log_attendance_event(
             db=db,
             session=session,
@@ -263,7 +333,7 @@ def scan_qr_attendance(
             "status": record.status,
         }
 
-    if record.first_seen_time is not None:
+    if not is_placeholder_attendance_record(record):
         event = log_attendance_event(
             db=db,
             session=session,
@@ -289,12 +359,13 @@ def scan_qr_attendance(
         }
 
     status = calculate_attendance_status(event_time, session)
-    record.first_seen_time = event_time
-    record.status = status.value
-    record.method = AttendanceMethod.QR.value
-    record.confidence = 1.0
-    record.override_reason = None
-    record.overridden_by = None
+    mark_attendance_record(
+        record=record,
+        status=status,
+        method=AttendanceMethod.QR,
+        event_time=event_time,
+        confidence=1.0,
+    )
 
     event = log_attendance_event(
         db=db,

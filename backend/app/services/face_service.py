@@ -14,7 +14,9 @@ from app.services.attendance_service import (
     get_active_session,
     get_or_create_attendance_record,
     is_student_enrolled,
+    is_placeholder_attendance_record,
     log_attendance_event,
+    mark_attendance_record,
 )
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
@@ -103,7 +105,7 @@ def simulate_face_attendance(
             confidence=confidence,
             raw_source=raw_source,
             result=AttendanceEventResult.INVALID,
-            note="Face recognized student, but student is not enrolled in this session classroom.",
+            note="Face recognized student, but student is not enrolled in this session class/group.",
         )
         db.commit()
         db.refresh(event)
@@ -150,7 +152,7 @@ def simulate_face_attendance(
             "status": record.status,
         }
 
-    if event_time > session.close_time:
+    if session.close_time is not None and event_time > session.close_time:
         event = log_attendance_event(
             db=db,
             session=session,
@@ -175,7 +177,7 @@ def simulate_face_attendance(
             "status": record.status,
         }
 
-    if record.first_seen_time is not None:
+    if not is_placeholder_attendance_record(record):
         event = log_attendance_event(
             db=db,
             session=session,
@@ -202,12 +204,13 @@ def simulate_face_attendance(
 
     status = calculate_attendance_status(event_time, session)
 
-    record.first_seen_time = event_time
-    record.status = status.value
-    record.method = AttendanceMethod.FACE.value
-    record.confidence = confidence
-    record.override_reason = None
-    record.overridden_by = None
+    mark_attendance_record(
+        record=record,
+        status=status,
+        method=AttendanceMethod.FACE,
+        event_time=event_time,
+        confidence=confidence,
+    )
 
     event = log_attendance_event(
         db=db,
@@ -227,7 +230,7 @@ def simulate_face_attendance(
 
     return {
         "ok": True,
-        "message": f"{student.name} marked as {status.value} by face recognition.",
+        "message": f"{student.stu_id} - {student.name} marked {status.value} by FACE.",
         "result": AttendanceEventResult.SUCCESS.value,
         "student_id": student.id,
         "record_id": record.id,

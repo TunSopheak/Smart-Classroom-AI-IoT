@@ -5,6 +5,7 @@ from app.models.attendance_event import AttendanceEvent
 from app.models.attendance_record import AttendanceRecord
 from app.models.class_session import ClassSession
 from app.models.student import Student
+from app.services.attendance_service import get_session_student_ids
 
 
 def get_dashboard_stats(db: Session) -> dict:
@@ -15,8 +16,14 @@ def get_dashboard_stats(db: Session) -> dict:
         .first()
     )
 
+    total_students = db.query(Student).filter(Student.active.is_(True)).count()
+    if active_session:
+        session_student_ids = get_session_student_ids(db, active_session)
+        if session_student_ids:
+            total_students = len(session_student_ids)
+
     stats = {
-        "total_students": db.query(Student).filter(Student.active.is_(True)).count(),
+        "total_students": total_students,
         "present": 0,
         "late": 0,
         "absent": 0,

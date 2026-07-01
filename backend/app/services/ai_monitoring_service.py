@@ -2,9 +2,9 @@ from sqlalchemy.orm import Session
 
 from app.models.ai_monitoring_event import AIMonitoringEvent
 from app.models.class_session import ClassSession
-from app.models.enrollment import Enrollment
 from app.models.student import Student
 from app.schemas.ai_monitoring_schema import AIMonitoringEventCreate
+from app.services.attendance_service import is_student_enrolled
 
 
 def _payload_to_dict(payload: AIMonitoringEventCreate) -> dict:
@@ -29,17 +29,8 @@ def _validate_event_scope(db: Session, data: dict) -> None:
             raise ValueError("Student not found or inactive.")
 
         if session:
-            enrollment = (
-                db.query(Enrollment)
-                .filter(
-                    Enrollment.classroom_id == session.classroom_id,
-                    Enrollment.student_id == student_id,
-                    Enrollment.active.is_(True),
-                )
-                .first()
-            )
-            if not enrollment:
-                raise ValueError("Student is not enrolled in this session classroom.")
+            if not is_student_enrolled(db, session, student_id):
+                raise ValueError("Student is not enrolled in this session class/group.")
 
 
 def create_ai_monitoring_event(db: Session, payload: AIMonitoringEventCreate) -> AIMonitoringEvent:
