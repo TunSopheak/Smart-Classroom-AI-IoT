@@ -22,6 +22,7 @@ from app.services.face_product_service import (
     train_lbph_model,
     upload_face_samples,
     upload_image_face_samples,
+    upload_training_media_samples,
     upload_video_face_samples,
 )
 from app.services.face_service import FACE_ATTENDANCE_MIN_CONFIDENCE, simulate_face_attendance
@@ -145,6 +146,16 @@ def face_training_upload_images(
     db: Session = Depends(get_db),
 ):
     result = upload_face_samples(db=db, student_id=student_id, files=images)
+    return face_training_redirect(student_id, result["message"])
+
+
+@router.post("/dashboard/face-training/upload-media")
+def face_training_upload_media(
+    student_id: int = Form(...),
+    media: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    result = upload_training_media_samples(db=db, student_id=student_id, files=media)
     return face_training_redirect(student_id, result["message"])
 
 
