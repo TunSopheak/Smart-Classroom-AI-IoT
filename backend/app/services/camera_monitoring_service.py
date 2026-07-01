@@ -85,6 +85,7 @@ class CameraMonitoringService:
         self.live_state = {}
         self.face_attendance_events_memory = []
         self.face_attendance_marked_keys = set()
+        self.face_attendance_duplicate_logged_keys = set()
 
         face_cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         eye_cascade_path = cv2.data.haarcascades + "haarcascade_eye.xml"
@@ -94,6 +95,9 @@ class CameraMonitoringService:
         self._sync_live_state()
 
     def set_session(self, session_id: int | None):
+        if session_id != self.monitoring_session_id:
+            self.face_attendance_marked_keys.clear()
+            self.face_attendance_duplicate_logged_keys.clear()
         self.monitoring_session_id = session_id
         self._sync_live_state()
 
@@ -113,6 +117,9 @@ class CameraMonitoringService:
         return self.get_status()
 
     def enable_auto_face_attendance(self, session_id: int | None = None):
+        if session_id != self.monitoring_session_id:
+            self.face_attendance_marked_keys.clear()
+            self.face_attendance_duplicate_logged_keys.clear()
         self.monitoring_session_id = session_id
         self.auto_face_attendance_enabled = True
         self._sync_live_state()
@@ -581,7 +588,7 @@ class CameraMonitoringService:
             session_key = f"{self.monitoring_session_id}:{student.id if student else stu_id}"
 
             if self.auto_face_attendance_enabled and student and self.monitoring_session_id:
-                if session_key in self.face_attendance_marked_keys:
+                if session_key in self.face_attendance_marked_keys and session_key in self.face_attendance_duplicate_logged_keys:
                     attendance_text = "already marked"
                 else:
                     result = simulate_face_attendance(
@@ -594,9 +601,18 @@ class CameraMonitoringService:
                     attendance_text = result["result"]
                     if result.get("ok"):
                         self.face_attendance_marked_keys.add(session_key)
+                    if result.get("result") == "duplicate":
+                        self.face_attendance_duplicate_logged_keys.add(session_key)
+                    status = result.get("status")
+                    if result.get("result") == "success" and status:
+                        message = f"{stu_id} - {name} marked {status} by FACE."
+                    elif result.get("result") == "duplicate":
+                        message = f"Duplicate FACE recognition for {stu_id} - {name}. Original attendance record was kept."
+                    else:
+                        message = result.get("message") or f"{stu_id} - {name} FACE attendance was not changed."
                     self._remember_face_attendance_event(
                         "face_attendance",
-                        f"{stu_id} - {name} marked {result.get('status')} by FACE.",
+                        message,
                         marked=bool(result.get("ok")),
                         student_id=student.id,
                     )
