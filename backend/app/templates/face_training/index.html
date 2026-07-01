@@ -47,25 +47,25 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="section-title-row">
-        <div>
-            <h2>Select Student</h2>
+<div class="face-training-top-grid">
+    <div class="card face-training-select-card">
+        <div class="section-title-row">
+            <div>
+                <h2>Select Student</h2>
+                {% if selected_student %}
+                <p class="muted">Current training target: <strong>{{ selected_student.stu_id }} - {{ selected_student.name }}</strong></p>
+                {% else %}
+                <p class="muted">Add an active student before preparing face samples.</p>
+                {% endif %}
+            </div>
             {% if selected_student %}
-            <p class="muted">Current training target: <strong>{{ selected_student.stu_id }} - {{ selected_student.name }}</strong></p>
-            {% else %}
-            <p class="muted">Add an active student before preparing face samples.</p>
+            <a class="btn btn-secondary" href="/dashboard/students/{{ selected_student.id }}/face-profile">Open Face Profile</a>
             {% endif %}
         </div>
-        {% if selected_student %}
-        <a class="btn btn-secondary" href="/dashboard/students/{{ selected_student.id }}/face-profile">Open Face Profile</a>
-        {% endif %}
-    </div>
 
-    <form method="get" action="/dashboard/face-training" class="settings-grid">
         <div>
             <label>Student</label>
-            <select class="form-control" name="student_id" required>
+            <select class="form-control" id="face-training-student-select" name="student_id" required>
                 {% for student in students %}
                 <option value="{{ student.id }}" {% if selected_student and selected_student.id == student.id %}selected{% endif %}>
                     {{ student.stu_id }} - {{ student.name }}
@@ -73,11 +73,20 @@
                 {% endfor %}
             </select>
         </div>
+    </div>
 
-        <div class="settings-actions">
-            <button class="btn btn-primary" type="submit">Use Student</button>
+    <div class="card face-training-train-card">
+        <div>
+            <h2>Train Model</h2>
+            <p class="muted">Training reads all student dataset folders, updates the LBPH model and labels, then syncs face profile metadata.</p>
         </div>
-    </form>
+        <form method="post" action="/dashboard/face-training/train">
+            {% if selected_student %}
+            <input type="hidden" name="student_id" value="{{ selected_student.id }}">
+            {% endif %}
+            <button class="btn btn-warning" type="submit">Train / Retrain Face Model</button>
+        </form>
+    </div>
 </div>
 
 {% if selected_student %}
@@ -86,6 +95,7 @@
         <div>
             <h2>Training Sources for {{ selected_student.stu_id }} - {{ selected_student.name }}</h2>
             <p class="muted">For best results, use images from different angles and the same lighting as the final demo.</p>
+            <p class="muted">Storage control: the system keeps only cropped, equalized face JPG samples and limits each student to 500 samples.</p>
         </div>
     </div>
 
@@ -112,6 +122,7 @@
         <section class="card training-source-panel training-camera-panel">
             <h3>Capture from Camera</h3>
             <p class="muted">Preview first, adjust face position and lighting, then capture browser frames for {{ selected_student.stu_id }} - {{ selected_student.name }}.</p>
+            <p class="muted">For better far-distance recognition, capture samples from the same distance as the final demo.</p>
 
             <input type="hidden" id="camera-student-id" value="{{ selected_student.id }}">
 
@@ -119,6 +130,7 @@
                 <video id="face-camera-preview" class="face-camera-preview" autoplay muted playsinline></video>
                 <canvas id="face-camera-canvas" class="hidden-canvas"></canvas>
             </div>
+            <div class="face-size-warning" id="face-size-warning">Face size: start camera preview.</div>
 
             <div class="camera-capture-controls">
                 <div>
@@ -145,21 +157,6 @@
     </div>
 </div>
 {% endif %}
-
-<div class="card">
-    <div class="section-title-row">
-        <div>
-            <h2>Train Model</h2>
-            <p class="muted">Training reads all student dataset folders, updates the LBPH model and labels, then syncs face profile metadata.</p>
-        </div>
-        <form method="post" action="/dashboard/face-training/train">
-            {% if selected_student %}
-            <input type="hidden" name="student_id" value="{{ selected_student.id }}">
-            {% endif %}
-            <button class="btn btn-warning" type="submit">Train / Retrain Face Model</button>
-        </form>
-    </div>
-</div>
 
 <div class="card">
     <h2>Student Dataset Summary</h2>
@@ -195,6 +192,7 @@
 {% if selected_student %}
 <script>
 (function () {
+    const studentSelect = document.getElementById("face-training-student-select");
     const studentId = document.getElementById("camera-student-id").value;
     const video = document.getElementById("face-camera-preview");
     const canvas = document.getElementById("face-camera-canvas");
@@ -205,8 +203,18 @@
     const progressBar = document.getElementById("capture-progress-bar");
     const progressText = document.getElementById("capture-progress-text");
     const statusBox = document.getElementById("camera-status");
+    const faceSizeWarning = document.getElementById("face-size-warning");
     let stream = null;
     let capturing = false;
+    let faceSizeTimer = null;
+
+    if (studentSelect) {
+        studentSelect.addEventListener("change", function () {
+            if (studentSelect.value) {
+                window.location.href = "/dashboard/face-training?student_id=" + encodeURIComponent(studentSelect.value);
+            }
+        });
+    }
 
     function setStatus(message, isError) {
         statusBox.hidden = false;
@@ -224,11 +232,17 @@
         if (stream) {
             stream.getTracks().forEach((track) => track.stop());
         }
+        if (faceSizeTimer) {
+            window.clearInterval(faceSizeTimer);
+            faceSizeTimer = null;
+        }
         stream = null;
         video.srcObject = null;
         captureButton.disabled = true;
         stopButton.disabled = true;
         previewButton.disabled = false;
+        faceSizeWarning.textContent = "Face size: camera stopped.";
+        faceSizeWarning.className = "face-size-warning";
     }
 
     function wait(ms) {
@@ -243,6 +257,49 @@
         return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
     }
 
+    function startFaceSizeWarning() {
+        if (!("FaceDetector" in window)) {
+            faceSizeWarning.textContent = "Face size: preview check unavailable in this browser. Backend will skip faces that are too small.";
+            faceSizeWarning.className = "face-size-warning face-size-neutral";
+            return;
+        }
+
+        let detector = null;
+        try {
+            detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+        } catch (error) {
+            faceSizeWarning.textContent = "Face size: preview check unavailable. Backend quality checks still apply.";
+            faceSizeWarning.className = "face-size-warning face-size-neutral";
+            return;
+        }
+
+        faceSizeTimer = window.setInterval(async function () {
+            if (!stream || video.readyState < 2) {
+                return;
+            }
+            try {
+                const faces = await detector.detect(video);
+                if (!faces.length) {
+                    faceSizeWarning.textContent = "Face size: no face detected.";
+                    faceSizeWarning.className = "face-size-warning face-size-bad";
+                    return;
+                }
+                const box = faces[0].boundingBox;
+                const minSize = Math.min(box.width, box.height);
+                if (minSize >= 120) {
+                    faceSizeWarning.textContent = "Face size: Good.";
+                    faceSizeWarning.className = "face-size-warning face-size-good";
+                } else {
+                    faceSizeWarning.textContent = "Face size: Too far. Move closer or capture demo-distance samples.";
+                    faceSizeWarning.className = "face-size-warning face-size-bad";
+                }
+            } catch (error) {
+                faceSizeWarning.textContent = "Face size: preview check unavailable. Backend quality checks still apply.";
+                faceSizeWarning.className = "face-size-warning face-size-neutral";
+            }
+        }, 900);
+    }
+
     previewButton.addEventListener("click", async function () {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -251,6 +308,7 @@
             captureButton.disabled = false;
             stopButton.disabled = false;
             setStatus("Camera preview started. Adjust face position and lighting before capture.", false);
+            startFaceSizeWarning();
         } catch (error) {
             setStatus("Could not start camera preview: " + error.message, true);
         }

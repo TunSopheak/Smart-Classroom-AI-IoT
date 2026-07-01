@@ -46,6 +46,14 @@ def count_student_samples(stu_id: str) -> int:
     return len(list(folder.glob("*.jpg"))) + len(list(folder.glob("*.png"))) + len(list(folder.glob("*.jpeg")))
 
 
+def get_student_sample_files(stu_id: str) -> list[Path]:
+    folder = DATASET_DIR / stu_id
+    if not folder.exists():
+        return []
+    files = list(folder.glob("*.jpg")) + list(folder.glob("*.jpeg")) + list(folder.glob("*.png"))
+    return sorted(files, key=lambda item: item.stat().st_mtime)
+
+
 def get_student_dataset_path(stu_id: str) -> Path:
     ensure_face_dirs()
     folder = DATASET_DIR / stu_id

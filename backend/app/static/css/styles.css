@@ -1229,6 +1229,26 @@ label {
     background: #fef2f2;
 }
 
+.face-training-top-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.85fr);
+    gap: 1rem;
+    align-items: stretch;
+    margin-bottom: 1rem;
+}
+
+.face-training-select-card,
+.face-training-train-card {
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    margin: 0;
+}
+
+.face-training-train-card {
+    align-content: space-between;
+}
+
 .training-source-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(340px, 0.85fr);
@@ -1311,7 +1331,35 @@ label {
     gap: 1rem;
 }
 
+.face-size-warning {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.65rem 0.8rem;
+    font-weight: 700;
+    color: #475569;
+    background: #f8fafc;
+}
+
+.face-size-good {
+    color: #047857;
+    border-color: #bbf7d0;
+    background: #ecfdf5;
+}
+
+.face-size-bad {
+    color: #991b1b;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.face-size-neutral {
+    color: #475569;
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
 @media (max-width: 1100px) {
+    .face-training-top-grid,
     .training-source-grid {
         grid-template-columns: 1fr;
     }
