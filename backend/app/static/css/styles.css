@@ -1295,6 +1295,33 @@ label {
     color: #991b1b !important;
 }
 
+.face-size-warning {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.65rem 0.8rem;
+    font-weight: 700;
+    color: #475569;
+    background: #f8fafc;
+}
+
+.face-size-good {
+    color: #047857;
+    border-color: #bbf7d0;
+    background: #ecfdf5;
+}
+
+.face-size-bad {
+    color: #991b1b;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.face-size-neutral {
+    color: #475569;
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
 @media (max-width: 1100px) {
     .training-source-grid {
         grid-template-columns: 1fr;

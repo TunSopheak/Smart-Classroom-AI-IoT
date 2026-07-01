@@ -87,6 +87,7 @@
             <p class="eyebrow">Add Training Media</p>
             <h2>Training Sources for {{ selected_student.stu_id }} - {{ selected_student.name }}</h2>
             <p class="muted">For best results, use images from different angles and the same lighting as the final demo.</p>
+            <p class="muted">Storage control: the system keeps only cropped, equalized face JPG samples and limits each student to 500 samples.</p>
         </div>
     </div>
 
@@ -126,6 +127,7 @@
         <section class="training-source-panel training-camera-panel">
             <h3>Capture from Camera</h3>
             <p class="muted">Preview first, adjust face position and lighting, then capture browser frames for {{ selected_student.stu_id }} - {{ selected_student.name }}.</p>
+            <p class="muted">For better far-distance recognition, capture samples from the same distance as the final demo.</p>
 
             <input type="hidden" id="camera-student-id" value="{{ selected_student.id }}">
 
@@ -133,6 +135,7 @@
                 <video id="face-camera-preview" class="face-camera-preview" autoplay muted playsinline></video>
                 <canvas id="face-camera-canvas" class="hidden-canvas"></canvas>
             </div>
+            <div class="face-size-warning" id="face-size-warning">Face size: start camera preview.</div>
 
             <div class="settings-grid">
                 <div>
@@ -219,8 +222,10 @@
     const progressBar = document.getElementById("capture-progress-bar");
     const progressText = document.getElementById("capture-progress-text");
     const statusBox = document.getElementById("camera-status");
+    const faceSizeWarning = document.getElementById("face-size-warning");
     let stream = null;
     let capturing = false;
+    let faceSizeTimer = null;
 
     function setStatus(message, isError) {
         statusBox.hidden = false;
@@ -238,11 +243,17 @@
         if (stream) {
             stream.getTracks().forEach((track) => track.stop());
         }
+        if (faceSizeTimer) {
+            window.clearInterval(faceSizeTimer);
+            faceSizeTimer = null;
+        }
         stream = null;
         video.srcObject = null;
         captureButton.disabled = true;
         stopButton.disabled = true;
         previewButton.disabled = false;
+        faceSizeWarning.textContent = "Face size: camera stopped.";
+        faceSizeWarning.className = "face-size-warning";
     }
 
     function wait(ms) {
@@ -257,6 +268,49 @@
         return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
     }
 
+    function startFaceSizeWarning() {
+        if (!("FaceDetector" in window)) {
+            faceSizeWarning.textContent = "Face size: preview check unavailable in this browser. Backend will skip faces that are too small.";
+            faceSizeWarning.className = "face-size-warning face-size-neutral";
+            return;
+        }
+
+        let detector = null;
+        try {
+            detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+        } catch (error) {
+            faceSizeWarning.textContent = "Face size: preview check unavailable. Backend quality checks still apply.";
+            faceSizeWarning.className = "face-size-warning face-size-neutral";
+            return;
+        }
+
+        faceSizeTimer = window.setInterval(async function () {
+            if (!stream || video.readyState < 2) {
+                return;
+            }
+            try {
+                const faces = await detector.detect(video);
+                if (!faces.length) {
+                    faceSizeWarning.textContent = "Face size: no face detected.";
+                    faceSizeWarning.className = "face-size-warning face-size-bad";
+                    return;
+                }
+                const box = faces[0].boundingBox;
+                const minSize = Math.min(box.width, box.height);
+                if (minSize >= 120) {
+                    faceSizeWarning.textContent = "Face size: Good.";
+                    faceSizeWarning.className = "face-size-warning face-size-good";
+                } else {
+                    faceSizeWarning.textContent = "Face size: Too far. Move closer or capture demo-distance samples.";
+                    faceSizeWarning.className = "face-size-warning face-size-bad";
+                }
+            } catch (error) {
+                faceSizeWarning.textContent = "Face size: preview check unavailable. Backend quality checks still apply.";
+                faceSizeWarning.className = "face-size-warning face-size-neutral";
+            }
+        }, 900);
+    }
+
     previewButton.addEventListener("click", async function () {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -265,6 +319,7 @@
             captureButton.disabled = false;
             stopButton.disabled = false;
             setStatus("Camera preview started. Adjust face position and lighting before capture.", false);
+            startFaceSizeWarning();
         } catch (error) {
             setStatus("Could not start camera preview: " + error.message, true);
         }
