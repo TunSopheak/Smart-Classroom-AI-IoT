@@ -2,15 +2,34 @@
     const sidebar = document.querySelector("#dashboard-sidebar");
     const toggle = document.querySelector("[data-sidebar-toggle]");
     const closeTargets = document.querySelectorAll("[data-sidebar-close]");
+    const mobileOnlyControls = document.querySelectorAll("[data-mobile-nav-only]");
 
     if (!sidebar || !toggle) return;
 
+    const isMobileNav = () => window.innerWidth <= 860;
+
+    const syncMobileOnlyControls = () => {
+        const isMobile = isMobileNav();
+        mobileOnlyControls.forEach((control) => {
+            control.hidden = !isMobile;
+        });
+        if (!isMobile) {
+            document.documentElement.classList.remove("sidebar-open");
+            document.body.classList.remove("sidebar-open");
+            toggle.setAttribute("aria-expanded", "false");
+            toggle.setAttribute("aria-label", "Open navigation");
+            sidebar.removeAttribute("aria-hidden");
+        }
+    };
+
     const setSidebarOpen = (isOpen) => {
+        if (isOpen && !isMobileNav()) return;
+        syncMobileOnlyControls();
         document.documentElement.classList.toggle("sidebar-open", isOpen);
         document.body.classList.toggle("sidebar-open", isOpen);
         toggle.setAttribute("aria-expanded", String(isOpen));
         toggle.setAttribute("aria-label", isOpen ? "Close navigation" : "Open navigation");
-        sidebar.setAttribute("aria-hidden", String(!isOpen && window.innerWidth <= 860));
+        sidebar.setAttribute("aria-hidden", String(!isOpen && isMobileNav()));
     };
 
     const toggleSidebar = (event) => {
@@ -39,8 +58,10 @@
     });
 
     window.addEventListener("resize", () => {
-        if (window.innerWidth > 860) setSidebarOpen(false);
+        syncMobileOnlyControls();
+        if (!isMobileNav()) setSidebarOpen(false);
     });
 
+    syncMobileOnlyControls();
     setSidebarOpen(false);
 })();

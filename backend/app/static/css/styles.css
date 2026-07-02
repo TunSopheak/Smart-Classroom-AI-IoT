@@ -5684,6 +5684,10 @@ body.page-monitoring-workspace .capability-badge.optional {
     display: none !important;
 }
 
+[data-mobile-nav-only][hidden] {
+    display: none !important;
+}
+
 @media (max-width: 860px) {
     body {
         padding-top: 62px;
