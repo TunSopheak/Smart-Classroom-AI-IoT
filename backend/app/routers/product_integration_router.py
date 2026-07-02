@@ -202,14 +202,30 @@ def face_training_capture_browser(
     images: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
-    result = upload_image_face_samples(db=db, student_id=student_id, files=images, source="camera")
-    status_code = 200 if result["success"] else 400
-    return JSONResponse(result, status_code=status_code)
+    try:
+        result = upload_image_face_samples(db=db, student_id=student_id, files=images, source="camera")
+        status_code = 200 if result.get("success") else 400
+        return JSONResponse(result, status_code=status_code)
+    except Exception as exc:
+        return JSONResponse(
+            {
+                "success": False,
+                "message": f"Camera capture failed: {exc}",
+                "saved": 0,
+                "failed": 0,
+            },
+            status_code=500,
+        )
+
 
 
 @router.post("/dashboard/face-training/train")
 def face_training_train(student_id: Optional[int] = Form(None), db: Session = Depends(get_db)):
-    result = train_lbph_model(db)
+    try:
+        result = train_lbph_model(db)
+    except Exception as exc:
+        return face_training_redirect(student_id, f"Training failed: {exc}")
+
     message = result["message"]
     if result.get("success"):
         message = (

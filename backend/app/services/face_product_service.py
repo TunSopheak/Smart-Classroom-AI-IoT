@@ -81,6 +81,13 @@ def detect_best_face(image) -> tuple[int, int, int, int] | None:
 
 
 def save_face_crop(image, output_path: Path) -> dict:
+    """Detect, validate, preprocess, and save one cropped face sample.
+
+    Always returns a dict so callers can safely use result["saved"].
+    """
+    if image is None:
+        return {"saved": False, "reason": "invalid", "message": "Invalid image."}
+
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
     face_box = detect_best_face(image)
 
@@ -92,10 +99,30 @@ def save_face_crop(image, output_path: Path) -> dict:
         return {"saved": False, "reason": "too_small", "message": "Face too small, move closer."}
 
     face_crop = gray[y:y + h, x:x + w]
-    face_crop = cv2.resize(face_crop, FACE_SIZE)
 
-    cv2.imwrite(str(output_path), face_crop)
-    return True
+    blur_score = float(cv2.Laplacian(face_crop, cv2.CV_64F).var())
+    if blur_score < BLUR_VARIANCE_THRESHOLD:
+        return {"saved": False, "reason": "blurry", "message": "Image too blurry, try again."}
+
+    processed_face = preprocess_face_crop(face_crop)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    ok = cv2.imwrite(
+        str(output_path),
+        processed_face,
+        [cv2.IMWRITE_JPEG_QUALITY, JPG_QUALITY],
+    )
+
+    if not ok:
+        return {"saved": False, "reason": "invalid", "message": "Could not save face sample."}
+
+    return {
+        "saved": True,
+        "reason": "saved",
+        "message": "Sample saved.",
+        "path": str(output_path),
+        "blur_score": blur_score,
+    }
 
 
 def upload_image_face_samples(db: Session, student_id: int, files, source: str = "image") -> dict:
@@ -340,6 +367,35 @@ def capture_face_samples(db: Session, student_id: int, samples: int = 30, camera
         "skipped": skipped,
         "dataset_path": str(folder),
     }
+
+
+
+
+def augment_training_image(image: np.ndarray) -> list[np.ndarray]:
+    """Return small, safe training augmentations for one face image.
+
+    Input is expected to be a grayscale, preprocessed face crop.
+    The goal is to improve LBPH robustness without saving extra files.
+    """
+    if image is None:
+        return []
+
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    base = cv2.resize(image, FACE_SIZE)
+    base = cv2.equalizeHist(base)
+
+    augmented = [base]
+
+    # Slight brightness/contrast changes.
+    augmented.append(cv2.convertScaleAbs(base, alpha=1.08, beta=6))
+    augmented.append(cv2.convertScaleAbs(base, alpha=0.92, beta=-6))
+
+    # Small horizontal mirror helps with minor pose variation.
+    augmented.append(cv2.flip(base, 1))
+
+    return augmented
 
 
 def train_lbph_model(db: Session) -> dict:
