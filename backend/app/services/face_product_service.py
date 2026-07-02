@@ -81,6 +81,13 @@ def detect_best_face(image) -> tuple[int, int, int, int] | None:
 
 
 def save_face_crop(image, output_path: Path) -> dict:
+    """Detect, validate, preprocess, and save one cropped face sample.
+
+    Always returns a dict so callers can safely use result["saved"].
+    """
+    if image is None:
+        return {"saved": False, "reason": "invalid", "message": "Invalid image."}
+
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
     face_box = detect_best_face(image)
 
@@ -92,10 +99,30 @@ def save_face_crop(image, output_path: Path) -> dict:
         return {"saved": False, "reason": "too_small", "message": "Face too small, move closer."}
 
     face_crop = gray[y:y + h, x:x + w]
-    face_crop = cv2.resize(face_crop, FACE_SIZE)
 
-    cv2.imwrite(str(output_path), face_crop)
-    return True
+    blur_score = float(cv2.Laplacian(face_crop, cv2.CV_64F).var())
+    if blur_score < BLUR_VARIANCE_THRESHOLD:
+        return {"saved": False, "reason": "blurry", "message": "Image too blurry, try again."}
+
+    processed_face = preprocess_face_crop(face_crop)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    ok = cv2.imwrite(
+        str(output_path),
+        processed_face,
+        [cv2.IMWRITE_JPEG_QUALITY, JPG_QUALITY],
+    )
+
+    if not ok:
+        return {"saved": False, "reason": "invalid", "message": "Could not save face sample."}
+
+    return {
+        "saved": True,
+        "reason": "saved",
+        "message": "Sample saved.",
+        "path": str(output_path),
+        "blur_score": blur_score,
+    }
 
 
 def upload_image_face_samples(db: Session, student_id: int, files, source: str = "image") -> dict:
