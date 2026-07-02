@@ -254,12 +254,17 @@
         const attempted = Number(result.attempted ?? attemptedFallback ?? 0);
         const saved = Number(result.saved ?? 0);
         const skippedCount = Number(result.failed ?? result.skipped_count ?? Math.max(attempted - saved, 0));
+        const datasetCount = Number(result.sample_count_after ?? 0);
+        const savedDelta = Number(result.saved_delta ?? saved);
         const reasons = formatSkipReasons(result.skipped);
-        let message = "Captured " + attempted + " frame(s). Saved " + saved + " valid face sample(s). Skipped " + skippedCount;
+        let message = "Captured " + attempted + " frame(s). Saved " + Math.max(savedDelta, 0) + " new valid face sample(s). Dataset count: " + datasetCount + ". Skipped " + skippedCount;
         if (reasons) {
             message += ": " + reasons + ".";
         } else {
             message += ".";
+        }
+        if (savedDelta !== saved) {
+            message += " Some files may not have been added.";
         }
         return message;
     }
