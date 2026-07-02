@@ -2,6 +2,12 @@
 
 This document summarizes the main features available in the MVP/final demo version.
 
+## Project Scope
+
+This project is an MVP/final demo version of a Smart Classroom with AI Monitoring system. It focuses on FACE attendance, QR attendance backup, AI monitoring dashboard, phone/book/person detection, attendance reports, and mobile responsive LAN demo.
+
+Public production deployment requires additional security, HTTPS, database migration, authentication hardening, and privacy review.
+
 ## Dashboard
 
 - Teacher-friendly dashboard pages

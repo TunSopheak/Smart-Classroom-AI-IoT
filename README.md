@@ -4,6 +4,12 @@ Smart Classroom with AI Monitoring is a FastAPI and Jinja2 web dashboard for a f
 
 This repository is prepared as an MVP/final demo version for presentation and portfolio showcase. It is designed for local or LAN demonstration, especially with a Raspberry Pi 5 target device. It is not a cloud production deployment.
 
+## Project Scope
+
+This project is an MVP/final demo version of a Smart Classroom with AI Monitoring system. It focuses on FACE attendance, QR attendance backup, AI monitoring dashboard, phone/book/person detection, attendance reports, and mobile responsive LAN demo.
+
+Public production deployment requires additional security, HTTPS, database migration, authentication hardening, and privacy review.
+
 ## Key Features
 
 - Teacher dashboard for classroom overview and session control
@@ -148,6 +154,14 @@ smart-classroom-ai-iot/
 - [Privacy and security](docs/privacy-security.md)
 - [Final demo checklist](docs/final-demo-checklist.md)
 
+## Final Release
+
+Final demo release tag:
+
+- [v1.0-final-demo](https://github.com/TunSopheak/Smart-Classroom-AI-IoT/releases/tag/v1.0-final-demo)
+
+This release represents the final MVP/demo checkpoint for portfolio sharing and presentation. It should not be described as a production cloud release.
+
 ## Privacy and Security Note
 
 This project uses local demo data. Face datasets, trained face models, recordings, generated QR/media, and the SQLite database may contain private or sensitive information.
@@ -164,13 +178,30 @@ Do not commit:
 
 Face data is stored locally for the MVP demo. Before any public or production deployment, the system needs stronger security controls, clear consent handling, access control review, encrypted transport, backup policies, and a privacy review.
 
-## Team and Project Context
+## Team Members
+
+M4-Y3, Group 1
+
+- Thon Serey Rothana
+- Tep Makhon
+- Tit Sokhom
+- Theam VanTim
+- Tun Sopheak
+- Hean Senghorn
+- Chork Panha
+- Say Menghorng
+- Hoeun Sithai
+- Heang Bunleab
+
+## Team Contribution Summary
+
+The project was completed through teamwork, including planning, backend development, dashboard UI, face recognition testing, dataset preparation, IoT concept design, documentation, and final demo preparation.
+
+## Project Context
 
 Project: Smart Classroom with AI Monitoring - IoT Project
 
 Context: Student IoT/software engineering project for final demo and portfolio showcase
-
-Main author: Tun Sopheak, Computer Science Student, RUPP
 
 The project demonstrates how classroom attendance, AI camera monitoring, and IoT automation ideas can be integrated into one teacher-friendly dashboard.
 
@@ -182,6 +213,7 @@ The project demonstrates how classroom attendance, AI camera monitoring, and IoT
 - Face recognition and QR attendance workflows are implemented for demonstration
 - Object detection and monitoring workspace are available for demo scenarios
 - LAN demo is supported and recommended for presentation
+- Final demo release tag is available as `v1.0-final-demo`
 - Cloud production deployment is not claimed as ready
 
 ## Future Improvements
