@@ -202,6 +202,7 @@ def face_training_capture_browser(
     images: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
+    attempted = len(images)
     try:
         result = upload_image_face_samples(db=db, student_id=student_id, files=images, source="camera")
         status_code = 200 if result.get("success") else 400
@@ -211,8 +212,11 @@ def face_training_capture_browser(
             {
                 "success": False,
                 "message": f"Camera capture failed: {exc}",
+                "attempted": attempted,
                 "saved": 0,
-                "failed": 0,
+                "failed": attempted,
+                "skipped": {},
+                "sample_count_after": 0,
             },
             status_code=500,
         )

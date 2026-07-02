@@ -141,8 +141,9 @@
 
             <div class="camera-capture-controls">
                 <div>
-                    <label>Samples</label>
+                    <label>Frames to capture</label>
                     <input class="form-control" type="number" id="camera-sample-count" value="100" min="5" max="100">
+                    <p class="muted">Only valid face crops are saved.</p>
                 </div>
                 <div>
                     <label>Capture progress</label>
@@ -167,6 +168,7 @@
 
 <div class="card">
     <h2>Student Dataset Summary</h2>
+    <p class="muted">Counts show saved valid face samples, not total captured frames.</p>
 
     <div class="table-responsive">
         <table class="data-table">
@@ -181,10 +183,10 @@
             </thead>
             <tbody>
                 {% for card in student_cards %}
-                <tr>
+                <tr data-student-id="{{ card.student.id }}">
                     <td>{{ card.student.stu_id }}</td>
                     <td>{{ card.student.name }}</td>
-                    <td><span class="file-size-good">{{ card.sample_count }}</span></td>
+                    <td><span class="file-size-good dataset-sample-count">{{ card.sample_count }}</span></td>
                     <td>
                         <details class="technical-path-details">
                             <summary>Path</summary>
@@ -229,6 +231,48 @@
         const percent = total > 0 ? Math.round((done / total) * 100) : 0;
         progressBar.style.width = percent + "%";
         progressText.textContent = done + "/" + total;
+    }
+
+    function formatSkipReasons(skipped) {
+        const labels = {
+            too_small: "too small",
+            blurry: "blurry",
+            no_face: "no face",
+            limit: "limit reached",
+            invalid: "invalid"
+        };
+        const reasons = [];
+        Object.keys(skipped || {}).forEach(function (reason) {
+            if (Number(skipped[reason]) > 0) {
+                reasons.push(labels[reason] || reason);
+            }
+        });
+        return reasons.join(", ");
+    }
+
+    function buildCaptureMessage(result, attemptedFallback) {
+        const attempted = Number(result.attempted ?? attemptedFallback ?? 0);
+        const saved = Number(result.saved ?? 0);
+        const skippedCount = Number(result.failed ?? result.skipped_count ?? Math.max(attempted - saved, 0));
+        const reasons = formatSkipReasons(result.skipped);
+        let message = "Captured " + attempted + " frame(s). Saved " + saved + " valid face sample(s). Skipped " + skippedCount;
+        if (reasons) {
+            message += ": " + reasons + ".";
+        } else {
+            message += ".";
+        }
+        return message;
+    }
+
+    function updateDatasetSummaryCount(result) {
+        if (result.sample_count_after === undefined || result.sample_count_after === null) {
+            return;
+        }
+        const row = document.querySelector('tr[data-student-id="' + studentId + '"]');
+        const countCell = row ? row.querySelector(".dataset-sample-count") : null;
+        if (countCell) {
+            countCell.textContent = result.sample_count_after;
+        }
     }
 
     function stopCamera() {
@@ -350,16 +394,24 @@
             });
             const result = await response.json();
             if (!response.ok) {
+                if (response.status < 500 && result.attempted !== undefined) {
+                    const captureMessage = buildCaptureMessage(result, total);
+                    updateDatasetSummaryCount(result);
+                    setStatus(captureMessage, true);
+                    return;
+                }
                 throw new Error(result.message || "Camera capture upload failed.");
             }
-            setStatus(result.message, false);
+            const captureMessage = buildCaptureMessage(result, total);
+            updateDatasetSummaryCount(result);
+            setStatus(captureMessage, false);
             window.setTimeout(function () {
                 const params = new URLSearchParams({
                     student_id: studentId,
-                    message: result.message
+                    message: captureMessage
                 });
                 window.location.href = "/dashboard/face-training?" + params.toString();
-            }, 900);
+            }, 1600);
         } catch (error) {
             setStatus(error.message, true);
         } finally {
