@@ -1,330 +1,69 @@
-﻿# Smart Classroom AI IoT
+# Smart Classroom with AI Monitoring - IoT Project
 
-A modern Smart Classroom platform for teachers to manage students, class sessions, QR attendance, face recognition attendance, and future AI/IoT monitoring.
+Smart Classroom with AI Monitoring is a FastAPI and Jinja2 web dashboard for a final-year IoT project demo. It helps a teacher manage classroom sessions, record attendance, use face recognition as an attendance method, use QR attendance as a backup, and monitor classroom activity with AI/object detection features.
 
-This project was rebuilt from scratch as a clean MVP for the Smart Classroom with AI Monitoring - IoT Project.
+This repository is prepared as an MVP/final demo version for presentation and portfolio showcase. It is designed for local or LAN demonstration, especially with a Raspberry Pi 5 target device. It is not a cloud production deployment.
 
-## Current Status
+## Key Features
 
-- Phase 0 + 1: Project setup, database, dashboard
-- Phase 2: QR attendance and event logging
-- Phase 2.1: Teacher session control UI
-- Phase 3: Student management and QR images
-- Phase 3.1: Print/export QR workflow
-- Phase 4: Face profile and face simulation
-- Phase 4.1: Real OpenCV webcam face recognition
-- Phase 4.2: Clean webcam-to-FastAPI attendance workflow
-
-## Main Features
-
-### Student Management
-
-- Add, edit, activate, and deactivate students
-- Generate QR code values and QR images
-- Print one student QR card
-- Print all student QR cards
-- Export student QR list as CSV
-- Store face dataset path per student
-
-### Attendance Management
-
-- Attendance is recorded per class session
-- Attendance status is not stored in the Student table
-- Supported status codes:
-  - P = Present
-  - L = Late
-  - A = Absent
-  - Pm = Permission
-- Teacher can manually override status with reason
-- Final attendance record stores method, confidence, first_seen_time, overridden_by, override_reason, and updated_at
-
-### QR Attendance
-
-- QR scan logs every event
-- Unknown QR is logged
-- Duplicate QR scan is logged
-- Valid QR updates final attendance record
-- First seen time is protected from duplicate overwrite
-
-### Face Recognition Attendance
-
-- Face dataset profile per student
-- OpenCV webcam capture
-- LBPH face training
-- Real webcam recognition
-- FastAPI attendance integration
-- FACE attendance event logging
-- Duplicate spam prevention
-- Confidence score stored in attendance record
+- Teacher dashboard for classroom overview and session control
+- Student management with QR code generation
+- Attendance records per class session
+- QR attendance backup for low-light or untrained face cases
+- OpenCV LBPH face recognition attendance workflow
+- Face training page for demo dataset preparation
+- Monitoring workspace for camera, face attendance, behavior checks, and object detection
+- YOLO/object detection support for person, phone, and book detection
+- Attendance and monitoring report pages with CSV export support
+- Product settings, system health, privacy, and storage admin pages
+- Mobile responsive dashboard for laptop, tablet, and phone presentation
+- LAN demo support for devices connected to the same classroom network
 
 ## Tech Stack
 
-### Backend
+- Backend: Python, FastAPI, Uvicorn
+- Templates/UI: Jinja2, HTML, CSS, JavaScript
+- Database: SQLite, SQLAlchemy ORM
+- AI/Computer Vision: OpenCV, LBPH face recognition, Haar Cascade, YOLO/object detection
+- Attendance: QR code backup and face recognition attendance
+- Target hardware: Raspberry Pi 5, camera, optional ESP32/sensors/relay modules
 
-- Python
-- FastAPI
-- Uvicorn
-- SQLAlchemy ORM
-- SQLite
-- Pydantic
+## System Architecture Summary
 
-### Dashboard
+The project uses a layered MVP architecture:
 
-- Jinja2 templates
-- HTML
-- CSS
-- JavaScript
+1. Device layer: laptop or Raspberry Pi 5 camera, optional ESP32 sensors, and optional relay devices.
+2. AI layer: OpenCV face recognition and object detection services process camera input.
+3. Backend layer: FastAPI routes, services, SQLAlchemy models, and SQLite storage.
+4. Dashboard layer: Jinja2 pages provide teacher-facing controls and reports.
+5. Data layer: local SQLite database, local face datasets, local trained models, recordings, and generated media.
 
-### AI
-
-- OpenCV
-- OpenCV LBPH Face Recognizer
-- Haar Cascade face detection
-
-### Future IoT
-
-- Raspberry Pi 5
-- Pi Camera / USB Camera
-- ESP32 / ESP32-CAM
-- DHT22
-- Noise sensor
-- Relay module
-- Fan/light automation
-
-## Folder Structure
-
-smart-classroom-ai-iot/
-  backend/
-    app/
-      main.py
-      core/
-      crud/
-      database/
-      models/
-      routers/
-      schemas/
-      services/
-      templates/
-      static/
-    ai_module/
-      face_recognition/
-        capture_faces.py
-        train_lbph.py
-        recognize_face.py
-        datasets/   ignored by Git
-        models/     ignored by Git
-    requirements.txt
-    requirements-ai.txt
-  docs/
-  hardware/
-  mobile_app/
-  tests/
-
-## Privacy Note
-
-Face datasets and trained face models are ignored by Git.
-
-Do not upload real student face data to GitHub.
-
-Ignored paths:
-
-- backend/ai_module/face_recognition/datasets/
-- backend/ai_module/face_recognition/models/
-
-## Setup
-
-Clone repository:
-
-git clone https://github.com/TunSopheak/Smart-Classroom-AI-IoT.git
-cd Smart-Classroom-AI-IoT\backend
-
-Create virtual environment:
-
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-
-Install backend requirements:
-
-pip install -r requirements.txt
-
-Install AI requirements:
-
-pip install -r requirements-ai.txt
-
-Run server:
-
-uvicorn app.main:app --reload
-
-Open dashboard:
-
-http://127.0.0.1:8000/dashboard
+For the final demo, the recommended setup is local or LAN mode. Public deployment would require stronger authentication, HTTPS, secret management, privacy controls, and production-grade storage.
 
 ## Demo Pages
 
-Dashboard:
+Run the backend, then open:
+
+```text
 http://127.0.0.1:8000/dashboard
-
-Students:
-http://127.0.0.1:8000/dashboard/students
-
-Sessions:
-http://127.0.0.1:8000/dashboard/sessions
-
-API Docs:
-http://127.0.0.1:8000/docs
-
-## Final Demo Flow
-
-1. Login as `teacher` or `admin`.
-2. Open Class Setup and confirm class, course, students, and enrollment.
-3. Open Monitoring Workspace and select the active session.
-4. Click Start Monitoring to run camera, FACE attendance, behavior checks, YOLO detection, and IoT auto control.
-5. Show face attendance with a trained student.
-6. Show phone/book detection in the shared camera stream.
-7. Explain IoT auto light/fan control from occupancy.
-8. Open Reports to review attendance and monitoring results.
-9. Return to Monitoring Workspace and click Stop Monitoring.
-
-## Face Recognition Workflow
-
-Capture face samples:
-
-python ai_module\face_recognition\capture_faces.py --student-id S001 --samples 80
-
-Train LBPH model:
-
-python ai_module\face_recognition\train_lbph.py
-
-Sync training metadata:
-
-python sync_face_training.py
-
-Test recognition only:
-
-python ai_module\face_recognition\recognize_face.py --threshold 40
-
-Send real face attendance to FastAPI:
-
-python ai_module\face_recognition\recognize_face.py --session-id 7 --send-api --threshold 40
-
-## QR Attendance Workflow
-
-Example QR value:
-
-SC-STUDENT-S001
-
-Workflow:
-
-1. Open session attendance page
-2. Scan or paste QR value
-3. System logs event
-4. System updates attendance record
-5. Duplicate scans are logged but do not overwrite first seen time
-
-## Current Git Checkpoint
-
-phase-4-2-face-recognition
-
-## Next Phase
-
-Phase 5 will add AI monitoring event logging:
-
-- Phone usage
-- Sleeping
-- Leaving seat
-- Attention level
-- Hand raising
-- Behavior event dashboard
-- Future MediaPipe / YOLO integration
-
-## Author
-
-Tun Sopheak  
-Computer Science Student, RUPP  
-Project: Smart Classroom with AI Monitoring - IoT Project
-
-
-## Final Demo
-
-Final demo guide page:
-
-```text
-http://127.0.0.1:8000/dashboard/final-demo
+http://127.0.0.1:8000/dashboard/monitoring-workspace
+http://127.0.0.1:8000/dashboard/face-training
+http://127.0.0.1:8000/dashboard/reports
 ```
 
-The final demo package includes:
-
-- Demo checklist
-- System architecture explanation
-- Project defense talking points
-- Demo script
-- Teacher Q&A preparation
-
-Related documents:
-
-```text
-docs/project_defense.md
-docs/final_demo_script.md
-```
-
-
-## v1.0 Final Demo Release
-
-Stable final demo tag:
-
-```text
-v1.0-final-demo
-```
-
-Final release documents:
-
-```text
-docs/final_demo_checklist.md
-docs/release_notes_v1.md
-docs/project_defense.md
-docs/final_demo_script.md
-```
-
-Final demo page:
-
-```text
-http://127.0.0.1:8000/dashboard/final-demo
-```
-
-
-## Phase 11 Product Settings and System Health
-
-Product pages:
-
-- http://127.0.0.1:8000/dashboard/product-settings
-- http://127.0.0.1:8000/dashboard/system-health
-- http://127.0.0.1:8000/api/system-health
-
-This phase adds product-level settings, health checks, and product readiness verification.
-
-
-## Phase 12 Storage, Privacy and Admin Management
-
-Product pages:
-
-```text
-http://127.0.0.1:8000/dashboard/admin/storage
-http://127.0.0.1:8000/dashboard/privacy
-http://127.0.0.1:8000/api/admin/storage
-```
-
-This phase adds admin recording management, cleanup tools, storage summary, and privacy policy pages.
-
-
-## Phase 13 Authentication and Role-Based Access
-
-Demo login:
+Other useful demo pages:
 
 ```text
 http://127.0.0.1:8000/login
+http://127.0.0.1:8000/dashboard/product-center
+http://127.0.0.1:8000/dashboard/qr-attendance
+http://127.0.0.1:8000/dashboard/final-demo
+http://127.0.0.1:8000/dashboard/privacy
+http://127.0.0.1:8000/dashboard/system-health
+http://127.0.0.1:8000/docs
 ```
 
-Demo accounts:
+Demo accounts, if seeded in the local database:
 
 ```text
 admin / admin123
@@ -332,18 +71,127 @@ teacher / teacher123
 viewer / viewer123
 ```
 
-This phase adds login, logout, role-based page protection, and authenticated recording playback.
+## Local Setup
 
+From the repository root:
 
-## Phase 14 Product AI and Attendance Integration Center
-
-Product pages:
-
-```text
-http://127.0.0.1:8000/dashboard/product-center
-http://127.0.0.1:8000/dashboard/qr-attendance
-http://127.0.0.1:8000/dashboard/face-training
-http://127.0.0.1:8000/dashboard/monitoring-workspace
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -r requirements-ai.txt
+$env:SMART_CLASSROOM_DEVICE_API_KEY="smart-classroom-demo-device-key"
+python -m uvicorn app.main:app --reload
 ```
 
-This phase makes QR attendance, face training, live face recognition, behavior monitoring, and reports easier to access from one teacher-friendly product center.
+Open:
+
+```text
+http://127.0.0.1:8000/dashboard
+```
+
+See [docs/setup-local.md](docs/setup-local.md) for more setup notes.
+
+## LAN Demo Commands
+
+Use LAN mode when presenting from one host device and opening the dashboard from another device on the same Wi-Fi/network.
+
+```powershell
+cd backend
+$env:SMART_CLASSROOM_DEVICE_API_KEY="smart-classroom-demo-device-key"
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Then open this URL from another device on the same LAN, replacing `<host-ip>` with the laptop or Raspberry Pi IP address:
+
+```text
+http://<host-ip>:8000/dashboard
+```
+
+LAN demo is recommended for presentation because it keeps the project local while still showing multi-device access.
+
+## Project Folder Structure
+
+```text
+smart-classroom-ai-iot/
+  backend/
+    app/
+      core/          App settings, auth, security helpers
+      crud/          Database access helpers
+      database/      SQLite connection, migrations, seed data
+      models/        SQLAlchemy models
+      routers/       FastAPI API and dashboard routes
+      schemas/       Pydantic schemas
+      services/      Attendance, AI, IoT, dashboard services
+      static/        CSS, JavaScript, generated local media
+      templates/     Jinja2 dashboard pages
+      main.py        FastAPI application entry point
+    ai_module/
+      face_recognition/
+      object_detection/
+    requirements.txt
+    requirements-ai.txt
+  ai_module/         Top-level AI notes and module documentation
+  docs/              Demo, setup, architecture, features, privacy docs
+  hardware/          Hardware planning notes
+  mobile_app/        Mobile app placeholder/planning notes
+  tests/             Repository structure tests
+```
+
+## Documentation
+
+- [Demo guide](docs/demo-guide.md)
+- [Local setup](docs/setup-local.md)
+- [Architecture](docs/architecture.md)
+- [Features](docs/features.md)
+- [Privacy and security](docs/privacy-security.md)
+- [Final demo checklist](docs/final-demo-checklist.md)
+
+## Privacy and Security Note
+
+This project uses local demo data. Face datasets, trained face models, recordings, generated QR/media, and the SQLite database may contain private or sensitive information.
+
+Do not commit:
+
+- `.env`
+- `smart_classroom.db`
+- dataset images
+- trained models
+- recordings
+- private face data
+- generated QR/media if sensitive
+
+Face data is stored locally for the MVP demo. Before any public or production deployment, the system needs stronger security controls, clear consent handling, access control review, encrypted transport, backup policies, and a privacy review.
+
+## Team and Project Context
+
+Project: Smart Classroom with AI Monitoring - IoT Project
+
+Context: Student IoT/software engineering project for final demo and portfolio showcase
+
+Main author: Tun Sopheak, Computer Science Student, RUPP
+
+The project demonstrates how classroom attendance, AI camera monitoring, and IoT automation ideas can be integrated into one teacher-friendly dashboard.
+
+## Current Status
+
+- MVP/final demo version
+- Local FastAPI/Jinja2 dashboard is available
+- SQLite local database is used for demo storage
+- Face recognition and QR attendance workflows are implemented for demonstration
+- Object detection and monitoring workspace are available for demo scenarios
+- LAN demo is supported and recommended for presentation
+- Cloud production deployment is not claimed as ready
+
+## Future Improvements
+
+- Improve production authentication and authorization
+- Add HTTPS and secure deployment configuration
+- Add stronger privacy controls and consent workflow
+- Improve face model quality and anti-spoofing checks
+- Add more robust Raspberry Pi camera integration
+- Add MQTT/WebSocket support for real IoT devices
+- Add backup and restore tools for demo data
+- Add automated tests for key attendance and monitoring workflows
+- Add a mobile app or PWA experience for teachers
