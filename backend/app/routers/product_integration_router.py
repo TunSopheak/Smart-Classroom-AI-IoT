@@ -209,7 +209,11 @@ def face_training_capture_browser(
 
 @router.post("/dashboard/face-training/train")
 def face_training_train(student_id: Optional[int] = Form(None), db: Session = Depends(get_db)):
-    result = train_lbph_model(db)
+    try:
+        result = train_lbph_model(db)
+    except Exception as exc:
+        return face_training_redirect(student_id, f"Training failed: {exc}")
+
     message = result["message"]
     if result.get("success"):
         message = (

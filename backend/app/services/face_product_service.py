@@ -342,6 +342,35 @@ def capture_face_samples(db: Session, student_id: int, samples: int = 30, camera
     }
 
 
+
+
+def augment_training_image(image: np.ndarray) -> list[np.ndarray]:
+    """Return small, safe training augmentations for one face image.
+
+    Input is expected to be a grayscale, preprocessed face crop.
+    The goal is to improve LBPH robustness without saving extra files.
+    """
+    if image is None:
+        return []
+
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    base = cv2.resize(image, FACE_SIZE)
+    base = cv2.equalizeHist(base)
+
+    augmented = [base]
+
+    # Slight brightness/contrast changes.
+    augmented.append(cv2.convertScaleAbs(base, alpha=1.08, beta=6))
+    augmented.append(cv2.convertScaleAbs(base, alpha=0.92, beta=-6))
+
+    # Small horizontal mirror helps with minor pose variation.
+    augmented.append(cv2.flip(base, 1))
+
+    return augmented
+
+
 def train_lbph_model(db: Session) -> dict:
     ensure_face_dirs()
 
