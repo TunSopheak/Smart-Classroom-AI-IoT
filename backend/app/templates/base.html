@@ -37,7 +37,20 @@
         <symbol id="icon-logout" viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M18 12H9"/></symbol>
     </svg>
 
-    <aside class="sidebar">
+    <div class="mobile-topbar">
+        <a class="mobile-brand" href="/dashboard" aria-label="Smart Classroom dashboard">
+            <span class="brand-mark">SC</span>
+            <span>Smart Classroom</span>
+        </a>
+        <button class="mobile-menu-button" type="button" aria-label="Open navigation" aria-controls="dashboard-sidebar" aria-expanded="false" data-sidebar-toggle>
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+
+    <aside class="sidebar" id="dashboard-sidebar" aria-label="Dashboard navigation">
+        <button class="mobile-sidebar-close" type="button" aria-label="Close navigation" data-sidebar-close>&times;</button>
         <div class="brand">
             <span class="brand-mark">SC</span>
             <span>
@@ -125,6 +138,8 @@
         </div>
         {% endif %}
     </aside>
+
+    <button class="mobile-sidebar-overlay" type="button" aria-label="Close navigation" data-sidebar-close></button>
 
     <main class="content">
         {% block content %}{% endblock %}
