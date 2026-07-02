@@ -5689,6 +5689,7 @@ body.page-monitoring-workspace .capability-badge.optional {
         padding-top: 62px;
     }
 
+    html.sidebar-open,
     body.sidebar-open {
         overflow: hidden;
     }
@@ -5701,7 +5702,7 @@ body.page-monitoring-workspace .capability-badge.optional {
         z-index: 1200;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
         gap: 12px;
         min-height: 62px;
         padding: 10px 14px;
@@ -5720,6 +5721,7 @@ body.page-monitoring-workspace .capability-badge.optional {
         font-size: 15px;
         font-weight: 850;
         text-decoration: none;
+        flex: 1 1 auto;
     }
 
     .mobile-brand .brand-mark {
@@ -5790,6 +5792,8 @@ body.page-monitoring-workspace .capability-badge.optional {
         overscroll-behavior: contain;
     }
 
+    html.sidebar-open .sidebar,
+    html.sidebar-open aside.sidebar,
     body.sidebar-open .sidebar,
     body.sidebar-open aside.sidebar {
         transform: translateX(0);
@@ -5822,6 +5826,7 @@ body.page-monitoring-workspace .capability-badge.optional {
         transition: opacity 180ms ease;
     }
 
+    html.sidebar-open .mobile-sidebar-overlay,
     body.sidebar-open .mobile-sidebar-overlay {
         display: block;
         opacity: 1;

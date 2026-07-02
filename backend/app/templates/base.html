@@ -38,15 +38,15 @@
     </svg>
 
     <div class="mobile-topbar">
-        <a class="mobile-brand" href="/dashboard" aria-label="Smart Classroom dashboard">
-            <span class="brand-mark">SC</span>
-            <span>Smart Classroom</span>
-        </a>
         <button class="mobile-menu-button" type="button" aria-label="Open navigation" aria-controls="dashboard-sidebar" aria-expanded="false" data-sidebar-toggle>
             <span></span>
             <span></span>
             <span></span>
         </button>
+        <a class="mobile-brand" href="/dashboard" aria-label="Smart Classroom dashboard">
+            <span class="brand-mark">SC</span>
+            <span>Smart Classroom</span>
+        </a>
     </div>
 
     <aside class="sidebar" id="dashboard-sidebar" aria-label="Dashboard navigation">
@@ -145,7 +145,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=phase23-mobile-nav-fix"></script>
     <script src="/static/js/product_workflow_polish.js"></script>
 </body>
 </html>
