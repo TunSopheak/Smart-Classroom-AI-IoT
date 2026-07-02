@@ -5,7 +5,7 @@
     <div class="section-title-row">
         <div>
             <h2>Lifecycle Management</h2>
-            <p class="muted">Edit or deactivate academic setup data safely. Existing history is preserved for reports.</p>
+            <p class="muted">Manage academic setup without losing history.</p>
         </div>
     </div>
 
@@ -102,7 +102,7 @@
     <div>
         <p class="eyebrow">Academic Setup</p>
         <h1>Class Setup</h1>
-        <p class="muted">Manage class groups, courses, student enrollment, and weekly schedule foundations.</p>
+        <p class="muted">Manage classes, courses, enrollment, and schedules.</p>
     </div>
     <a class="button secondary-button" href="/dashboard/sessions">Open Sessions</a>
 </section>
@@ -123,7 +123,7 @@
             <input name="academic_year" placeholder="2025-2026">
             <input name="description" placeholder="Description">
             <button type="submit">Add Class Group</button>
-        <p class="muted small-note">Class code is auto-generated if left empty. Example: CS-M4-Y3-G27 = Computer Science, M4, Year 3, Generation 27.</p>
+        <p class="muted small-note">Class code is auto-generated if left empty.</p>
 </form>
         <div class="table-responsive">
             <table class="data-table compact-table">
@@ -152,7 +152,7 @@
             <input name="name" placeholder="IoT Project" required>
             <input name="description" placeholder="Description">
             <button type="submit">Add Course</button>
-        <p class="muted small-note">Course code is auto-generated if left empty. Example: IOT301.</p>
+        <p class="muted small-note">Course code is auto-generated if left empty.</p>
 </form>
         <div class="table-responsive">
             <table class="data-table compact-table">
@@ -178,9 +178,7 @@
         <div>
             <p class="eyebrow">Student Lifecycle</p>
             <h2>Add Student & Class Enrollment</h2>
-            <p class="muted">
-                Student identity stays permanent. Class enrollment can be changed when a student moves class.
-            </p>
+            <p class="muted">Add students and update class membership.</p>
         </div>
     </div>
 
@@ -257,9 +255,7 @@
                     </select>
                 </label>
 
-                <div class="safe-note">
-                    Moving class deactivates the old enrollment but keeps student attendance and history.
-                </div>
+                <div class="safe-note">Moving class keeps attendance history.</div>
 
                 <button class="btn btn-secondary" type="submit">Move Class</button>
             </form>
@@ -271,7 +267,7 @@
     <div class="section-title-row">
         <div>
             <h2>Student Enrollment</h2>
-            <p class="muted">Activate or remove students from a class group without deleting student records.</p>
+            <p class="muted">Move students without deleting records.</p>
         </div>
         {% if selected_group %}<span class="event-badge">{{ selected_group.code }}</span>{% endif %}
     </div>
@@ -290,14 +286,14 @@
         <div>
             <h3>Enrolled Students</h3>
             <div class="table-responsive">
-                <table class="data-table compact-table">
+                <table class="data-table compact-table roster-mobile-table">
                     <thead><tr><th>Code</th><th>Name</th><th>Action</th></tr></thead>
                     <tbody>
                     {% for student in enrolled_students %}
                     <tr>
-                        <td><strong class="student-code">{{ student.stu_id }}</strong></td>
-                        <td>{{ student.name }}</td>
-                        <td>
+                        <td data-label="Code"><strong class="student-code">{{ student.stu_id }}</strong></td>
+                        <td data-label="Name">{{ student.name }}</td>
+                        <td data-label="Action">
                             <form method="post" action="/dashboard/class-setup/enrollments/{{ student.id }}/deactivate">
                                 <input type="hidden" name="class_group_id" value="{{ selected_group.id }}">
                                 <button class="secondary-button small-button" type="submit">Remove</button>
@@ -314,14 +310,14 @@
         <div>
             <h3>Unenrolled Active Students</h3>
             <div class="table-responsive">
-                <table class="data-table compact-table">
+                <table class="data-table compact-table roster-mobile-table">
                     <thead><tr><th>Code</th><th>Name</th><th>Action</th></tr></thead>
                     <tbody>
                     {% for student in unenrolled_students %}
                     <tr>
-                        <td><strong class="student-code">{{ student.stu_id }}</strong></td>
-                        <td>{{ student.name }}</td>
-                        <td>
+                        <td data-label="Code"><strong class="student-code">{{ student.stu_id }}</strong></td>
+                        <td data-label="Name">{{ student.name }}</td>
+                        <td data-label="Action">
                             <form method="post" action="/dashboard/class-setup/enroll">
                                 <input type="hidden" name="class_group_id" value="{{ selected_group.id }}">
                                 <input type="hidden" name="student_id" value="{{ student.id }}">
@@ -344,7 +340,7 @@
     <div class="section-title-row">
         <div>
             <h2>Weekly Schedule</h2>
-            <p class="muted">Recurring class time used to preview and create live sessions manually.</p>
+            <p class="muted">Recurring times for manual live sessions.</p>
         </div>
     </div>
 
@@ -407,7 +403,7 @@
 
     <div class="schedule-rule-note">
         <strong>Conflict rule:</strong>
-        Same class + same day + overlapping time is blocked. Updates affect future sessions only; existing sessions keep their history.
+        Overlapping times are blocked. Existing sessions keep their history.
     </div>
 
     {% if request.query_params.get("message") %}
@@ -602,7 +598,7 @@
     <div class="section-title-row">
         <div>
             <h2>Auto Sessions from Weekly Schedule</h2>
-            <p class="muted">Preview today’s matching weekly schedules and create a live session manually. Nothing is created silently.</p>
+            <p class="muted">Preview today’s schedules and create a session.</p>
         </div>
     </div>
     <div class="table-responsive">

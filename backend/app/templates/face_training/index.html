@@ -7,14 +7,14 @@
     <div>
         <p class="eyebrow">Face Training</p>
         <h1>Face Training Center</h1>
-        <p>Add Training Media for selected students, then train the LBPH model used by Monitoring Workspace.</p>
+        <p>Add samples and retrain the FACE model.</p>
     </div>
     <a class="btn btn-primary" href="/dashboard/monitoring-workspace">Open Monitoring Workspace</a>
 </div>
 
 <div class="product-note">
-    <strong>Dataset preparation only:</strong>
-    Keep Monitoring Workspace as the final demo page. Use this page to add samples and retrain the face model.
+    <strong>FACE setup:</strong>
+    Add samples and retrain before live monitoring.
 </div>
 
 {% if message %}
@@ -25,25 +25,33 @@
     <div class="health-card {% if model_exists %}health-ok{% else %}health-error{% endif %}">
         <h3>LBPH Model</h3>
         <strong>{% if model_exists %}READY{% else %}MISSING{% endif %}</strong>
-        <p>{{ model_path }}</p>
+        <p class="muted">Model {{ "ready" if model_exists else "missing" }}</p>
+        <details class="technical-path-details">
+            <summary>Technical path</summary>
+            <code class="path-text">{{ model_path }}</code>
+        </details>
     </div>
 
     <div class="health-card {% if labels_exists %}health-ok{% else %}health-error{% endif %}">
         <h3>Label Map</h3>
         <strong>{% if labels_exists %}READY{% else %}MISSING{% endif %}</strong>
-        <p>{{ labels_path }}</p>
+        <p class="muted">Labels {{ "ready" if labels_exists else "missing" }}</p>
+        <details class="technical-path-details">
+            <summary>Technical path</summary>
+            <code class="path-text">{{ labels_path }}</code>
+        </details>
     </div>
 
     <div class="health-card health-ok">
         <h3>Students</h3>
         <strong>{{ students|length }}</strong>
-        <p>Active students available for training.</p>
+        <p>Available for training.</p>
     </div>
 
     <div class="health-card health-ok">
         <h3>Dataset</h3>
         <strong>Local</strong>
-        <p>Stored in ai_module/face_recognition/datasets.</p>
+        <p>Dataset local.</p>
     </div>
 </div>
 
@@ -78,7 +86,7 @@
     <div class="card face-training-train-card">
         <div>
             <h2>Train Model</h2>
-            <p class="muted">Training reads all student dataset folders, updates the LBPH model and labels, then syncs face profile metadata.</p>
+            <p class="muted">Retrain the LBPH model and labels.</p>
         </div>
         <form method="post" action="/dashboard/face-training/train">
             {% if selected_student %}
@@ -94,16 +102,15 @@
     <div class="section-title-row">
         <div>
             <h2>Training Sources for {{ selected_student.stu_id }} - {{ selected_student.name }}</h2>
-            <p class="muted">For best results, use images from different angles and the same lighting as the final demo.</p>
-            <p class="muted">Storage control: the system keeps only cropped, equalized face JPG samples and limits each student to 500 samples.</p>
+            <p class="muted">Use varied angles and classroom-like lighting.</p>
+            <p class="muted">Only cropped face JPG samples are saved.</p>
         </div>
     </div>
 
     <div class="training-source-grid">
         <section class="card training-source-panel">
             <h3>Add Training Media</h3>
-            <p class="muted">Upload images and/or videos for the selected student.</p>
-            <p class="muted">You can upload multiple images and videos at the same time.</p>
+            <p class="muted">Upload images or videos for this student.</p>
 
             <form method="post" action="/dashboard/face-training/upload-media" enctype="multipart/form-data" class="settings-form">
                 <input type="hidden" name="student_id" value="{{ selected_student.id }}">
@@ -116,13 +123,13 @@
                 <button class="btn btn-primary" type="submit">Upload Media</button>
             </form>
 
-            <p class="muted">Accepted: JPG, JPEG, PNG, MP4, AVI, MOV, MKV. Only cropped face samples are saved.</p>
+            <p class="muted">Accepted: JPG, PNG, MP4, AVI, MOV, MKV.</p>
         </section>
 
         <section class="card training-source-panel training-camera-panel">
             <h3>Capture from Camera</h3>
-            <p class="muted">Preview first, adjust face position and lighting, then capture browser frames for {{ selected_student.stu_id }} - {{ selected_student.name }}.</p>
-            <p class="muted">For better far-distance recognition, capture samples from the same distance as the final demo.</p>
+            <p class="muted">Preview, adjust lighting, then capture samples.</p>
+            <p class="muted">Use the same distance as the demo.</p>
 
             <input type="hidden" id="camera-student-id" value="{{ selected_student.id }}">
 
@@ -168,7 +175,7 @@
                     <th>Student</th>
                     <th>Name</th>
                     <th>Samples</th>
-                    <th>Dataset Path</th>
+                    <th>Dataset</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -178,7 +185,12 @@
                     <td>{{ card.student.stu_id }}</td>
                     <td>{{ card.student.name }}</td>
                     <td><span class="file-size-good">{{ card.sample_count }}</span></td>
-                    <td><code>{{ card.dataset_path }}</code></td>
+                    <td>
+                        <details class="technical-path-details">
+                            <summary>Path</summary>
+                            <code class="path-text">{{ card.dataset_path }}</code>
+                        </details>
+                    </td>
                     <td>
                         <a class="btn btn-secondary btn-sm" href="/dashboard/face-training?student_id={{ card.student.id }}">Select</a>
                     </td>

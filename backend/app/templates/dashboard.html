@@ -7,7 +7,7 @@
     <div>
         <p class="eyebrow">Daily Operations</p>
         <h1>Smart Classroom Dashboard</h1>
-        <p>Start attendance, review AI alerts, check classroom devices, and export reports from one organized workspace.</p>
+        <p>Run attendance, AI alerts, devices, and reports from one dashboard.</p>
     </div>
     {% if can_teach %}
     <a class="button" href="/dashboard/monitoring-workspace">Open Monitoring Workspace</a>
@@ -19,7 +19,7 @@
 {% if not can_teach %}
 <section class="product-note">
     <strong>Viewer mode:</strong>
-    You can review the dashboard, product center, privacy information, and academic demo. Operational classroom pages are hidden for safety.
+    Review-only access. Live classroom tools are hidden.
 </section>
 {% endif %}
 
@@ -34,19 +34,19 @@
 <section class="quick-action-grid">
     <a class="quick-action-card" href="/dashboard/qr-attendance{% if stats.active_session %}?session_id={{ stats.active_session.id }}{% endif %}">
         <strong>Start QR Attendance</strong>
-        <span>Scan QR codes or use signed backup QR values.</span>
+        <span>Scan student QR codes.</span>
     </a>
     <a class="quick-action-card" href="/dashboard/monitoring-workspace{% if stats.active_session %}?session_id={{ stats.active_session.id }}{% endif %}">
         <strong>Open Monitoring Workspace</strong>
-        <span>Run camera, FACE attendance, behavior, recording, and IoT status.</span>
+        <span>Camera, FACE attendance, AI, and IoT.</span>
     </a>
     <a class="quick-action-card" href="/dashboard/face-training">
         <strong>Open Face Training</strong>
-        <span>Prepare face samples and recognition labels.</span>
+        <span>Add samples and retrain labels.</span>
     </a>
     <a class="quick-action-card" href="/dashboard/reports{% if stats.active_session %}?session_id={{ stats.active_session.id }}{% endif %}">
         <strong>Open Reports</strong>
-        <span>Review attendance, AI events, IoT logs, and export data.</span>
+        <span>Review and export class data.</span>
     </a>
 </section>
 {% endif %}
@@ -80,7 +80,7 @@
             </div>
             {% endif %}
         {% else %}
-            <p class="muted">Create or activate a class session before taking attendance or recording session-level AI events.</p>
+            <p class="muted">Create a session before live monitoring.</p>
             {% if can_teach %}
             <a class="button" href="/dashboard/sessions">Create Session</a>
             {% endif %}
@@ -103,13 +103,13 @@
 <section class="panel-grid">
     <div class="panel">
         <h2>AI Alerts Summary</h2>
-        <p class="muted">Use AI Events for behavior logs such as attention low, sleeping, leaving seat, hand raising, and phone usage.</p>
+        <p class="muted">Review attention, behavior, and phone-use events.</p>
         <a class="button secondary-button" href="/dashboard/monitoring-workspace{% if stats.active_session %}?session_id={{ stats.active_session.id }}{% endif %}">Open Monitoring Workspace</a>
     </div>
 
     <div class="panel">
         <h2>IoT Status Summary</h2>
-        <p class="muted">Review classroom sensors, device states, and light/fan automation decisions.</p>
+        <p class="muted">Check sensors, device states, and automation.</p>
         <a class="button secondary-button" href="/dashboard/iot-monitoring">Open IoT Monitoring</a>
     </div>
 </section>

@@ -4,7 +4,7 @@
     <div>
         <p class="eyebrow">Student Management</p>
         <h1>Students</h1>
-        <p class="muted">Manage student identities, QR cards, face profiles, and future class-group enrollment.</p>
+        <p class="muted">Manage students, QR cards, and face profiles.</p>
     </div>
     <div class="action-row">
         <form action="/dashboard/students/generate-all-qr" method="post">
@@ -30,7 +30,7 @@
 
 <form class="form-card" action="/dashboard/students/create" method="post">
     <h2>Add Student</h2>
-    <p class="muted">Student code will be generated automatically. Existing/manual codes are still supported when needed.</p>
+    <p class="muted">Student code is generated automatically.</p>
     <div class="student-form-grid">
         <div>
             <label>Student name</label>
@@ -52,7 +52,7 @@
         <label>Student code (optional)</label>
         <input name="stu_id" placeholder="Auto-generated, e.g. S006">
     </details>
-    <p class="small-text">Students should belong to class groups. Full class-group enrollment is planned for the next data-architecture phase.</p>
+    <p class="small-text">Use Class Setup to manage enrollment.</p>
 </form>
 
 <section class="panel">
@@ -72,7 +72,8 @@
         <a class="button secondary-button" href="/dashboard/students">Reset</a>
     </form>
 
-    <table>
+    <div class="table-responsive mobile-card-table-wrap">
+    <table class="data-table compact-table students-mobile-table">
         <thead>
             <tr>
                 <th>ID</th>
@@ -87,31 +88,31 @@
         <tbody>
         {% for student in students %}
             <tr class="{% if not student.active %}inactive-row{% endif %}">
-                <td>{{ student.id }}</td>
-                <td>
+                <td data-label="ID">{{ student.id }}</td>
+                <td data-label="QR">
                     {% if student.qr_image_path %}
                         <img class="qr-thumb" src="{{ student.qr_image_path }}" alt="QR {{ student.stu_id }}">
                     {% else %}
                         <span class="muted">No QR</span>
                     {% endif %}
                 </td>
-                <td>
+                <td data-label="Student">
                     <strong class="student-code">{{ student.stu_id }}</strong>
                     <span class="compact-name">{{ student.name }}</span><br>
                     <span class="small-text">Gender: {{ student.gender or '-' }}</span>
                 </td>
-                <td><code>{{ student.qr_code or '-' }}</code></td>
-                <td class="small-text">{{ student.face_dataset_path or '-' }}</td>
-                <td>
+                <td data-label="QR Value"><code>{{ student.qr_code or '-' }}</code></td>
+                <td data-label="Face Dataset" class="small-text path-text">{{ student.face_dataset_path or '-' }}</td>
+                <td data-label="Status">
                     {% if student.active %}
                         <span class="badge-soft active-badge">Active</span>
                     {% else %}
                         <span class="badge-soft closed-badge">Inactive</span>
                     {% endif %}
                 </td>
-                <td>
-                    <div class="table-actions">
-                        <a class="button small-button" href="/dashboard/students/{{ student.id }}">Detail</a>
+                <td data-label="Actions">
+                    <div class="table-actions compact-actions">
+                        <a class="button small-button" href="/dashboard/students/{{ student.id }}"><span class="desktop-label">Detail</span><span class="mobile-label">View</span></a>
                         <form action="/dashboard/students/{{ student.id }}/generate-qr" method="post">
                             <button class="secondary-button small-button" type="submit">QR</button>
                         </form>
@@ -119,11 +120,11 @@
 
                         {% if student.active %}
                             <form action="/dashboard/students/{{ student.id }}/deactivate" method="post">
-                                <button class="danger-button small-button" type="submit">Deactivate</button>
+                                <button class="danger-button small-button" type="submit"><span class="desktop-label">Deactivate</span><span class="mobile-label">Off</span></button>
                             </form>
                         {% else %}
                             <form action="/dashboard/students/{{ student.id }}/activate" method="post">
-                                <button class="secondary-button small-button" type="submit">Activate</button>
+                                <button class="secondary-button small-button" type="submit"><span class="desktop-label">Activate</span><span class="mobile-label">On</span></button>
                             </form>
                         {% endif %}
                     </div>
@@ -138,5 +139,6 @@
         {% endfor %}
         </tbody>
     </table>
+    </div>
 </section>
 {% endblock %}

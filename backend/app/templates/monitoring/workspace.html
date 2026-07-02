@@ -9,15 +9,15 @@
     <div>
         <p class="eyebrow">Daily Monitoring</p>
         <h1>Smart Monitoring Workspace</h1>
-        <p>Start one shared classroom pipeline for camera, FACE attendance, behavior, and phone/book detection.</p>
+        <p>Run camera, FACE attendance, behavior, and object detection in one workspace.</p>
     </div>
 </section>
 
 <section class="workflow-command-bar one-click-monitoring-control">
     <div>
         <span class="workflow-eyebrow">One-click Monitoring Control</span>
-        <strong>Live classroom monitoring pipeline</strong>
-        <p>Starts camera, FACE attendance, behavior checks, YOLO phone/book detection, and IoT auto control.</p>
+        <strong>Live classroom pipeline</strong>
+        <p>Start camera, FACE attendance, AI checks, detection, and IoT.</p>
         {% if not selected_session %}
         <p class="small-text warning-text">Create or select an active session before starting monitoring.</p>
         {% elif not selected_session.active %}
@@ -52,7 +52,7 @@
                     {% if selected_session %}
                     FACE attendance + QR backup · {% if selected_session.active %}Active{% else %}Closed/latest{% endif %}
                     {% else %}
-                    Select a session before recording attendance or behavior events.
+                    Select a session before monitoring.
                     {% endif %}
                 </p>
             </div>
@@ -88,7 +88,7 @@
         <div class="section-title-row">
             <div>
                 <h2>Live Classroom Camera</h2>
-                <p class="muted">Shared stream with FACE attendance, behavior checks, YOLO overlays, and optional recording.</p>
+                <p class="muted">Shared stream with attendance, AI checks, detection, and recording.</p>
             </div>
             <details class="advanced-controls">
                 <summary>Advanced / Debug camera controls</summary>
@@ -110,7 +110,7 @@
         {% if not model_exists or not labels_exists %}
         <div class="danger-note">
             <strong>Face model warning:</strong>
-            Face recognition needs a trained LBPH model and labels. The camera can still detect faces, but identity may show as unknown/model not ready.
+            Train the LBPH model and labels before identity recognition.
         </div>
         {% endif %}
 
@@ -130,7 +130,7 @@
 <section class="monitoring-secondary-grid monitoring-attendance-object-grid">
     <aside class="card workspace-auto-attendance-card">
         <h2>Auto Attendance</h2>
-        <p class="muted">High-confidence matches mark attendance once per session. Low confidence stays unknown and is not marked.</p>
+        <p class="muted">High-confidence FACE matches mark attendance once.</p>
 
         <details class="advanced-controls">
             <summary>Advanced / Debug FACE attendance controls</summary>
@@ -157,7 +157,7 @@
                 <time>{{ item.created_at }}</time>
             </div>
             {% else %}
-            <p class="muted">No FACE attendance events yet. Start the camera and present a trained face.</p>
+            <p class="muted">No FACE attendance events yet.</p>
             {% endfor %}
         </div>
 
@@ -169,7 +169,7 @@
             <div>
                 <p class="eyebrow">Object Detection</p>
                 <h2>Phone / Book Detection</h2>
-                <p class="muted">YOLO runs inside the shared camera stream and reuses cached boxes between detections.</p>
+                <p class="muted">Phone/book detection runs in the shared stream.</p>
             </div>
             <a class="button secondary-button small-button" href="/dashboard/object-detection">Open Debug Page</a>
         </div>
@@ -181,14 +181,14 @@
             <div><span>Model</span><strong>YOLOv8 ONNX</strong></div>
             <div><span>Targets</span><strong>Person, Phone, Book</strong></div>
         </div>
-        <p class="small-text">Stable phone/book detections log behavior events after 2.5s with a 15s cooldown.</p>
+        <p class="small-text">Stable detections log behavior events automatically.</p>
     </div>
 </section>
 
 <section class="monitoring-secondary-grid">
     <div class="card workspace-behavior-card">
         <h2>Behavior Monitoring</h2>
-        <p class="muted">Automatic behavior detection runs from Start Monitoring. Manual buttons are Backup / Demo only.</p>
+        <p class="muted">Behavior detection starts with monitoring.</p>
 
         <details class="advanced-controls">
             <summary>Advanced / Debug behavior controls</summary>
@@ -237,7 +237,7 @@
 
     <div class="card workspace-qr-card">
         <h2>QR Backup Panel</h2>
-        <p class="muted">QR is backup if face recognition fails, confidence is low, or a student has no trained face profile.</p>
+        <p class="muted">Use QR when FACE attendance needs backup.</p>
         {% if selected_session %}
         <form class="qr-manual-row" method="post" action="/dashboard/attendance/scan-qr">
             <input type="hidden" name="session_id" value="{{ selected_session.id }}">
@@ -248,14 +248,14 @@
         <div class="settings-actions panel-action-row">
             <a class="btn btn-secondary" href="/dashboard/qr-attendance{% if selected_session %}?session_id={{ selected_session.id }}{% endif %}">Open Camera QR Scanner</a>
         </div>
-        <p class="small-text">Demo Tools remain on the QR Attendance page so this workspace stays focused on live classroom operation.</p>
+        <p class="small-text">More QR tools are on the QR Attendance page.</p>
     </div>
 </section>
 
 <section class="monitoring-secondary-grid">
     <div class="card workspace-recording-card">
         <h2>Recording Panel</h2>
-        <p class="muted">Recordings use WebM / VP8 and include the live monitoring overlay.</p>
+        <p class="muted">Record the live monitoring overlay.</p>
         <p class="small-text">Recording is manual for privacy.</p>
         <div class="settings-actions">
             <form method="post" action="/dashboard/camera-monitoring/record/start">
@@ -293,8 +293,8 @@
 
     <div class="card workspace-iot-card">
         <h2>IoT Auto Control</h2>
-        <p class="muted">Simulated classroom relays use occupancy from person count, face count, and attendance.</p>
-        <p class="small-text">If no occupancy is detected for 5 minutes, simulated light/fan relays turn off.</p>
+        <p class="muted">Relays follow occupancy signals.</p>
+        <p class="small-text">No occupancy for 5 minutes turns relays off.</p>
         <div class="monitoring-status-grid">
             <div><span>Auto Control</span><strong data-monitoring-field="iot_auto_control_status">{{ monitoring_status.iot_auto_control_status }}</strong></div>
             <div><span>Light Relay</span><strong data-monitoring-field="light_relay" data-format="upper">{{ monitoring_status.light_relay|upper }}</strong></div>
