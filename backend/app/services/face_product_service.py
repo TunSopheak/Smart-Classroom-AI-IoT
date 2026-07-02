@@ -125,6 +125,51 @@ def save_face_crop(image, output_path: Path) -> dict:
     }
 
 
+
+
+def build_skip_summary(skipped: dict | None) -> str:
+    """Build a short human-readable summary for skipped face samples."""
+    if not skipped:
+        return ""
+
+    labels = {
+        "too_small": "too small",
+        "blurry": "blurry",
+        "no_face": "no face",
+        "limit": "limit reached",
+        "invalid": "invalid",
+    }
+
+    parts = []
+    for reason, count in skipped.items():
+        try:
+            count = int(count or 0)
+        except (TypeError, ValueError):
+            count = 0
+
+        if count > 0:
+            parts.append(f"{count} {labels.get(reason, reason)}")
+
+    if not parts:
+        return ""
+
+    return "Skipped: " + ", ".join(parts) + "."
+
+
+def merge_skip_counts(target: dict, source: dict | None) -> None:
+    """Merge skip reason counts into target safely."""
+    if not source:
+        return
+
+    for reason, count in source.items():
+        try:
+            count = int(count or 0)
+        except (TypeError, ValueError):
+            count = 0
+
+        target[reason] = int(target.get(reason, 0) or 0) + count
+
+
 def upload_image_face_samples(db: Session, student_id: int, files, source: str = "image") -> dict:
     ensure_face_dirs()
 
