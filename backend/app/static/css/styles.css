@@ -5990,3 +5990,337 @@ body.page-monitoring-workspace .capability-badge.optional {
         padding: 0.65rem !important;
     }
 }
+
+
+/* Phase 23.1 Mobile Overflow, Tables, and Paths */
+.mobile-label {
+    display: none;
+}
+
+.path-text,
+.technical-path-details,
+code,
+pre {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.technical-path-details {
+    margin-top: 0.45rem;
+}
+
+.technical-path-details summary {
+    cursor: pointer;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.technical-path-details code {
+    display: block;
+    margin-top: 0.4rem;
+    padding: 0.5rem;
+    border-radius: 10px;
+    white-space: normal;
+}
+
+@media (max-width: 768px) {
+    html,
+    body {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+        max-width: 100%;
+    }
+
+    .content,
+    .card,
+    .panel,
+    .form-card,
+    .health-card,
+    .mini-card,
+    .student-lifecycle-panel,
+    .lifecycle-panel,
+    .schedule-item,
+    .quick-action-card,
+    .stat-card {
+        min-width: 0 !important;
+        overflow-wrap: anywhere;
+    }
+
+    .page-header {
+        gap: 0.55rem !important;
+    }
+
+    .page-header p:not(.eyebrow),
+    .muted,
+    .small-text {
+        line-height: 1.38;
+    }
+
+    .card,
+    .panel,
+    .form-card,
+    .health-card,
+    .student-lifecycle-panel {
+        padding: 12px !important;
+    }
+
+    .cards,
+    .student-stats,
+    .health-grid,
+    .stats-grid {
+        gap: 10px !important;
+    }
+
+    .card strong,
+    .stat-value {
+        font-size: 1.45rem !important;
+    }
+
+    .badge,
+    .badge-soft,
+    .event-badge,
+    .severity,
+    .camera-status-pill {
+        min-height: 22px;
+        padding: 3px 8px !important;
+        font-size: 11px !important;
+    }
+
+    .desktop-label {
+        display: none;
+    }
+
+    .mobile-label {
+        display: inline;
+    }
+
+    .table-responsive {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-actions,
+    .compact-actions,
+    .sessions-actions {
+        display: flex !important;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .table-actions form,
+    .compact-actions form,
+    .sessions-actions form {
+        width: auto !important;
+        margin: 0;
+    }
+
+    .table-actions .button,
+    .table-actions .btn,
+    .table-actions button,
+    .compact-actions .button,
+    .compact-actions .btn,
+    .compact-actions button,
+    .sessions-actions .button,
+    .sessions-actions .btn,
+    .sessions-actions button {
+        width: auto !important;
+        min-height: 34px !important;
+        padding: 7px 9px !important;
+        font-size: 12px !important;
+        border-radius: 9px !important;
+        white-space: nowrap;
+    }
+
+    .students-mobile-table,
+    .roster-mobile-table {
+        display: block !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        border-collapse: separate;
+        border-spacing: 0;
+        white-space: normal !important;
+    }
+
+    .students-mobile-table thead,
+    .roster-mobile-table thead {
+        display: none;
+    }
+
+    .students-mobile-table tbody,
+    .students-mobile-table tr,
+    .students-mobile-table td,
+    .roster-mobile-table tbody,
+    .roster-mobile-table tr,
+    .roster-mobile-table td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .students-mobile-table tr,
+    .roster-mobile-table tr {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #ffffff;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);
+    }
+
+    .students-mobile-table td,
+    .roster-mobile-table td {
+        display: grid;
+        grid-template-columns: 84px minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        padding: 6px 0 !important;
+        border: 0 !important;
+        white-space: normal !important;
+        font-size: 13px !important;
+    }
+
+    .students-mobile-table td::before,
+    .roster-mobile-table td::before {
+        content: attr(data-label);
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .students-mobile-table td[data-label="Student"],
+    .roster-mobile-table td[data-label="Name"] {
+        font-size: 14px !important;
+    }
+
+    .students-mobile-table td[data-label="QR Value"],
+    .students-mobile-table td[data-label="Face Dataset"] {
+        display: none;
+    }
+
+    .students-mobile-table td[data-label="Actions"],
+    .roster-mobile-table td[data-label="Action"] {
+        grid-template-columns: 1fr;
+    }
+
+    .students-mobile-table td[colspan],
+    .roster-mobile-table td[colspan] {
+        display: block;
+    }
+
+    .students-mobile-table td[colspan]::before,
+    .roster-mobile-table td[colspan]::before {
+        display: none;
+    }
+
+    .students-mobile-table td[data-label="Actions"]::before,
+    .roster-mobile-table td[data-label="Action"]::before {
+        display: none;
+    }
+
+    .students-mobile-table .qr-thumb {
+        width: 46px;
+        height: 46px;
+        padding: 3px;
+        border-radius: 8px;
+    }
+
+    .technical-path-details code,
+    .path-text {
+        font-size: 11px !important;
+        line-height: 1.35;
+    }
+
+    .health-card .technical-path-details {
+        display: none;
+    }
+
+    .face-training-top-grid,
+    .training-source-grid,
+    .student-lifecycle-grid,
+    .class-setup-grid {
+        gap: 12px !important;
+    }
+
+    .search-toolbar,
+    .compact-form,
+    .schedule-form-grid,
+    .ai-filter-grid {
+        gap: 8px !important;
+    }
+
+    .schedule-rule-note,
+    .safe-note,
+    .class-enrollment-routing-note,
+    .roster-manager-note,
+    .student-identity-note {
+        padding: 0.6rem 0.7rem !important;
+        font-size: 0.78rem !important;
+        line-height: 1.35 !important;
+    }
+
+    .health-card p {
+        margin: 0.25rem 0 0;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .content,
+    .main-content,
+    main,
+    .page-content {
+        padding: 10px !important;
+    }
+
+    .page-header h1,
+    main h1,
+    .content h1 {
+        font-size: 1.32rem !important;
+    }
+
+    .page-header .action-row,
+    .report-actions-card,
+    .active-session-banner {
+        gap: 8px !important;
+    }
+
+    .button,
+    .btn,
+    button,
+    input[type="submit"] {
+        min-height: 40px;
+        padding: 8px 10px !important;
+        font-size: 13px !important;
+    }
+
+    .table-actions .button,
+    .table-actions .btn,
+    .table-actions button,
+    .compact-actions .button,
+    .compact-actions .btn,
+    .compact-actions button {
+        min-height: 32px !important;
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+    }
+
+    .students-mobile-table td,
+    .roster-mobile-table td {
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 7px;
+    }
+}

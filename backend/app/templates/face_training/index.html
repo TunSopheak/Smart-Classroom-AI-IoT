@@ -25,13 +25,21 @@
     <div class="health-card {% if model_exists %}health-ok{% else %}health-error{% endif %}">
         <h3>LBPH Model</h3>
         <strong>{% if model_exists %}READY{% else %}MISSING{% endif %}</strong>
-        <p>{{ model_path }}</p>
+        <p class="muted">Model {{ "ready" if model_exists else "missing" }}</p>
+        <details class="technical-path-details">
+            <summary>Technical path</summary>
+            <code class="path-text">{{ model_path }}</code>
+        </details>
     </div>
 
     <div class="health-card {% if labels_exists %}health-ok{% else %}health-error{% endif %}">
         <h3>Label Map</h3>
         <strong>{% if labels_exists %}READY{% else %}MISSING{% endif %}</strong>
-        <p>{{ labels_path }}</p>
+        <p class="muted">Labels {{ "ready" if labels_exists else "missing" }}</p>
+        <details class="technical-path-details">
+            <summary>Technical path</summary>
+            <code class="path-text">{{ labels_path }}</code>
+        </details>
     </div>
 
     <div class="health-card health-ok">
@@ -43,7 +51,7 @@
     <div class="health-card health-ok">
         <h3>Dataset</h3>
         <strong>Local</strong>
-        <p>Stored in ai_module/face_recognition/datasets.</p>
+        <p>Dataset local.</p>
     </div>
 </div>
 
@@ -167,7 +175,7 @@
                     <th>Student</th>
                     <th>Name</th>
                     <th>Samples</th>
-                    <th>Dataset Path</th>
+                    <th>Dataset</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -177,7 +185,12 @@
                     <td>{{ card.student.stu_id }}</td>
                     <td>{{ card.student.name }}</td>
                     <td><span class="file-size-good">{{ card.sample_count }}</span></td>
-                    <td><code>{{ card.dataset_path }}</code></td>
+                    <td>
+                        <details class="technical-path-details">
+                            <summary>Path</summary>
+                            <code class="path-text">{{ card.dataset_path }}</code>
+                        </details>
+                    </td>
                     <td>
                         <a class="btn btn-secondary btn-sm" href="/dashboard/face-training?student_id={{ card.student.id }}">Select</a>
                     </td>

@@ -178,9 +178,7 @@
         <div>
             <p class="eyebrow">Student Lifecycle</p>
             <h2>Add Student & Class Enrollment</h2>
-            <p class="muted">
-                Student identity stays permanent. Class enrollment can be changed when a student moves class.
-            </p>
+            <p class="muted">Add students and update class membership.</p>
         </div>
     </div>
 
@@ -257,9 +255,7 @@
                     </select>
                 </label>
 
-                <div class="safe-note">
-                    Moving class deactivates the old enrollment but keeps student attendance and history.
-                </div>
+                <div class="safe-note">Moving class keeps attendance history.</div>
 
                 <button class="btn btn-secondary" type="submit">Move Class</button>
             </form>
@@ -290,14 +286,14 @@
         <div>
             <h3>Enrolled Students</h3>
             <div class="table-responsive">
-                <table class="data-table compact-table">
+                <table class="data-table compact-table roster-mobile-table">
                     <thead><tr><th>Code</th><th>Name</th><th>Action</th></tr></thead>
                     <tbody>
                     {% for student in enrolled_students %}
                     <tr>
-                        <td><strong class="student-code">{{ student.stu_id }}</strong></td>
-                        <td>{{ student.name }}</td>
-                        <td>
+                        <td data-label="Code"><strong class="student-code">{{ student.stu_id }}</strong></td>
+                        <td data-label="Name">{{ student.name }}</td>
+                        <td data-label="Action">
                             <form method="post" action="/dashboard/class-setup/enrollments/{{ student.id }}/deactivate">
                                 <input type="hidden" name="class_group_id" value="{{ selected_group.id }}">
                                 <button class="secondary-button small-button" type="submit">Remove</button>
@@ -314,14 +310,14 @@
         <div>
             <h3>Unenrolled Active Students</h3>
             <div class="table-responsive">
-                <table class="data-table compact-table">
+                <table class="data-table compact-table roster-mobile-table">
                     <thead><tr><th>Code</th><th>Name</th><th>Action</th></tr></thead>
                     <tbody>
                     {% for student in unenrolled_students %}
                     <tr>
-                        <td><strong class="student-code">{{ student.stu_id }}</strong></td>
-                        <td>{{ student.name }}</td>
-                        <td>
+                        <td data-label="Code"><strong class="student-code">{{ student.stu_id }}</strong></td>
+                        <td data-label="Name">{{ student.name }}</td>
+                        <td data-label="Action">
                             <form method="post" action="/dashboard/class-setup/enroll">
                                 <input type="hidden" name="class_group_id" value="{{ selected_group.id }}">
                                 <input type="hidden" name="student_id" value="{{ student.id }}">
