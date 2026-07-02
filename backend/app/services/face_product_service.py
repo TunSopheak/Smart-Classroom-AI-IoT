@@ -156,6 +156,32 @@ def build_skip_summary(skipped: dict | None) -> str:
     return "Skipped: " + ", ".join(parts) + "."
 
 
+def build_skip_reason_list(skipped: dict | None) -> str:
+    """Build a compact reason list without counts for user-facing capture summaries."""
+    if not skipped:
+        return ""
+
+    labels = {
+        "too_small": "too small",
+        "blurry": "blurry",
+        "no_face": "no face",
+        "limit": "limit reached",
+        "invalid": "invalid",
+    }
+
+    reasons = []
+    for reason, count in skipped.items():
+        try:
+            count = int(count or 0)
+        except (TypeError, ValueError):
+            count = 0
+
+        if count > 0:
+            reasons.append(labels.get(reason, reason))
+
+    return ", ".join(reasons)
+
+
 def merge_skip_counts(target: dict, source: dict | None) -> None:
     """Merge skip reason counts into target safely."""
     if not source:
@@ -172,10 +198,19 @@ def merge_skip_counts(target: dict, source: dict | None) -> None:
 
 def upload_image_face_samples(db: Session, student_id: int, files, source: str = "image") -> dict:
     ensure_face_dirs()
+    attempted = len(files)
 
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
-        return {"success": False, "message": "Student not found.", "saved": 0, "failed": 0}
+        return {
+            "success": False,
+            "message": "Student not found.",
+            "attempted": attempted,
+            "saved": 0,
+            "failed": attempted,
+            "skipped": {},
+            "sample_count_after": 0,
+        }
 
     folder = get_student_dataset_path(student.stu_id)
     existing = count_student_samples(student.stu_id)
@@ -213,19 +248,35 @@ def upload_image_face_samples(db: Session, student_id: int, files, source: str =
             failed += 1
 
     refresh_face_profile(db, student)
+    sample_count_after = count_student_samples(student.stu_id)
     skip_summary = build_skip_summary(skipped)
-    message = f"Added {saved} face sample(s) for {student.stu_id}. {failed} file(s) skipped."
-    if saved:
-        message += " Sample saved."
-    if skip_summary:
-        message += f" {skip_summary}"
+    if source == "camera":
+        reason_list = build_skip_reason_list(skipped)
+        message = (
+            f"Captured {attempted} frame(s). "
+            f"Saved {saved} valid face sample(s). "
+            f"Skipped {failed}"
+        )
+        if reason_list:
+            message += f": {reason_list}."
+        else:
+            message += "."
+    else:
+        message = f"Added {saved} face sample(s) for {student.stu_id}. {failed} file(s) skipped."
+        if saved:
+            message += " Sample saved."
+        if skip_summary:
+            message += f" {skip_summary}"
 
     return {
         "success": saved > 0,
         "message": message,
+        "attempted": attempted,
         "saved": saved,
         "failed": failed,
         "skipped": skipped,
+        "skipped_count": failed,
+        "sample_count_after": sample_count_after,
         "dataset_path": str(folder),
     }
 
