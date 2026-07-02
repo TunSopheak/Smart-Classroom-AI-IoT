@@ -5681,7 +5681,7 @@ body.page-monitoring-workspace .capability-badge.optional {
 .mobile-topbar,
 .mobile-sidebar-close,
 .mobile-sidebar-overlay {
-    display: none;
+    display: none !important;
 }
 
 @media (max-width: 860px) {
@@ -5700,7 +5700,7 @@ body.page-monitoring-workspace .capability-badge.optional {
         left: 0;
         right: 0;
         z-index: 1200;
-        display: flex;
+        display: flex !important;
         align-items: center;
         justify-content: flex-start;
         gap: 12px;
@@ -5758,7 +5758,7 @@ body.page-monitoring-workspace .capability-badge.optional {
         top: 12px;
         right: 12px;
         z-index: 2;
-        display: inline-grid;
+        display: inline-grid !important;
         place-items: center;
         width: 40px !important;
         min-width: 40px;
@@ -5828,7 +5828,7 @@ body.page-monitoring-workspace .capability-badge.optional {
 
     html.sidebar-open .mobile-sidebar-overlay,
     body.sidebar-open .mobile-sidebar-overlay {
-        display: block;
+        display: block !important;
         opacity: 1;
         pointer-events: auto;
     }
