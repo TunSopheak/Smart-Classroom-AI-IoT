@@ -216,7 +216,9 @@ def face_training_capture_browser(
                 "saved": 0,
                 "failed": attempted,
                 "skipped": {},
+                "sample_count_before": 0,
                 "sample_count_after": 0,
+                "saved_delta": 0,
             },
             status_code=500,
         )

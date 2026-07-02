@@ -61,6 +61,18 @@ def get_student_dataset_path(stu_id: str) -> Path:
     return folder
 
 
+def get_unique_sample_path(folder: Path, stu_id: str, source: str) -> Path:
+    """Return a collision-free JPG sample path for a student dataset folder."""
+    folder.mkdir(parents=True, exist_ok=True)
+
+    while True:
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+        short_uuid = uuid.uuid4().hex[:8]
+        output_path = folder / f"{stu_id}_{source}_{timestamp}_{short_uuid}.jpg"
+        if not output_path.exists():
+            return output_path
+
+
 def preprocess_face_crop(face_crop) -> np.ndarray:
     if len(face_crop.shape) == 3:
         face_crop = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
@@ -214,6 +226,7 @@ def upload_image_face_samples(db: Session, student_id: int, files, source: str =
 
     folder = get_student_dataset_path(student.stu_id)
     existing = count_student_samples(student.stu_id)
+    sample_count_before = existing
     saved = 0
     failed = 0
     skipped = {"too_small": 0, "blurry": 0, "no_face": 0, "limit": 0, "invalid": 0}
@@ -239,7 +252,7 @@ def upload_image_face_samples(db: Session, student_id: int, files, source: str =
             failed += 1
             continue
 
-        output = folder / f"{student.stu_id}_{source}_{existing + saved + 1:03d}.jpg"
+        output = get_unique_sample_path(folder, student.stu_id, source)
         result = save_face_crop(image, output)
         if result["saved"]:
             saved += 1
@@ -249,18 +262,22 @@ def upload_image_face_samples(db: Session, student_id: int, files, source: str =
 
     refresh_face_profile(db, student)
     sample_count_after = count_student_samples(student.stu_id)
+    saved_delta = sample_count_after - sample_count_before
     skip_summary = build_skip_summary(skipped)
     if source == "camera":
         reason_list = build_skip_reason_list(skipped)
         message = (
             f"Captured {attempted} frame(s). "
-            f"Saved {saved} valid face sample(s). "
+            f"Saved {max(saved_delta, 0)} new valid face sample(s). "
+            f"Dataset count: {sample_count_after}. "
             f"Skipped {failed}"
         )
         if reason_list:
             message += f": {reason_list}."
         else:
             message += "."
+        if saved != saved_delta:
+            message += " Some files may not have been added."
     else:
         message = f"Added {saved} face sample(s) for {student.stu_id}. {failed} file(s) skipped."
         if saved:
@@ -276,7 +293,9 @@ def upload_image_face_samples(db: Session, student_id: int, files, source: str =
         "failed": failed,
         "skipped": skipped,
         "skipped_count": failed,
+        "sample_count_before": sample_count_before,
         "sample_count_after": sample_count_after,
+        "saved_delta": saved_delta,
         "dataset_path": str(folder),
     }
 
@@ -298,6 +317,7 @@ def upload_video_face_samples(db: Session, student_id: int, video_file) -> dict:
 
     folder = get_student_dataset_path(student.stu_id)
     existing = count_student_samples(student.stu_id)
+    sample_count_before = existing
 
     VIDEO_DIR.mkdir(parents=True, exist_ok=True)
     video_file_path = VIDEO_DIR / f"{student.stu_id}_{uuid.uuid4().hex}{suffix}"
@@ -324,7 +344,7 @@ def upload_video_face_samples(db: Session, student_id: int, video_file) -> dict:
                     failed += 1
                     break
 
-                output = folder / f"{student.stu_id}_video_{existing + saved + 1:03d}.jpg"
+                output = get_unique_sample_path(folder, student.stu_id, "video")
                 result = save_face_crop(frame, output)
                 if result["saved"]:
                     saved += 1
@@ -338,6 +358,7 @@ def upload_video_face_samples(db: Session, student_id: int, video_file) -> dict:
         video_file_path.unlink(missing_ok=True)
 
     refresh_face_profile(db, student)
+    sample_count_after = count_student_samples(student.stu_id)
     skip_summary = build_skip_summary(skipped)
     message = f"Video processed. Added {saved} face sample(s) for {student.stu_id}. {failed} frame(s) skipped."
     if skip_summary:
@@ -349,6 +370,9 @@ def upload_video_face_samples(db: Session, student_id: int, video_file) -> dict:
         "saved": saved,
         "failed": failed,
         "skipped": skipped,
+        "sample_count_before": sample_count_before,
+        "sample_count_after": sample_count_after,
+        "saved_delta": sample_count_after - sample_count_before,
         "dataset_path": str(folder),
     }
 
@@ -427,6 +451,7 @@ def capture_face_samples(db: Session, student_id: int, samples: int = 30, camera
         }
 
     existing = count_student_samples(student.stu_id)
+    sample_count_before = existing
     saved = 0
     failed = 0
     skipped = {"too_small": 0, "blurry": 0, "no_face": 0, "limit": 0, "invalid": 0}
@@ -440,7 +465,7 @@ def capture_face_samples(db: Session, student_id: int, samples: int = 30, camera
         if not ok:
             continue
 
-        output = folder / f"{student.stu_id}_capture_{existing + saved + 1:03d}.jpg"
+        output = get_unique_sample_path(folder, student.stu_id, "capture")
         result = save_face_crop(frame, output)
         if result["saved"]:
             saved += 1
@@ -450,6 +475,7 @@ def capture_face_samples(db: Session, student_id: int, samples: int = 30, camera
 
     cap.release()
     refresh_face_profile(db, student)
+    sample_count_after = count_student_samples(student.stu_id)
     skip_summary = build_skip_summary(skipped)
     message = f"Captured {saved} face sample(s) for {student.stu_id}."
     if skip_summary:
@@ -461,6 +487,9 @@ def capture_face_samples(db: Session, student_id: int, samples: int = 30, camera
         "saved": saved,
         "failed": failed,
         "skipped": skipped,
+        "sample_count_before": sample_count_before,
+        "sample_count_after": sample_count_after,
+        "saved_delta": sample_count_after - sample_count_before,
         "dataset_path": str(folder),
     }
 
