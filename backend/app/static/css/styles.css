@@ -6328,3 +6328,31 @@ pre {
         gap: 7px;
     }
 }
+
+
+/* Final desktop safety: drawer-only controls must never appear on desktop. */
+[data-mobile-only="true"],
+[data-mobile-nav-only],
+.mobile-topbar,
+.mobile-drawer-close,
+.mobile-sidebar-close,
+.mobile-sidebar-overlay,
+.sidebar-close {
+    display: none !important;
+}
+
+@media (max-width: 860px) {
+    .mobile-topbar {
+        display: flex !important;
+    }
+
+    .mobile-drawer-close:not([hidden]),
+    .mobile-sidebar-close:not([hidden]) {
+        display: inline-grid !important;
+    }
+
+    html.sidebar-open .mobile-sidebar-overlay:not([hidden]),
+    body.sidebar-open .mobile-sidebar-overlay:not([hidden]) {
+        display: block !important;
+    }
+}

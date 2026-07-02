@@ -1,8 +1,8 @@
 (() => {
     const sidebar = document.querySelector("#dashboard-sidebar");
     const toggle = document.querySelector("[data-sidebar-toggle]");
-    const closeTargets = document.querySelectorAll("[data-sidebar-close]");
-    const mobileOnlyControls = document.querySelectorAll("[data-mobile-nav-only]");
+    const closeTargets = document.querySelectorAll("[data-sidebar-close], .mobile-drawer-close");
+    const mobileOnlyControls = document.querySelectorAll("[data-mobile-only='true'], [data-mobile-nav-only]");
 
     if (!sidebar || !toggle) return;
 

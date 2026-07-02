@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/styles.css?v=phase23-sidebar-desktop-fix">
+    <link rel="stylesheet" href="/static/css/styles.css?v=phase23-remove-desktop-drawer-close">
 </head>
 <body class="{% if request.url.path.startswith('/dashboard/monitoring-workspace') %}page-monitoring-workspace{% elif request.url.path.startswith('/dashboard/camera-monitoring') %}page-camera-monitoring{% elif request.url.path.startswith('/dashboard/object-detection') %}page-object-detection{% endif %}">
     {% set current_user = request.state.current_user if request.state.current_user else None %}
@@ -50,7 +50,7 @@
     </div>
 
     <aside class="sidebar" id="dashboard-sidebar" aria-label="Dashboard navigation">
-        <button class="mobile-sidebar-close" type="button" aria-label="Close navigation" data-sidebar-close data-mobile-nav-only hidden>&times;</button>
+        <button class="mobile-drawer-close mobile-sidebar-close" type="button" aria-label="Close navigation" data-sidebar-close data-mobile-only="true" data-mobile-nav-only hidden>&times;</button>
         <div class="brand">
             <span class="brand-mark">SC</span>
             <span>
@@ -139,7 +139,7 @@
         {% endif %}
     </aside>
 
-    <button class="mobile-sidebar-overlay" type="button" aria-label="Close navigation" data-sidebar-close data-mobile-nav-only hidden></button>
+    <button class="mobile-sidebar-overlay" type="button" aria-label="Close navigation" data-sidebar-close data-mobile-only="true" data-mobile-nav-only hidden></button>
 
     <main class="content">
         {% block content %}{% endblock %}
