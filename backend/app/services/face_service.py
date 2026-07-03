@@ -81,6 +81,7 @@ def simulate_face_attendance(
     confidence: float = 0.86,
     raw_source: str = "dashboard_face_simulation",
     event_time: datetime | None = None,
+    min_confidence: float = FACE_ATTENDANCE_MIN_CONFIDENCE,
 ) -> dict[str, Any]:
     confidence = round(float(confidence), 2)
 
@@ -121,7 +122,7 @@ def simulate_face_attendance(
 
     record = get_or_create_attendance_record(db, session.id, student.id)
 
-    if confidence < FACE_ATTENDANCE_MIN_CONFIDENCE:
+    if confidence < min_confidence:
         event = log_attendance_event(
             db=db,
             session=session,
@@ -133,7 +134,7 @@ def simulate_face_attendance(
             result=AttendanceEventResult.LOW_CONFIDENCE,
             note=(
                 "Face recognition confidence was below the attendance threshold "
-                f"({FACE_ATTENDANCE_MIN_CONFIDENCE:.2f})."
+                f"({min_confidence:.2f})."
             ),
         )
         db.commit()
