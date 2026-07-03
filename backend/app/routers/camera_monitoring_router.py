@@ -126,6 +126,14 @@ def get_monitoring_status(db: Session, session: ClassSession | None = None):
         "last_occupancy_seen": camera_status.get("last_occupancy_seen"),
         "latest_object_detections": camera_status.get("latest_object_detections") or [],
         "latest_face_status": camera_status.get("latest_face_status"),
+        "latest_face_confidence": camera_status.get("latest_face_confidence"),
+        "stable_face_label": camera_status.get("stable_face_label"),
+        "stable_face_frame_count": camera_status.get("stable_face_frame_count"),
+        "face_recognition_accept_threshold": camera_status.get("face_recognition_accept_threshold"),
+        "face_recognition_possible_threshold": camera_status.get("face_recognition_possible_threshold"),
+        "latest_eye_count": camera_status.get("latest_eye_count"),
+        "sleeping_candidate_seconds": camera_status.get("sleeping_candidate_seconds"),
+        "sleeping_state": camera_status.get("sleeping_state"),
         "updated_at": camera_status.get("updated_at"),
         "latest_events": (
             (camera_status.get("recent_auto_behavior_events") or [])

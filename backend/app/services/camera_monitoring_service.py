@@ -1,5 +1,6 @@
 import threading
 import time
+from collections import deque
 from datetime import datetime
 from pathlib import Path
 
@@ -10,7 +11,6 @@ from app.database.database import SessionLocal
 from app.models.ai_monitoring_event import AIMonitoringEvent
 from app.models.attendance_record import AttendanceRecord
 from app.models.device import Device
-from app.services.face_service import FACE_ATTENDANCE_MIN_CONFIDENCE
 from app.services.object_detection_service import object_detection_service
 
 
@@ -24,7 +24,13 @@ FRAME_FPS = 20.0
 
 NO_FACE_ATTENTION_SECONDS = 2.5
 NO_FACE_LEAVING_SECONDS = 5.0
-EYES_MISSING_SLEEPING_SECONDS = 4.0
+FACE_RECOGNITION_CONFIDENCE_THRESHOLD = 0.60
+FACE_RECOGNITION_POSSIBLE_THRESHOLD = 0.50
+FACE_RECOGNITION_STABLE_FRAMES = 6
+FACE_RECOGNITION_HISTORY_SIZE = 10
+EYES_MISSING_SLEEPING_SECONDS = 2.5
+EYE_RESET_GRACE_SECONDS = 0.8
+MIN_EYES_FOR_AWAKE = 2
 AUTO_BEHAVIOR_COOLDOWN_SECONDS = 20.0
 AUTO_BEHAVIOR_EVENT_COOLDOWN_SECONDS = 15.0
 OBJECT_STABLE_SECONDS = 2.5
@@ -59,6 +65,10 @@ class CameraMonitoringService:
         self.auto_behavior_enabled = False
         self.no_face_started_at = None
         self.eyes_missing_started_at = None
+        self.last_eyes_missing_seen_at = None
+        self.latest_eye_count = 0
+        self.sleeping_candidate_seconds = 0.0
+        self.sleeping_state = "idle"
         self.last_logged_behavior_time = {}
         self.auto_behavior_events_memory = []
         self.auto_face_attendance_enabled = True
@@ -86,6 +96,14 @@ class CameraMonitoringService:
         self.face_attendance_events_memory = []
         self.face_attendance_marked_keys = set()
         self.face_attendance_duplicate_logged_keys = set()
+        self.face_recognition_history = deque(maxlen=FACE_RECOGNITION_HISTORY_SIZE)
+        self.latest_face_recognition_debug = {
+            "confidence": None,
+            "stable_label": None,
+            "stable_frame_count": 0,
+            "threshold": FACE_RECOGNITION_CONFIDENCE_THRESHOLD,
+            "possible_threshold": FACE_RECOGNITION_POSSIBLE_THRESHOLD,
+        }
 
         face_cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         eye_cascade_path = cv2.data.haarcascades + "haarcascade_eye.xml"
@@ -106,6 +124,10 @@ class CameraMonitoringService:
         self.auto_behavior_enabled = True
         self.no_face_started_at = None
         self.eyes_missing_started_at = None
+        self.last_eyes_missing_seen_at = None
+        self.latest_eye_count = 0
+        self.sleeping_candidate_seconds = 0.0
+        self.sleeping_state = "awake"
         self._sync_live_state()
         return self.get_status()
 
@@ -113,6 +135,10 @@ class CameraMonitoringService:
         self.auto_behavior_enabled = False
         self.no_face_started_at = None
         self.eyes_missing_started_at = None
+        self.last_eyes_missing_seen_at = None
+        self.latest_eye_count = 0
+        self.sleeping_candidate_seconds = 0.0
+        self.sleeping_state = "idle"
         self._sync_live_state()
         return self.get_status()
 
@@ -262,11 +288,14 @@ class CameraMonitoringService:
                 f"{len(faces)} faces detected. Attendance requires a confident single-student match.",
                 marked=False,
             )
+            self.face_recognition_history.clear()
+        elif len(faces) == 0:
+            self.face_recognition_history.clear()
 
         if len(faces) > 0:
             for idx, (x, y, fw, fh) in enumerate(faces, start=1):
                 face_gray = gray[y:y + fh, x:x + fw]
-                label, color = self._recognize_face_label(face_gray, idx)
+                label, color = self._recognize_face_label(face_gray, idx, allow_attendance=len(faces) == 1)
 
                 cv2.rectangle(frame, (x, y), (x + fw, y + fh), color, 2)
                 self._draw_label_box(frame, label, x, max(52, y - 22), color)
@@ -279,6 +308,7 @@ class CameraMonitoringService:
             self._draw_label_box(frame, "Unknown face", 22, 58, (0, 140, 255))
 
         self._draw_object_detections(frame, object_detections)
+        self._draw_behavior_debug_overlay(frame)
 
         if self.recording:
             cv2.circle(frame, (w - 145, 24), 10, (0, 0, 255), -1)
@@ -378,6 +408,31 @@ class CameraMonitoringService:
 
             cv2.rectangle(frame, (detection.x1, detection.y1), (detection.x2, detection.y2), color, 2)
             self._draw_label_box(frame, f"{label} {detection.confidence:.2f}", detection.x1, max(52, detection.y1 - 22), color)
+
+    def _draw_behavior_debug_overlay(self, frame):
+        if not self.auto_behavior_enabled:
+            return
+
+        h, w = frame.shape[:2]
+        lines = [
+            f"Eyes: {self.latest_eye_count}",
+            f"Sleep timer: {self.sleeping_candidate_seconds:.1f}s",
+        ]
+
+        x = max(16, w - 210)
+        y = 58
+        cv2.rectangle(frame, (x - 8, y - 18), (w - 12, y + 42), (15, 23, 42), -1)
+        for idx, text in enumerate(lines):
+            cv2.putText(
+                frame,
+                text,
+                (x, y + idx * 22),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.48,
+                (255, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
 
     def _get_object_detections(self, frame):
         now = time.time()
@@ -547,7 +602,41 @@ class CameraMonitoringService:
         )
         self.face_attendance_events_memory = self.face_attendance_events_memory[:20]
 
-    def _recognize_face_label(self, face_gray, index: int):
+    def _get_face_recognition_stability(self, stu_id: str | None, confidence: float):
+        if not stu_id or confidence < FACE_RECOGNITION_POSSIBLE_THRESHOLD:
+            self.latest_face_recognition_debug = {
+                "confidence": round(confidence, 2),
+                "stable_label": None,
+                "stable_frame_count": 0,
+                "threshold": FACE_RECOGNITION_CONFIDENCE_THRESHOLD,
+                "possible_threshold": FACE_RECOGNITION_POSSIBLE_THRESHOLD,
+            }
+            return None, 0, False
+
+        self.face_recognition_history.append(
+            {
+                "stu_id": stu_id,
+                "confidence": confidence,
+                "seen_at": time.time(),
+            }
+        )
+        stable_count = sum(
+            1
+            for item in self.face_recognition_history
+            if item.get("stu_id") == stu_id
+            and float(item.get("confidence") or 0) >= FACE_RECOGNITION_POSSIBLE_THRESHOLD
+        )
+        stable_label = stu_id if stable_count >= FACE_RECOGNITION_STABLE_FRAMES else None
+        self.latest_face_recognition_debug = {
+            "confidence": round(confidence, 2),
+            "stable_label": stable_label,
+            "stable_frame_count": stable_count,
+            "threshold": FACE_RECOGNITION_CONFIDENCE_THRESHOLD,
+            "possible_threshold": FACE_RECOGNITION_POSSIBLE_THRESHOLD,
+        }
+        return stable_label, stable_count, bool(stable_label)
+
+    def _recognize_face_label(self, face_gray, index: int, allow_attendance: bool = True):
         try:
             from app.models.student import Student
             from app.services.face_product_service import live_face_recognizer
@@ -558,6 +647,13 @@ class CameraMonitoringService:
         prediction = live_face_recognizer.predict_face(face_gray)
 
         if not prediction:
+            self.latest_face_recognition_debug = {
+                "confidence": None,
+                "stable_label": None,
+                "stable_frame_count": 0,
+                "threshold": FACE_RECOGNITION_CONFIDENCE_THRESHOLD,
+                "possible_threshold": FACE_RECOGNITION_POSSIBLE_THRESHOLD,
+            }
             self._remember_face_attendance_event(
                 "unknown_face",
                 "Unknown face detected. Face model is missing, labels are missing, or the face did not match a trained student.",
@@ -567,22 +663,42 @@ class CameraMonitoringService:
 
         confidence = float(prediction.get("confidence") or 0)
         stu_id = prediction.get("stu_id")
+        stable_label, stable_count, is_stable = self._get_face_recognition_stability(stu_id, confidence)
 
         db = SessionLocal()
         try:
             student = db.query(Student).filter(Student.stu_id == stu_id).first()
             name = student.name if student else "Unknown Student"
+            has_normal_confidence = confidence >= FACE_RECOGNITION_CONFIDENCE_THRESHOLD
+            has_stable_demo_confidence = (
+                allow_attendance
+                and is_stable
+                and stable_label == stu_id
+                and FACE_RECOGNITION_POSSIBLE_THRESHOLD <= confidence < FACE_RECOGNITION_CONFIDENCE_THRESHOLD
+            )
 
-            if confidence < FACE_ATTENDANCE_MIN_CONFIDENCE:
+            if not has_normal_confidence and not has_stable_demo_confidence:
                 self._remember_face_attendance_event(
                     "low_confidence",
-                    f"Low confidence match ({confidence:.2f}); attendance not marked.",
+                    (
+                        f"Low confidence match ({confidence:.2f}); "
+                        f"stable frames {stable_count}/{FACE_RECOGNITION_STABLE_FRAMES}; attendance not marked."
+                    ),
                     marked=False,
                     student_id=student.id if student else None,
                 )
                 if stu_id:
                     return f"Possible {stu_id} / low confidence {confidence:.2f}", (0, 140, 255)
                 return f"Unknown / low confidence {confidence:.2f}", (0, 140, 255)
+
+            if not allow_attendance:
+                self._remember_face_attendance_event(
+                    "multiple_faces",
+                    f"{stu_id} recognized but attendance was blocked because multiple faces are visible.",
+                    marked=False,
+                    student_id=student.id if student else None,
+                )
+                return f"{stu_id} - {name} | multi-face blocked {confidence:.2f}", (0, 140, 255)
 
             attendance_text = "FACE ready"
             session_key = f"{self.monitoring_session_id}:{student.id if student else stu_id}"
@@ -597,6 +713,11 @@ class CameraMonitoringService:
                         session_id=self.monitoring_session_id,
                         confidence=confidence,
                         raw_source="monitoring_workspace_face_recognition",
+                        min_confidence=(
+                            FACE_RECOGNITION_POSSIBLE_THRESHOLD
+                            if has_stable_demo_confidence
+                            else FACE_RECOGNITION_CONFIDENCE_THRESHOLD
+                        ),
                     )
                     attendance_text = result["result"]
                     if result.get("ok"):
@@ -606,6 +727,8 @@ class CameraMonitoringService:
                     status = result.get("status")
                     if result.get("result") == "success" and status:
                         message = f"{stu_id} - {name} marked {status} by FACE."
+                        if has_stable_demo_confidence:
+                            message = f"Stable FACE match: {message}"
                     elif result.get("result") == "duplicate":
                         message = f"Duplicate FACE recognition for {stu_id} - {name}. Original attendance record was kept."
                     else:
@@ -621,6 +744,8 @@ class CameraMonitoringService:
             elif not self.monitoring_session_id:
                 attendance_text = "no session"
 
+            if has_stable_demo_confidence:
+                return f"Stable {stu_id} - {name} {confidence:.2f}", (0, 180, 0)
             return f"{stu_id} - {name}", (0, 180, 0)
         except Exception as exc:
             self._remember_face_attendance_event(
@@ -658,6 +783,11 @@ class CameraMonitoringService:
                 )
 
             self.eyes_missing_started_at = None
+            self.last_eyes_missing_seen_at = None
+            self.latest_eye_count = 0
+            self.sleeping_candidate_seconds = 0.0
+            self.sleeping_state = "no_face"
+            self._sync_live_state()
             return
 
         self.no_face_started_at = None
@@ -665,29 +795,60 @@ class CameraMonitoringService:
         largest_face = max(faces, key=lambda item: item[2] * item[3])
         x, y, fw, fh = largest_face
 
-        roi_gray = gray[y:y + fh, x:x + fw]
+        upper_face_height = max(1, int(fh * 0.55))
+        roi_gray = gray[y:y + upper_face_height, x:x + fw]
         eyes = self.eye_cascade.detectMultiScale(
             roi_gray,
             scaleFactor=1.15,
             minNeighbors=5,
             minSize=(18, 18),
         )
+        realistic_eyes = []
+        for ex, ey, ew, eh in eyes:
+            center_y = ey + (eh / 2)
+            if center_y <= upper_face_height * 0.92:
+                realistic_eyes.append((ex, ey, ew, eh))
 
-        if len(eyes) == 0:
+        eye_count = min(len(realistic_eyes), 2)
+        self.latest_eye_count = eye_count
+
+        if eye_count < MIN_EYES_FOR_AWAKE:
             if self.eyes_missing_started_at is None:
                 self.eyes_missing_started_at = now
+            self.last_eyes_missing_seen_at = now
 
             eyes_missing_seconds = now - self.eyes_missing_started_at
+            self.sleeping_candidate_seconds = eyes_missing_seconds
+            self.sleeping_state = "sleeping" if eyes_missing_seconds >= EYES_MISSING_SLEEPING_SECONDS else "candidate"
 
             if eyes_missing_seconds >= EYES_MISSING_SLEEPING_SECONDS:
                 self._log_auto_behavior_event(
                     event_type="sleeping",
                     severity="high",
                     confidence=0.74,
-                    description="Auto behavior engine: face detected but eyes were not detected for sleeping threshold.",
+                    description=(
+                        "Auto behavior engine: face detected but fewer than two eyes were detected "
+                        f"in the upper face ROI for {eyes_missing_seconds:.1f}s."
+                    ),
                 )
         else:
-            self.eyes_missing_started_at = None
+            if (
+                self.last_eyes_missing_seen_at is not None
+                and now - self.last_eyes_missing_seen_at < EYE_RESET_GRACE_SECONDS
+            ):
+                self.sleeping_candidate_seconds = (
+                    now - self.eyes_missing_started_at
+                    if self.eyes_missing_started_at is not None
+                    else 0.0
+                )
+                self.sleeping_state = "candidate"
+            else:
+                self.eyes_missing_started_at = None
+                self.last_eyes_missing_seen_at = None
+                self.sleeping_candidate_seconds = 0.0
+                self.sleeping_state = "awake"
+
+        self._sync_live_state()
 
     def _log_auto_behavior_event(self, event_type: str, severity: str, confidence: float, description: str):
         now = time.time()
@@ -714,7 +875,7 @@ class CameraMonitoringService:
         self.last_behavior = {
             "event_type": event_type,
             "severity": severity,
-            "source": "auto",
+            "source": "auto_behavior_engine",
         }
         self.last_behavior_time = time.time()
 
@@ -868,7 +1029,20 @@ class CameraMonitoringService:
             "last_occupancy_seen": self.last_occupancy_seen_at.isoformat() if self.last_occupancy_seen_at else None,
             "iot_auto_off_remaining_seconds": self.iot_auto_off_remaining_seconds,
             "auto_off_countdown_seconds": self.iot_auto_off_remaining_seconds,
-            "face_recognition_accept_threshold": FACE_ATTENDANCE_MIN_CONFIDENCE,
+            "face_recognition_accept_threshold": FACE_RECOGNITION_CONFIDENCE_THRESHOLD,
+            "face_recognition_possible_threshold": FACE_RECOGNITION_POSSIBLE_THRESHOLD,
+            "face_recognition_stable_frames": FACE_RECOGNITION_STABLE_FRAMES,
+            "face_recognition_history_size": FACE_RECOGNITION_HISTORY_SIZE,
+            "face_recognition_debug": self.latest_face_recognition_debug,
+            "latest_face_confidence": self.latest_face_recognition_debug.get("confidence"),
+            "stable_face_label": self.latest_face_recognition_debug.get("stable_label"),
+            "stable_face_frame_count": self.latest_face_recognition_debug.get("stable_frame_count"),
+            "latest_eye_count": self.latest_eye_count,
+            "sleeping_candidate_seconds": round(self.sleeping_candidate_seconds, 2),
+            "sleeping_state": self.sleeping_state,
+            "eye_reset_grace_seconds": EYE_RESET_GRACE_SECONDS,
+            "eyes_missing_sleeping_seconds": EYES_MISSING_SLEEPING_SECONDS,
+            "min_eyes_for_awake": MIN_EYES_FOR_AWAKE,
             "monitoring_session_id": self.monitoring_session_id,
             "session_id": self.monitoring_session_id,
             "recent_auto_behavior_events": self.auto_behavior_events_memory,
