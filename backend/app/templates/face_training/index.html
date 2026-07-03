@@ -73,7 +73,14 @@
 
         <div>
             <label>Student</label>
-            <select class="form-control" id="face-training-student-select" name="student_id" required>
+            <select
+                class="form-control"
+                id="face-training-student-select"
+                name="student_id"
+                data-current-student-id="{{ selected_student.id if selected_student else '' }}"
+                autocomplete="off"
+                required
+            >
                 {% for student in students %}
                 <option value="{{ student.id }}" {% if selected_student and selected_student.id == student.id %}selected{% endif %}>
                     {{ student.stu_id }} - {{ student.name }}
@@ -203,11 +210,30 @@
     </div>
 </div>
 
-{% if selected_student %}
 <script>
 (function () {
     const studentSelect = document.getElementById("face-training-student-select");
-    const studentId = document.getElementById("camera-student-id").value;
+    if (studentSelect) {
+        const currentStudentId = studentSelect.dataset.currentStudentId || "";
+        if (currentStudentId) {
+            studentSelect.value = currentStudentId;
+        }
+        studentSelect.addEventListener("change", function () {
+            const studentId = studentSelect.value;
+            if (!studentId) {
+                return;
+            }
+            const params = new URLSearchParams({ student_id: studentId });
+            window.location.href = "/dashboard/face-training?" + params.toString();
+        });
+    }
+
+    const cameraStudentInput = document.getElementById("camera-student-id");
+    if (!cameraStudentInput) {
+        return;
+    }
+
+    const studentId = cameraStudentInput.value;
     const video = document.getElementById("face-camera-preview");
     const canvas = document.getElementById("face-camera-canvas");
     const sampleInput = document.getElementById("camera-sample-count");
@@ -220,6 +246,7 @@
     const faceSizeWarning = document.getElementById("face-size-warning");
     let stream = null;
     let capturing = false;
+    let faceSizeTimer = null;
 
     function setStatus(message, isError) {
         statusBox.hidden = false;
@@ -431,5 +458,4 @@
     });
 }());
 </script>
-{% endif %}
 {% endblock %}
