@@ -96,6 +96,7 @@ def qr_attendance_page(request: Request, session_id: Optional[int] = None, db: S
 @router.get("/dashboard/face-training")
 def face_training_page(request: Request, student_id: Optional[int] = None, db: Session = Depends(get_db)):
     students = get_students(db)
+    message = request.query_params.get("message")
 
     selected_student = None
     if student_id:
@@ -103,6 +104,12 @@ def face_training_page(request: Request, student_id: Optional[int] = None, db: S
 
     if not selected_student and students:
         selected_student = students[0]
+
+    if selected_student and selected_student.id != student_id:
+        selected = f"student_id={selected_student.id}"
+        if message:
+            selected += f"&message={quote(message, safe='')}"
+        return RedirectResponse(url=f"/dashboard/face-training?{selected}", status_code=303)
 
     student_cards = []
     for student in students:
@@ -126,7 +133,7 @@ def face_training_page(request: Request, student_id: Optional[int] = None, db: S
             "labels_exists": LABELS_PATH.exists(),
             "model_path": str(MODEL_PATH),
             "labels_path": str(LABELS_PATH),
-            "message": request.query_params.get("message"),
+            "message": message,
         },
     )
 
