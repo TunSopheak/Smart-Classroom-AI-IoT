@@ -48,14 +48,13 @@ def get_or_create_face_profile_summary(db: Session, student: Student) -> dict[st
         profile = FaceProfile(
             student_id=student.id,
             dataset_path=dataset_path,
-            model_label=student.id,
+            model_label=None,
             sample_count=sample_count,
             trained_at=None,
         )
         db.add(profile)
     else:
         profile.dataset_path = dataset_path
-        profile.model_label = student.id
         profile.sample_count = sample_count
 
     db.commit()
