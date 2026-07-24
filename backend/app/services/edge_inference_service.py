@@ -140,7 +140,10 @@ def process_edge_inference_event(
     ai_event_ids: list[int] = []
 
     try:
-        if payload.face_status == "recognized":
+        if (
+            payload.face_status == "recognized"
+            and payload.attendance_requested
+        ):
             if payload.stable_frame_count < MIN_STABLE_FACE_FRAMES:
                 attendance_result = "unstable_face"
             else:

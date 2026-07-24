@@ -99,6 +99,7 @@ class EdgeInferenceEventRequest(BaseModel):
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     lbph_distance: float | None = Field(default=None, ge=0.0)
     stable_frame_count: int = Field(default=0, ge=0, le=10000)
+    attendance_requested: bool = True
     face_bbox: EdgeBoundingBox | None = None
 
     object_detections: list[EdgeObjectDetection] = Field(
