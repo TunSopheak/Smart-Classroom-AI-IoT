@@ -10,10 +10,15 @@ from app.models.student import Student
 from app.schemas.edge_schema import (
     EdgeContextResponse,
     EdgeHeartbeatRequest,
+    EdgeInferenceEventRequest,
+    EdgeInferenceEventResponse,
     EdgeSessionContext,
     EdgeStudentContext,
 )
 from app.services.attendance_service import is_student_enrolled
+from app.services.edge_inference_service import (
+    process_edge_inference_event,
+)
 from app.services.face_service import FACE_ATTENDANCE_MIN_CONFIDENCE
 
 
@@ -126,3 +131,20 @@ def edge_context(
         attendance_face_threshold=FACE_ATTENDANCE_MIN_CONFIDENCE,
         active_session=session_context,
     )
+
+
+@router.post(
+    "/inference-events",
+    response_model=EdgeInferenceEventResponse,
+)
+def edge_inference_event(
+    payload: EdgeInferenceEventRequest,
+    authenticated_device: dict = Depends(require_edge_device),
+    db: Session = Depends(get_db),
+):
+    del authenticated_device
+
+    try:
+        return process_edge_inference_event(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
