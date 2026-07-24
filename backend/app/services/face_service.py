@@ -73,7 +73,7 @@ def get_or_create_face_profile_summary(db: Session, student: Student) -> dict[st
     }
 
 
-def simulate_face_attendance(
+def record_face_attendance(
     db: Session,
     student_id: int,
     session_id: int | None = None,
@@ -237,3 +237,24 @@ def simulate_face_attendance(
         "event_id": event.id,
         "status": record.status,
     }
+
+
+def simulate_face_attendance(
+    db: Session,
+    student_id: int,
+    session_id: int | None = None,
+    confidence: float = 0.86,
+    raw_source: str = "dashboard_face_simulation",
+    event_time: datetime | None = None,
+    min_confidence: float = FACE_ATTENDANCE_MIN_CONFIDENCE,
+) -> dict[str, Any]:
+    # Backward-compatible legacy wrapper.
+    return record_face_attendance(
+        db=db,
+        student_id=student_id,
+        session_id=session_id,
+        confidence=confidence,
+        raw_source=raw_source,
+        event_time=event_time,
+        min_confidence=min_confidence,
+    )

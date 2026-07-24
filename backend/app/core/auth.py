@@ -45,6 +45,21 @@ DEVICE_API_KEY = os.getenv(
 )
 
 
+def is_valid_device_api_key(
+    provided_key: str | None,
+) -> bool:
+    if not DEVICE_API_KEY:
+        return False
+
+    if not provided_key:
+        return False
+
+    return hmac.compare_digest(
+        provided_key,
+        DEVICE_API_KEY,
+    )
+
+
 LOCAL_DEMO_USERS = {
     "admin": {
         "username": "admin",
@@ -134,6 +149,7 @@ PROTECTED_PREFIXES = (
     "/api/camera-monitoring",
     "/api/reports",
     "/api/face-recognition-live",
+    "/api/edge/v1",
 )
 
 
@@ -169,6 +185,7 @@ TEACHER_OR_ADMIN_PREFIXES = (
     "/dashboard/reports",
     "/api/camera-monitoring",
     "/api/reports",
+    "/api/edge/v1",
 )
 
 
@@ -194,6 +211,7 @@ DEVICE_API_PREFIXES = (
     "/api/attendance/scan-qr",
     "/api/iot/sensor-readings",
     "/api/iot/status",
+    "/api/edge/v1",
 )
 
 
@@ -299,11 +317,14 @@ def get_device_user_from_request(request: Request) -> Optional[dict]:
     if not any(request.url.path.startswith(prefix) for prefix in DEVICE_API_PREFIXES):
         return None
 
-    if not DEVICE_API_KEY:
-        return None
+    provided_key = request.headers.get(
+        "x-smart-classroom-device-key",
+        "",
+    )
 
-    provided_key = request.headers.get("x-smart-classroom-device-key", "")
-    if not hmac.compare_digest(provided_key, DEVICE_API_KEY):
+    if not is_valid_device_api_key(
+        provided_key
+    ):
         return None
 
     return {
