@@ -2,6 +2,7 @@ from app.routers.object_detection_page_router import router as object_detection_
 from app.routers.object_detection_stream_router import router as object_detection_stream_router
 from app.routers.object_detection_router import router as object_detection_router
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
@@ -41,6 +42,10 @@ def create_app() -> FastAPI:
         Base.metadata.create_all(bind=engine)
         ensure_phase_16_2_schema()
         seed_demo_data()
+
+    @app.get("/", include_in_schema=False)
+    def root_redirect():
+        return RedirectResponse(url="/login", status_code=303)
 
     @app.get("/health", tags=["System"])
     def health_check() -> dict:
@@ -93,7 +98,7 @@ app.include_router(phase12_admin_router)
 
 
 # Phase 13 Authentication and Role-Based Access
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from app.core.auth import (
     get_device_user_from_request,

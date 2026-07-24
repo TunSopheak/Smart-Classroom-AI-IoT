@@ -50,36 +50,68 @@
                 <button class="button" type="submit">Sign in</button>
             </form>
 
+            {% if demo_accounts %}
             <div class="demo-box">
                 <div>
-                    <strong>Demo access</strong>
-                    <span>Demo accounts are for academic presentation only.</span>
+                    <strong>Local demo access</strong>
+                    <span>
+                        These shortcuts are available only in
+                        Local/LAN mode.
+                    </span>
                 </div>
-                <div class="demo-role-buttons" aria-label="Demo account shortcuts">
-                    <button class="button secondary-button" type="button" data-demo-user="admin" data-demo-pass="admin123">Use Admin Demo</button>
-                    <button class="button secondary-button" type="button" data-demo-user="teacher" data-demo-pass="teacher123">Use Teacher Demo</button>
-                    <button class="button secondary-button" type="button" data-demo-user="viewer" data-demo-pass="viewer123">Use Viewer Demo</button>
+
+                <div
+                    class="demo-role-buttons"
+                    aria-label="Local demo account shortcuts"
+                >
+                    {% for account in demo_accounts %}
+                    <button
+                        class="button secondary-button"
+                        type="button"
+                        data-demo-user="{{ account.username }}"
+                        data-demo-pass="{{ account.password }}"
+                    >
+                        Use {{ account.label }} Demo
+                    </button>
+                    {% endfor %}
                 </div>
-                <details class="demo-details">
-                    <summary>Show demo account usernames</summary>
-                    <span>Admin: admin</span>
-                    <span>Teacher: teacher</span>
-                    <span>Viewer: viewer</span>
-                </details>
-                <small>Accounts are created by admin in this prototype.</small>
             </div>
+            {% elif cloud_demo_mode %}
+            <div class="demo-box">
+                <div>
+                    <strong>Protected cloud demo</strong>
+                    <span>
+                        Public default credentials are disabled.
+                        Use the private account assigned by
+                        the project owner.
+                    </span>
+                </div>
+            </div>
+            {% endif %}
         </section>
     </main>
+    {% if demo_accounts %}
     <script>
-        document.querySelectorAll("[data-demo-user]").forEach((button) => {
-            button.addEventListener("click", () => {
-                document.getElementById("loginUsername").value = button.dataset.demoUser;
-                const passwordInput = document.getElementById("loginPassword");
-                passwordInput.type = "password";
-                passwordInput.value = button.dataset.demoPass;
-                passwordInput.focus();
+        document
+            .querySelectorAll("[data-demo-user]")
+            .forEach((button) => {
+                button.addEventListener("click", () => {
+                    document.getElementById(
+                        "loginUsername"
+                    ).value = button.dataset.demoUser;
+
+                    const passwordInput =
+                        document.getElementById(
+                            "loginPassword"
+                        );
+
+                    passwordInput.type = "password";
+                    passwordInput.value =
+                        button.dataset.demoPass;
+                    passwordInput.focus();
+                });
             });
-        });
     </script>
+    {% endif %}
 </body>
 </html>

@@ -1,0 +1,6 @@
+-r requirements.txt
+
+# Headless OpenCV includes contrib modules such as cv2.face,
+# without desktop GUI dependencies that are unnecessary on a cloud server.
+opencv-contrib-python-headless>=4.10.0
+numpy>=1.26.0

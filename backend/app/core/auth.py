@@ -5,6 +5,7 @@ import json
 import os
 import time
 from typing import Optional
+from urllib.parse import urlsplit
 
 from fastapi import Request
 
@@ -12,14 +13,39 @@ from fastapi import Request
 SESSION_COOKIE_NAME = "smart_classroom_session"
 SESSION_MAX_AGE_SECONDS = 8 * 60 * 60
 
+APP_ENV = os.getenv(
+    "APP_ENV",
+    "development",
+).strip().lower()
+
+IS_CLOUD_DEMO = (
+    APP_ENV == "cloud-demo"
+    or os.getenv("RENDER", "").strip().lower() == "true"
+)
+
 AUTH_SECRET_KEY = os.getenv(
     "SMART_CLASSROOM_AUTH_SECRET",
-    "smart-classroom-demo-secret-change-in-production",
+    "",
+).strip()
+
+if not AUTH_SECRET_KEY:
+    if IS_CLOUD_DEMO:
+        raise RuntimeError(
+            "SMART_CLASSROOM_AUTH_SECRET is required "
+            "in cloud-demo mode."
+        )
+
+    AUTH_SECRET_KEY = (
+        "smart-classroom-demo-secret-change-in-production"
+    )
+
+DEVICE_API_KEY = os.getenv(
+    "SMART_CLASSROOM_DEVICE_API_KEY",
+    "",
 )
-DEVICE_API_KEY = os.getenv("SMART_CLASSROOM_DEVICE_API_KEY", "")
 
 
-DEMO_USERS = {
+LOCAL_DEMO_USERS = {
     "admin": {
         "username": "admin",
         "password": "admin123",
@@ -39,6 +65,45 @@ DEMO_USERS = {
         "display_name": "Demo Viewer",
     },
 }
+
+
+def _build_demo_users() -> dict[str, dict]:
+    if not IS_CLOUD_DEMO:
+        return LOCAL_DEMO_USERS
+
+    username = os.getenv(
+        "SMART_CLASSROOM_DEMO_USERNAME",
+        "",
+    ).strip()
+
+    password = os.getenv(
+        "SMART_CLASSROOM_DEMO_PASSWORD",
+        "",
+    )
+
+    display_name = os.getenv(
+        "SMART_CLASSROOM_DEMO_DISPLAY_NAME",
+        "Portfolio Admin",
+    ).strip() or "Portfolio Admin"
+
+    if not username or not password:
+        raise RuntimeError(
+            "SMART_CLASSROOM_DEMO_USERNAME and "
+            "SMART_CLASSROOM_DEMO_PASSWORD are required "
+            "in cloud-demo mode."
+        )
+
+    return {
+        username: {
+            "username": username,
+            "password": password,
+            "role": "admin",
+            "display_name": display_name,
+        }
+    }
+
+
+DEMO_USERS = _build_demo_users()
 
 
 PUBLIC_PREFIXES = (
@@ -130,6 +195,28 @@ DEVICE_API_PREFIXES = (
     "/api/iot/sensor-readings",
     "/api/iot/status",
 )
+
+
+def normalize_next_path(
+    next_path: str | None,
+) -> str:
+    value = (next_path or "").strip()
+
+    if not value:
+        return "/dashboard"
+
+    parsed = urlsplit(value)
+
+    if (
+        parsed.scheme
+        or parsed.netloc
+        or not value.startswith("/")
+        or value.startswith("//")
+        or "\\" in value
+    ):
+        return "/dashboard"
+
+    return value
 
 
 def verify_demo_user(username: str, password: str) -> Optional[dict]:
