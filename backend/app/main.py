@@ -192,3 +192,8 @@ app.include_router(object_detection_stream_router)
 
 # Phase 17B Object Detection Page
 app.include_router(object_detection_page_router)
+
+# Real AI Edge-Cloud API v1
+from app.routers.edge_router import router as real_ai_edge_router
+
+app.include_router(real_ai_edge_router)
