@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: smart-classroom-ai-iot
+    runtime: python
+    plan: free
+    region: singapore
+    branch: deploy/cloud-demo
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements-cloud.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: APP_ENV
+        value: cloud-demo
+      - key: DATABASE_URL
+        value: sqlite:///./smart_classroom.db
+      - key: SMART_CLASSROOM_AUTH_SECRET
+        generateValue: true
+      - key: SMART_CLASSROOM_DEVICE_API_KEY
+        generateValue: true
+      - key: SMART_CLASSROOM_DEMO_USERNAME
+        sync: false
+      - key: SMART_CLASSROOM_DEMO_PASSWORD
+        sync: false
+      - key: SMART_CLASSROOM_DEMO_DISPLAY_NAME
+        value: Portfolio Admin

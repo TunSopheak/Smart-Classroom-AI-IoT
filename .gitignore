@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -43,3 +43,7 @@ backend/ai_module/face_recognition/videos/*.mp4
 backend/ai_module/face_recognition/videos/*.avi
 backend/ai_module/face_recognition/videos/*.mov
 backend/ai_module/face_recognition/videos/*.mkv
+
+# Local Edge Agent secrets and retry state
+backend/.env.edge
+backend/edge_agent_state/
