@@ -99,6 +99,15 @@ http://127.0.0.1:8000/dashboard
 
 See [docs/setup-local.md](docs/setup-local.md) for more setup notes.
 
+## Running Tests
+
+From the repository root (tests use a temporary database and a test-only Device Key):
+
+```powershell
+backend\.venv\Scripts\python.exe -m pip install -r backend\requirements-dev.txt
+backend\.venv\Scripts\python.exe -m pytest
+```
+
 ## LAN Demo Commands
 
 Use LAN mode when presenting from one host device and opening the dashboard from another device on the same Wi-Fi/network.

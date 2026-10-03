@@ -1,0 +1,6 @@
+-r requirements.txt
+-r requirements-ai.txt
+
+# Test tooling
+pytest>=8.0
+httpx>=0.27
