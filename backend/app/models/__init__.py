@@ -43,3 +43,5 @@ from app.models.iot_automation_event import IoTAutomationEvent
 from app.models.camera_recording import CameraRecording
 
 from app.models.edge_inference_event import EdgeInferenceEvent
+
+from app.models.edge_device import EdgeDevice
