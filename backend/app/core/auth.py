@@ -154,6 +154,7 @@ PROTECTED_PREFIXES = (
     "/api/object-detection",
     "/api/classes",
     "/api/ai/",
+    "/api/edge-monitoring",
 )
 
 
@@ -194,6 +195,7 @@ TEACHER_OR_ADMIN_PREFIXES = (
     "/api/object-detection",
     "/api/classes",
     "/api/ai/",
+    "/api/edge-monitoring",
 )
 
 

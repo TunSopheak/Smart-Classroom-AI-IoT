@@ -16,6 +16,7 @@ from app.schemas.edge_schema import (
     EdgeStudentContext,
 )
 from app.services.attendance_service import is_student_enrolled
+from app.services.edge_device_service import record_heartbeat
 from app.services.edge_inference_service import (
     process_edge_inference_event,
 )
@@ -49,7 +50,10 @@ def require_edge_device(request: Request) -> dict:
 def edge_heartbeat(
     payload: EdgeHeartbeatRequest,
     authenticated_device: dict = Depends(require_edge_device),
+    db: Session = Depends(get_db),
 ):
+    record_heartbeat(db, payload)
+
     components = {
         "camera": payload.camera_ready,
         "face_model": payload.face_model_ready,
