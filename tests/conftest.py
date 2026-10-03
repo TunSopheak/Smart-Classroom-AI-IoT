@@ -34,6 +34,14 @@ def client():
 
 
 @pytest.fixture
+def teacher_client(client):
+    client.post("/login", data={"username": "teacher", "password": "teacher123", "next": "/dashboard"})
+    yield client
+    client.post("/logout")
+    client.cookies.clear()
+
+
+@pytest.fixture
 def device_headers():
     return {"x-smart-classroom-device-key": TEST_DEVICE_KEY}
 

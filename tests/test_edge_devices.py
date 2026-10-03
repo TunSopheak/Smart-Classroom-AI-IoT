@@ -19,14 +19,6 @@ def _heartbeat(device_id, **overrides):
     return payload
 
 
-@pytest.fixture
-def teacher_client(client):
-    client.post("/login", data={"username": "teacher", "password": "teacher123", "next": "/dashboard"})
-    yield client
-    client.post("/logout")
-    client.cookies.clear()
-
-
 def _device(client, device_id):
     devices = client.get("/api/edge-monitoring/devices").json()["devices"]
     return next(item for item in devices if item["device_id"] == device_id)
