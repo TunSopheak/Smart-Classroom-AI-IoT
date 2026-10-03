@@ -150,6 +150,10 @@ PROTECTED_PREFIXES = (
     "/api/reports",
     "/api/face-recognition-live",
     "/api/edge/v1",
+    "/api/monitoring",
+    "/api/object-detection",
+    "/api/classes",
+    "/api/ai/",
 )
 
 
@@ -186,6 +190,10 @@ TEACHER_OR_ADMIN_PREFIXES = (
     "/api/camera-monitoring",
     "/api/reports",
     "/api/edge/v1",
+    "/api/monitoring",
+    "/api/object-detection",
+    "/api/classes",
+    "/api/ai/",
 )
 
 
