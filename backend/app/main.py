@@ -197,3 +197,7 @@ app.include_router(object_detection_page_router)
 from app.routers.edge_router import router as real_ai_edge_router
 
 app.include_router(real_ai_edge_router)
+
+from app.routers.edge_monitoring_router import router as edge_monitoring_router
+
+app.include_router(edge_monitoring_router)

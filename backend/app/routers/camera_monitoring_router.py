@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Stre
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.core.monitoring_mode import is_edge_monitoring
 from app.core.timezone import format_cambodia_datetime, format_cambodia_time
 from app.database.database import get_db
 from app.models.ai_monitoring_event import AIMonitoringEvent
@@ -16,6 +17,7 @@ from app.models.class_session import ClassSession
 from app.schemas.ai_monitoring_schema import AIMonitoringEventCreate
 from app.services.ai_monitoring_service import create_ai_monitoring_event
 from app.services.camera_monitoring_service import camera_service, convert_recording_to_webm
+from app.services.edge_monitoring_service import edge_workspace_summary
 from app.services.face_product_service import LABELS_PATH, MODEL_PATH
 from app.services.iot_automation_service import get_current_occupancy_count
 from app.services.iot_service import get_iot_stats, list_devices, seed_demo_devices
@@ -40,6 +42,15 @@ BEHAVIOR_TYPES = [
     "multiple_faces",
 ]
 OCCUPIED_ATTENDANCE_STATUSES = ["P", "L", "Pm"]
+
+
+def require_server_camera_mode():
+    """Block actions that open this server's webcam when AI runs on the Edge Agent."""
+    if is_edge_monitoring():
+        raise HTTPException(
+            status_code=409,
+            detail="Edge monitoring mode: the camera runs on the classroom Edge Agent, not this server.",
+        )
 
 
 def build_return_url(default_path: str, session_id: Optional[int] = None, return_to: str = ""):
@@ -250,6 +261,31 @@ def dashboard_monitoring_workspace(
     sessions = db.query(ClassSession).order_by(ClassSession.start_time.desc()).limit(30).all()
     selected_session = db.query(ClassSession).filter(ClassSession.id == session_id).first() if session_id else get_active_or_latest_session(db)
 
+    if is_edge_monitoring():
+        ai_events = []
+        if selected_session:
+            ai_events = (
+                db.query(AIMonitoringEvent)
+                .filter(AIMonitoringEvent.session_id == selected_session.id)
+                .order_by(AIMonitoringEvent.created_at.desc())
+                .limit(10)
+                .all()
+            )
+
+        return templates.TemplateResponse(
+            request,
+            "monitoring/edge_workspace.html",
+            {
+                "request": request,
+                "sessions": sessions,
+                "selected_session": selected_session,
+                "edge": edge_workspace_summary(db, selected_session),
+                "ai_events": ai_events,
+                "behavior_types": BEHAVIOR_TYPES,
+                "format_kh_time": format_cambodia_time,
+            },
+        )
+
     if selected_session:
         camera_service.set_session(selected_session.id)
 
@@ -314,7 +350,7 @@ def api_monitoring_status(session_id: Optional[int] = None, db: Session = Depend
     return get_monitoring_status(db, session)
 
 
-@router.post("/api/monitoring/start")
+@router.post("/api/monitoring/start", dependencies=[Depends(require_server_camera_mode)])
 def api_start_monitoring(session_id: Optional[int] = Form(None), db: Session = Depends(get_db)):
     session, started = start_monitoring_workflow(db, session_id)
     return {"ok": bool(started), "message": "Monitoring started." if started else "Camera could not start.", "status": get_monitoring_status(db, session)}
@@ -326,7 +362,7 @@ def api_stop_monitoring(db: Session = Depends(get_db)):
     return {"ok": True, "message": "Monitoring stopped.", "status": get_monitoring_status(db, None)}
 
 
-@router.get("/api/camera-monitoring/stream")
+@router.get("/api/camera-monitoring/stream", dependencies=[Depends(require_server_camera_mode)])
 def api_camera_stream():
     return StreamingResponse(
         camera_service.frame_generator(),
@@ -334,14 +370,14 @@ def api_camera_stream():
     )
 
 
-@router.post("/dashboard/camera-monitoring/start")
+@router.post("/dashboard/camera-monitoring/start", dependencies=[Depends(require_server_camera_mode)])
 def dashboard_start_camera(session_id: Optional[int] = Form(None), return_to: str = Form("")):
     camera_service.set_session(session_id)
     camera_service.start(0)
     return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
 
 
-@router.post("/dashboard/monitoring-workspace/start")
+@router.post("/dashboard/monitoring-workspace/start", dependencies=[Depends(require_server_camera_mode)])
 def dashboard_start_monitoring(session_id: Optional[int] = Form(None), return_to: str = Form(""), db: Session = Depends(get_db)):
     try:
         session, _ = start_monitoring_workflow(db, session_id)
@@ -364,7 +400,7 @@ def dashboard_stop_camera(session_id: Optional[int] = Form(None), return_to: str
     return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
 
 
-@router.post("/dashboard/camera-monitoring/behavior-auto/start")
+@router.post("/dashboard/camera-monitoring/behavior-auto/start", dependencies=[Depends(require_server_camera_mode)])
 def dashboard_start_auto_behavior(session_id: Optional[int] = Form(None), return_to: str = Form("")):
     camera_service.enable_auto_behavior(session_id=session_id)
 
@@ -380,7 +416,7 @@ def dashboard_stop_auto_behavior(session_id: Optional[int] = Form(None), return_
     return RedirectResponse(url=build_return_url("/dashboard/camera-monitoring", session_id, return_to), status_code=303)
 
 
-@router.post("/dashboard/camera-monitoring/face-attendance/start")
+@router.post("/dashboard/camera-monitoring/face-attendance/start", dependencies=[Depends(require_server_camera_mode)])
 def dashboard_start_auto_face_attendance(session_id: Optional[int] = Form(None), return_to: str = Form("")):
     camera_service.enable_auto_face_attendance(session_id=session_id)
     if not camera_service.running:
@@ -394,7 +430,7 @@ def dashboard_stop_auto_face_attendance(session_id: Optional[int] = Form(None), 
     return RedirectResponse(url=build_return_url("/dashboard/monitoring-workspace", session_id, return_to), status_code=303)
 
 
-@router.post("/dashboard/camera-monitoring/record/start")
+@router.post("/dashboard/camera-monitoring/record/start", dependencies=[Depends(require_server_camera_mode)])
 def dashboard_start_recording(
     session_id: Optional[int] = Form(None),
     return_to: str = Form(""),

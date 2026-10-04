@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Smart Monitoring Workspace{% endblock %}
+
+{% block content %}
+{% set workspace_url = '/dashboard/monitoring-workspace' ~ ('?session_id=' ~ (selected_session.id|string) if selected_session else '') %}
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Daily Monitoring · Edge AI</p>
+        <h1>Smart Monitoring Workspace</h1>
+        <p>The classroom camera and AI run on the Edge device. This dashboard shows the results it sends.</p>
+    </div>
+</section>
+
+<section class="workflow-command-bar">
+    <div>
+        <span class="workflow-eyebrow">Edge Monitoring</span>
+        <strong>Start monitoring on the classroom Edge device</strong>
+        <p>Open an active session here, then run the Edge Agent on the classroom laptop or Raspberry Pi:</p>
+        <pre class="code-block">cd backend
+.\.venv\Scripts\python.exe -m edge_agent.main --run</pre>
+        <p class="small-text">Video, face data and AI models stay on the Edge device. Only recognition results and events are sent here.</p>
+        {% if not selected_session %}
+        <p class="small-text warning-text">Create or select an active session before starting the Edge Agent.</p>
+        {% elif not selected_session.active %}
+        <p class="small-text warning-text">Review-only: this session is closed. The Edge Agent only reports to the active session.</p>
+        {% endif %}
+    </div>
+    <div class="monitoring-primary-actions">
+        <a class="button secondary-button" href="/dashboard/sessions">Sessions</a>
+        <a class="button secondary-button" href="/dashboard/qr-attendance{% if selected_session %}?session_id={{ selected_session.id }}{% endif %}">Open QR Backup</a>
+    </div>
+</section>
+
+<section class="monitoring-hero-grid">
+    <div class="card monitoring-session-card">
+        <div class="section-title-row">
+            <div>
+                <p class="eyebrow">Session Control</p>
+                <h2>{% if selected_session %}#{{ selected_session.id }} - {{ selected_session.title }}{% else %}No session selected{% endif %}</h2>
+                <p class="muted">
+                    {% if selected_session %}
+                    Edge FACE attendance + QR backup · {% if selected_session.active %}Active{% else %}Closed{% endif %}
+                    {% else %}
+                    Select a session to see Edge results.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <form method="get" action="/dashboard/monitoring-workspace" class="qr-session-controls">
+            <select class="form-control" name="session_id">
+                {% for session in sessions %}
+                <option value="{{ session.id }}" {% if selected_session and selected_session.id == session.id %}selected{% endif %}>
+                    #{{ session.id }} - {{ session.title }}{% if session.active %} (Active){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-secondary" type="submit">Use Session</button>
+        </form>
+    </div>
+
+    <div class="card monitoring-status-card">
+        <h2>Attendance</h2>
+        <div class="monitoring-status-grid">
+            <div><span>Present</span><strong data-edge-attendance="present">-</strong></div>
+            <div><span>Late</span><strong data-edge-attendance="late">-</strong></div>
+            <div><span>Absent</span><strong data-edge-attendance="absent">-</strong></div>
+            <div><span>By FACE</span><strong data-edge-attendance="face">-</strong></div>
+            <div><span>By QR</span><strong data-edge-attendance="qr">-</strong></div>
+        </div>
+        {% if selected_session %}
+        <a class="button secondary-button full-width" href="/dashboard/sessions/{{ selected_session.id }}/attendance">Open Attendance Sheet</a>
+        {% endif %}
+    </div>
+</section>
+
+<section class="card edge-devices-card">
+    <div class="section-title-row">
+        <div>
+            <p class="eyebrow">Edge Devices</p>
+            <h2>Classroom Edge Agent</h2>
+            <p class="muted">Updated from the agent's heartbeat every 30 seconds. Offline after 90 seconds without one.</p>
+        </div>
+    </div>
+    <div id="edgeDevices"></div>
+</section>
+
+<section class="card edge-events-card">
+    <div class="section-title-row">
+        <div>
+            <p class="eyebrow">Real AI Results</p>
+            <h2>Recent Edge Events</h2>
+            <p class="muted">Recognized faces, unknown faces and phone detections reported by the Edge device for this session.</p>
+        </div>
+    </div>
+    <div id="edgeEvents" class="mini-event-list compact-feed"></div>
+</section>
+
+<section class="monitoring-secondary-grid">
+    <div class="card workspace-behavior-card">
+        <h2>Behavior Monitoring</h2>
+        <p class="muted">Behavior events from the Edge device and manual backup entries.</p>
+
+        <details class="advanced-controls">
+            <summary>Manual behavior buttons - Backup / Demo only</summary>
+            <div class="behavior-grid monitoring-behavior-grid">
+            {% for item in behavior_types %}
+            <form method="post" action="/dashboard/camera-monitoring/behavior">
+                <input type="hidden" name="session_id" value="{{ selected_session.id if selected_session else '' }}">
+                <input type="hidden" name="event_type" value="{{ item }}">
+                <input type="hidden" name="severity" value="{{ 'high' if item in ['sleeping', 'attention_low', 'unknown_face', 'multiple_faces'] else 'medium' }}">
+                <input type="hidden" name="return_to" value="{{ workspace_url }}">
+                <button class="btn btn-secondary" type="submit">{{ item }}</button>
+            </form>
+            {% endfor %}
+            </div>
+        </details>
+
+        <h3>Recent Behavior Events</h3>
+        <div class="mini-event-list compact-feed">
+            {% for event in ai_events[:8] %}
+            <div class="mini-event">
+                <span class="event-badge severity-{{ event.severity }}">{{ event.event_type }}</span>
+                <span class="event-message">{{ event.severity }} · {{ event.source }}</span>
+                <time>{{ format_kh_time(event.created_at) }}</time>
+            </div>
+            {% else %}
+            <p class="muted">No behavior events yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card workspace-qr-card">
+        <h2>QR Backup Panel</h2>
+        <p class="muted">Use QR when FACE attendance needs backup.</p>
+        {% if selected_session %}
+        <form class="qr-manual-row" method="post" action="/dashboard/attendance/scan-qr">
+            <input type="hidden" name="session_id" value="{{ selected_session.id }}">
+            <input class="form-control" name="qr_code" placeholder="Manual QR Input / Backup">
+            <button class="btn btn-primary" type="submit">Submit QR</button>
+        </form>
+        {% endif %}
+        <div class="settings-actions panel-action-row">
+            <a class="btn btn-secondary" href="/dashboard/qr-attendance{% if selected_session %}?session_id={{ selected_session.id }}{% endif %}">Open Camera QR Scanner</a>
+        </div>
+    </div>
+</section>
+
+<section class="card workspace-capability-card">
+    <h2>Where Each Part Runs</h2>
+    <div class="capability-grid">
+        <div><span class="capability-badge ready">Edge</span><strong>Camera</strong><span>Classroom laptop / Raspberry Pi</span></div>
+        <div><span class="capability-badge ready">Edge</span><strong>Face recognition</strong><span>OpenCV Haar + LBPH</span></div>
+        <div><span class="capability-badge ready">Edge</span><strong>Object detection</strong><span>YOLOv8 phone detection</span></div>
+        <div><span class="capability-badge active">Cloud</span><strong>Attendance</strong><span>Confidence-gated, recorded once</span></div>
+        <div><span class="capability-badge active">Cloud</span><strong>Events &amp; reports</strong><span>Stored metadata only</span></div>
+        <div><span class="capability-badge optional">Local only</span><strong>Video &amp; recording</strong><span>Never uploaded</span></div>
+    </div>
+</section>
+
+<script>
+(() => {
+    const sessionId = {{ (selected_session.id if selected_session else none)|tojson }};
+    let data = {{ edge|tojson }};
+
+    const STATE_LABELS = {
+        online: ["Online", "ready"],
+        degraded: ["Degraded", "prototype"],
+        stopped: ["Stopped", "optional"],
+        offline: ["Offline", "simulated"],
+    };
+
+    function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null) node.textContent = String(text);
+        return node;
+    }
+
+    function yesNo(value) {
+        return value ? "Ready" : "Not ready";
+    }
+
+    function ago(seconds) {
+        if (seconds < 60) return `${seconds}s ago`;
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+        return `${Math.floor(seconds / 3600)}h ago`;
+    }
+
+    function renderDevices(devices) {
+        const root = document.getElementById("edgeDevices");
+        root.replaceChildren();
+
+        if (!devices.length) {
+            root.append(el("p", "muted", "No Edge device has connected yet. Start the Edge Agent with --run to see it here."));
+            return;
+        }
+
+        devices.forEach((device) => {
+            const [label, badgeClass] = STATE_LABELS[device.state] || [device.state, "optional"];
+            const grid = el("div", "monitoring-status-grid");
+            [
+                ["Status", label],
+                ["Device", device.device_id],
+                ["Last heartbeat", ago(device.seconds_since_seen)],
+                ["Camera", yesNo(device.camera_ready)],
+                ["Face model", yesNo(device.face_model_ready)],
+                ["Object model", yesNo(device.object_model_ready)],
+                ["Trained faces", device.trained_identity_count],
+                ["Agent", device.agent_version],
+            ].forEach(([name, value]) => {
+                const cell = el("div");
+                cell.append(el("span", "", name));
+                const strong = el("strong", "", value);
+                if (name === "Status") {
+                    strong.className = `capability-badge ${badgeClass}`;
+                }
+                cell.append(strong);
+                grid.append(cell);
+            });
+            root.append(grid);
+        });
+    }
+
+    function renderAttendance(attendance) {
+        document.querySelectorAll("[data-edge-attendance]").forEach((node) => {
+            node.textContent = attendance ? attendance[node.dataset.edgeAttendance] : "-";
+        });
+    }
+
+    function describeEvent(event) {
+        const parts = [];
+        if (event.face_status === "recognized") {
+            parts.push(`${event.stu_id}${event.student_name ? " - " + event.student_name : ""}`);
+            if (event.confidence !== null) parts.push(`confidence ${Number(event.confidence).toFixed(2)}`);
+            if (event.attendance_result) parts.push(`attendance: ${event.attendance_result}`);
+        } else if (event.face_status === "unknown") {
+            parts.push("Unknown face");
+        }
+        if (event.behaviors.length) parts.push(`behavior: ${event.behaviors.join(", ")}`);
+        if (event.objects.length) parts.push(`objects: ${event.objects.join(", ")}`);
+        if (event.processing_status !== "processed") parts.push(`(${event.processing_status})`);
+        return parts.join(" · ");
+    }
+
+    function renderEvents(events) {
+        const root = document.getElementById("edgeEvents");
+        root.replaceChildren();
+
+        if (sessionId === null) {
+            root.append(el("p", "muted", "Select a session to see Edge events."));
+            return;
+        }
+        if (!events.length) {
+            root.append(el("p", "muted", "No Edge events for this session yet."));
+            return;
+        }
+
+        events.forEach((event) => {
+            const row = el("div", "mini-event");
+            const badge = event.face_status === "recognized" ? "severity-info" : "severity-medium";
+            row.append(el("span", `event-badge ${badge}`, event.face_status));
+            row.append(el("span", "event-message", describeEvent(event)));
+            row.append(el("time", "", event.captured_at));
+            root.append(row);
+        });
+    }
+
+    function render() {
+        renderDevices(data.devices || []);
+        renderAttendance(data.attendance);
+        renderEvents(data.events || []);
+    }
+
+    async function refresh() {
+        const url = sessionId === null
+            ? "/api/edge-monitoring/devices"
+            : `/api/edge-monitoring/sessions/${sessionId}/summary`;
+        try {
+            const response = await fetch(url, { headers: { "Accept": "application/json" } });
+            if (!response.ok) return;
+            const body = await response.json();
+            data = sessionId === null ? { ...data, devices: body.devices } : body;
+            render();
+        } catch (error) {
+            console.warn("Edge monitoring refresh failed", error);
+        }
+    }
+
+    render();
+    window.setInterval(refresh, 5000);
+})();
+</script>
+{% endblock %}
