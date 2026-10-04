@@ -11,9 +11,16 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_PATH = BACKEND_ROOT / ".env.edge"
 
 
-def load_edge_env(path: Path = DEFAULT_ENV_PATH) -> None:
+def load_edge_env(path: Path = DEFAULT_ENV_PATH) -> tuple[str, ...]:
+    """Load backend/.env.edge without overriding existing variables.
+
+    Returns the names of variables already set in the environment with a
+    different value than the file, so the caller can warn about them.
+    """
     if not path.exists():
-        return
+        return ()
+
+    overridden = []
 
     for raw_line in path.read_text(
         encoding="utf-8",
@@ -32,8 +39,15 @@ def load_edge_env(path: Path = DEFAULT_ENV_PATH) -> None:
         key = key.strip()
         value = value.strip().strip('"').strip("'")
 
-        if key and key not in os.environ:
+        if not key:
+            continue
+
+        if key not in os.environ:
             os.environ[key] = value
+        elif os.environ[key] != value:
+            overridden.append(key)
+
+    return tuple(overridden)
 
 
 def _bool_env(name: str, default: bool) -> bool:
@@ -98,11 +112,13 @@ class EdgeAgentConfig:
     event_cooldown_seconds: int
     api_timeout_seconds: int
     state_dir: Path
+    env_overrides: tuple[str, ...] = ()
 
     @classmethod
     def load(cls) -> "EdgeAgentConfig":
-        load_edge_env()
+        env_overrides = load_edge_env()
         return cls(
+            env_overrides=env_overrides,
             api_url=os.getenv(
                 "SMART_CLASSROOM_EDGE_API_URL",
                 "http://127.0.0.1:8000",

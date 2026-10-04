@@ -33,6 +33,14 @@ from edge_agent.spool import EventSpool
 
 AGENT_VERSION = "1.0.0-edge-mvp"
 
+# Attendance results that will not change if the same student is sent again
+# in this session. Other results (low_confidence, unstable_face, rejected)
+# are retried, but no more than once per event cooldown.
+FINAL_ATTENDANCE_RESULTS = {"success", "duplicate", "after_close", "invalid"}
+
+# About 10 seconds of failed reads at 0.2 s per retry.
+MAX_CONSECUTIVE_CAMERA_FAILURES = 50
+
 
 def _iso_now() -> str:
     return datetime.now(
@@ -217,6 +225,41 @@ class EdgeAgent:
             self.stable_counts.clear()
             self.unknown_streak = 0
 
+    def startup_sync(self) -> None:
+        """First contact with the cloud.
+
+        A sleeping Render free instance can take longer to wake than the
+        request timeout, so transient failures are logged and retried by
+        the normal heartbeat/context timers instead of stopping the agent.
+        A wrong Device Key or URL is permanent and stops it immediately.
+        """
+        try:
+            self.client.heartbeat(
+                self.heartbeat_payload(
+                    camera_ready=True
+                )
+            )
+        except EdgeAPIError as exc:
+            if not exc.retryable:
+                raise
+            print(
+                "Cloud not reachable yet; "
+                f"will keep retrying: {exc}"
+            )
+        self.last_heartbeat_at = time.monotonic()
+
+        try:
+            self.refresh_context()
+            self.flush_spool()
+        except EdgeAPIError as exc:
+            if not exc.retryable:
+                raise
+            print(
+                "Session context not loaded yet; "
+                f"will keep retrying: {exc}"
+            )
+        self.last_context_at = time.monotonic()
+
     def flush_spool(self) -> None:
         pending = self.spool.load()
         if not pending:
@@ -239,7 +282,7 @@ class EdgeAgent:
                     )
                     and response.get(
                         "attendance_result"
-                    ) in {"success", "duplicate"}
+                    ) in FINAL_ATTENDANCE_RESULTS
                     and self.active_session
                     and int(payload.get("session_id"))
                     == int(
@@ -666,21 +709,10 @@ class EdgeAgent:
 
         started = time.monotonic()
         frame_number = 0
+        camera_failures = 0
 
         try:
-            self.client.heartbeat(
-                self.heartbeat_payload(
-                    camera_ready=True
-                )
-            )
-            self.last_heartbeat_at = (
-                time.monotonic()
-            )
-            self.refresh_context()
-            self.last_context_at = (
-                time.monotonic()
-            )
-            self.flush_spool()
+            self.startup_sync()
 
             print(
                 "Real Edge Agent started. "
@@ -691,12 +723,28 @@ class EdgeAgent:
                 ok, frame = capture.read()
 
                 if not ok or frame is None:
-                    print(
-                        "Camera frame read failed."
-                    )
+                    camera_failures += 1
+
+                    if camera_failures == 1:
+                        print(
+                            "Camera frame read failed. "
+                            "Retrying..."
+                        )
+
+                    if (
+                        camera_failures
+                        >= MAX_CONSECUTIVE_CAMERA_FAILURES
+                    ):
+                        raise RuntimeError(
+                            "Camera stopped delivering "
+                            "frames. Check the webcam "
+                            "connection and restart."
+                        )
+
                     time.sleep(0.2)
                     continue
 
+                camera_failures = 0
                 frame_number += 1
                 now = time.monotonic()
 
@@ -764,6 +812,10 @@ class EdgeAgent:
                         attendance_due = (
                             stu_id
                             not in self.attendance_sent
+                            and self._cooldown_ready(
+                                f"attendance:{stu_id}",
+                                now,
+                            )
                         )
                         behavior_due = (
                             bool(behaviors)
@@ -817,10 +869,8 @@ class EdgeAgent:
 
                         if (
                             attendance_due
-                            and result in {
-                                "success",
-                                "duplicate",
-                            }
+                            and result
+                            in FINAL_ATTENDANCE_RESULTS
                         ):
                             self.attendance_sent.add(
                                 stu_id

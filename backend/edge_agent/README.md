@@ -39,3 +39,17 @@ From the `backend` folder:
 ```
 
 Press `Q` or `ESC` to stop.
+
+## Behavior notes
+
+- If the cloud is asleep or unreachable at startup, the agent keeps running
+  and retries; a wrong Device Key or URL stops it immediately.
+- Each student's attendance is sent once per session. Non-final results
+  (low confidence, unstable face, rejected) are retried at most once per
+  event cooldown (30 s).
+- The agent stops after about 10 seconds of failed camera reads and reports
+  the camera as down.
+- Values in `backend/.env.edge` do not override variables already set in the
+  terminal. The agent prints a warning (name only, never the value) when a
+  terminal variable such as `SMART_CLASSROOM_DEVICE_API_KEY` differs from the
+  file. Remove it with `Remove-Item Env:SMART_CLASSROOM_DEVICE_API_KEY`.
