@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 
+from edge_agent.api_client import EdgeAPIError
 from edge_agent.config import EdgeAgentConfig
 from edge_agent.runtime import EdgeAgent, diagnose
 
@@ -45,16 +46,31 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def warn_env_overrides(config: EdgeAgentConfig) -> None:
+    for name in config.env_overrides:
+        # Never print the value: it may be the Device Key.
+        print(
+            f"WARNING: {name} is set in this terminal and differs "
+            "from backend/.env.edge. The terminal value is used. "
+            f"Run 'Remove-Item Env:{name}' to use .env.edge."
+        )
+
+
 def main() -> int:
     args = build_parser().parse_args()
     config = EdgeAgentConfig.load()
+    warn_env_overrides(config)
 
     if args.headless:
         config = config.with_show_window(False)
 
     if args.run:
-        agent = EdgeAgent(config)
-        agent.run(max_seconds=args.max_seconds)
+        try:
+            agent = EdgeAgent(config)
+            agent.run(max_seconds=args.max_seconds)
+        except (EdgeAPIError, RuntimeError, ValueError) as exc:
+            print(f"Edge Agent stopped: {exc}")
+            return 1
         return 0
 
     return diagnose(
