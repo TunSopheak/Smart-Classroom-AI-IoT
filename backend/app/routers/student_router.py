@@ -20,7 +20,8 @@ from app.database.database import get_db
 from app.models.classroom import Classroom
 from app.models.enrollment import Enrollment
 from app.schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
-from app.services.qr_service import build_student_qr_code, generate_student_qr_image, parse_signed_student_qr
+from app.services.qr_service import build_student_qr_code
+from app.services.student_qr_service import ensure_student_qr
 
 router = APIRouter(tags=["Students"])
 def normalize_or_generate_student_code(db: Session, stu_id: str | None) -> str:
@@ -28,17 +29,6 @@ def normalize_or_generate_student_code(db: Session, stu_id: str | None) -> str:
     if clean_stu_id:
         return clean_stu_id
     return generate_next_student_code(db)
-
-
-def ensure_student_qr(db: Session, student):
-    """Make sure a student has QR value and QR image path."""
-    if not student.qr_code or parse_signed_student_qr(student.qr_code) != student.stu_id:
-        student.qr_code = build_student_qr_code(student.stu_id)
-
-    student.qr_image_path = generate_student_qr_image(student.stu_id, student.qr_code)
-    db.commit()
-    db.refresh(student)
-    return student
 
 
 def enroll_student_to_first_classroom(db: Session, student_id: int) -> None:

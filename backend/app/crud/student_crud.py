@@ -39,10 +39,6 @@ def get_student_by_stu_id(db: Session, stu_id: str):
     return db.query(Student).filter(Student.stu_id == stu_id).first()
 
 
-def get_student_by_qr_code(db: Session, qr_code: str):
-    return db.query(Student).filter(Student.qr_code == qr_code).first()
-
-
 def create_student(db: Session, data: StudentCreate):
     student = Student(**data.model_dump())
     db.add(student)
