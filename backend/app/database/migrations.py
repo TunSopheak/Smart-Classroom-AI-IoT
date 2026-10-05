@@ -4,12 +4,12 @@ from app.database.database import engine
 
 
 # Columns added to class_sessions after the first release. create_all() does
-# not alter existing tables, so older SQLite databases get them here.
+# not alter existing tables, so older databases get them here.
 CLASS_SESSION_COLUMNS = {
     "class_group_id": "INTEGER",
     "course_id": "INTEGER",
     "weekly_schedule_id": "INTEGER",
-    "archived": "BOOLEAN NOT NULL DEFAULT 0",
+    "archived": "BOOLEAN NOT NULL DEFAULT FALSE",
 }
 
 

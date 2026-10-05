@@ -7,7 +7,7 @@ from app.core.templating import templates
 from sqlalchemy import text
 
 from app.core.product_settings import load_product_settings, save_product_settings
-from app.database.database import SessionLocal
+from app.database.database import SessionLocal, engine
 from app.services.camera_monitoring_service import RECORDINGS_DIR, camera_service
 
 router = APIRouter(tags=["Product"])
@@ -25,7 +25,7 @@ def check_database() -> dict:
         return {
             "name": "Database",
             "status": "ok",
-            "message": "SQLite database connection is working.",
+            "message": f"{engine.dialect.name.capitalize()} database connection is working.",
         }
     except Exception as exc:
         return {

@@ -13,7 +13,11 @@ TEST_DEVICE_KEY = "test-device-key-not-a-real-secret"
 # The app reads these at import time, so they must be set before importing it.
 # Use a throwaway database and a test-only key so local data is never touched.
 _TEST_DB_DIR = tempfile.mkdtemp(prefix="smart_classroom_tests_")
-os.environ["DATABASE_URL"] = f"sqlite:///{Path(_TEST_DB_DIR, 'test.db').as_posix()}"
+# Set TEST_DATABASE_URL to run the suite against an empty PostgreSQL database.
+os.environ["DATABASE_URL"] = os.environ.get(
+    "TEST_DATABASE_URL",
+    f"sqlite:///{Path(_TEST_DB_DIR, 'test.db').as_posix()}",
+)
 os.environ["SMART_CLASSROOM_DEVICE_API_KEY"] = TEST_DEVICE_KEY
 os.environ["APP_ENV"] = "development"
 os.environ.pop("RENDER", None)
