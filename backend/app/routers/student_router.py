@@ -3,7 +3,7 @@ from io import StringIO
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -23,7 +23,6 @@ from app.schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
 from app.services.qr_service import build_student_qr_code, generate_student_qr_image, parse_signed_student_qr
 
 router = APIRouter(tags=["Students"])
-templates = Jinja2Templates(directory="app/templates")
 def normalize_or_generate_student_code(db: Session, stu_id: str | None) -> str:
     clean_stu_id = (stu_id or "").strip().upper()
     if clean_stu_id:

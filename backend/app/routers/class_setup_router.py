@@ -1,9 +1,8 @@
 from app.services.academic_rules import validate_weekly_schedule_rule
-from datetime import date
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -12,9 +11,9 @@ from app.database.database import get_db
 from app.models.academic import ClassGroup, Course, StudentEnrollment, WeeklySchedule
 from app.models.student import Student
 from app.services.academic_service import WEEKDAY_LABELS, create_session_from_schedule
+from app.core.timezone import classroom_today
 
 router = APIRouter(tags=["Class Setup"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def class_setup_redirect(message: str = "") -> RedirectResponse:
@@ -54,7 +53,7 @@ def class_setup_page(request: Request, selected_group_id: int | None = None, db:
             .all()
         )
 
-    today_weekday = date.today().weekday()
+    today_weekday = classroom_today().weekday()
     todays_schedules = [item for item in schedules if item.active and item.weekday == today_weekday]
 
     return templates.TemplateResponse(

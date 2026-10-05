@@ -16,7 +16,7 @@ from app.schemas.edge_schema import EdgeInferenceEventRequest
 from app.services.ai_monitoring_service import create_ai_monitoring_event
 from app.services.attendance_service import is_student_enrolled
 from app.services.face_service import record_face_attendance
-from app.core.timezone import utc_now
+from app.core.timezone import to_classroom_time, utc_now
 
 
 MIN_STABLE_FACE_FRAMES = 6
@@ -156,7 +156,8 @@ def process_edge_inference_event(
                     raw_source=(
                         f"edge:{payload.device_id}:{event_id}"
                     )[:120],
-                    event_time=captured_at,
+                    # Session times are classroom time; captured_at is UTC.
+                    event_time=to_classroom_time(payload.captured_at),
                 )
                 attendance_result = str(_value(attendance.get("result")))
                 attendance_record_id = attendance.get("record_id")

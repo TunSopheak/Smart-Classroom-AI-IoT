@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy.orm import Session
 
 from app.core.constants import AttendanceStatus
@@ -22,7 +22,6 @@ from app.services.attendance_service import (
 from app.services.face_service import simulate_face_attendance
 
 router = APIRouter(tags=["Attendance"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/api/sessions/{session_id}/attendance", response_model=list[AttendanceRecordRead])

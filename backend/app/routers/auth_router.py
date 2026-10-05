@@ -2,7 +2,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 
 from app.core.auth import (
     DEMO_USERS,
@@ -16,7 +16,6 @@ from app.core.auth import (
 )
 
 router = APIRouter(tags=["Authentication"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/login")

@@ -18,6 +18,7 @@ from app.services.attendance_service import (
     log_attendance_event,
     mark_attendance_record,
 )
+from app.core.timezone import classroom_now
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 FACE_ATTENDANCE_MIN_CONFIDENCE = 0.60
@@ -92,7 +93,7 @@ def record_face_attendance(
     if not student or not student.active:
         raise ValueError("Student not found or inactive")
 
-    event_time = event_time or datetime.now().replace(microsecond=0)
+    event_time = event_time or classroom_now()
     ensure_attendance_records_for_session(db, session)
 
     if not is_student_enrolled(db, session, student.id):

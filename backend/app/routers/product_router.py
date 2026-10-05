@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy import text
 
 from app.core.product_settings import load_product_settings, save_product_settings
@@ -11,7 +11,6 @@ from app.database.database import SessionLocal
 from app.services.camera_monitoring_service import RECORDINGS_DIR, camera_service
 
 router = APIRouter(tags=["Product"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]

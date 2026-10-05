@@ -142,7 +142,7 @@
             <tbody>
                 {% for event in ai_events %}
                 <tr>
-                    <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
+                    <td>{{ event.created_at|kh_datetime }}</td>
                     <td>
                         {% if event.student %}
                             <strong class="student-code">{{ event.student.stu_id }}</strong><br>
@@ -184,7 +184,7 @@
             <tbody>
                 {% for reading in iot_readings %}
                 <tr>
-                    <td>{{ reading.timestamp.strftime("%Y-%m-%d %H:%M:%S") if reading.timestamp else "-" }}</td>
+                    <td>{{ reading.timestamp|kh_datetime }}</td>
                     <td>{{ reading.device.name if reading.device else "Unknown Device" }}</td>
                     <td>{{ "%.1f"|format(reading.temperature) if reading.temperature is not none else "-" }}°C</td>
                     <td>{{ "%.1f"|format(reading.humidity) if reading.humidity is not none else "-" }}%</td>
@@ -219,7 +219,7 @@
             <tbody>
                 {% for event in automation_events %}
                 <tr>
-                    <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
+                    <td>{{ event.created_at|kh_datetime }}</td>
                     <td><span class="badge badge-ai">{{ event.rule_name }}</span></td>
                     <td>{{ event.action }}</td>
                     <td><span class="automation-status automation-status-{{ event.status }}">{{ event.status }}</span></td>

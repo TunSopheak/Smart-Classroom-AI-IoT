@@ -1,7 +1,6 @@
 import threading
 import time
 from collections import deque
-from datetime import datetime
 from pathlib import Path
 
 import cv2
@@ -12,7 +11,7 @@ from app.models.ai_monitoring_event import AIMonitoringEvent
 from app.models.attendance_record import AttendanceRecord
 from app.models.device import Device
 from app.services.object_detection_service import object_detection_service
-from app.core.timezone import utc_now
+from app.core.timezone import classroom_now, utc_now
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -280,7 +279,7 @@ class CameraMonitoringService:
 
         self._update_iot_auto_control(len(faces), object_detections)
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
+        timestamp = classroom_now().strftime("%H:%M:%S")
         self._draw_monitoring_header(frame, w, timestamp)
 
         if len(faces) > 1:
@@ -476,7 +475,7 @@ class CameraMonitoringService:
             "severity": severity,
             "confidence": round(confidence, 2),
             "description": description,
-            "created_at": utc_now().strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": classroom_now().strftime("%Y-%m-%d %H:%M:%S"),
             "session_id": self.monitoring_session_id,
             "source": "object_detection_yolo",
         }
@@ -598,7 +597,7 @@ class CameraMonitoringService:
                 "marked": marked,
                 "student_id": student_id,
                 "session_id": self.monitoring_session_id,
-                "created_at": utc_now().strftime("%Y-%m-%d %H:%M:%S"),
+                "created_at": classroom_now().strftime("%Y-%m-%d %H:%M:%S"),
             },
         )
         self.face_attendance_events_memory = self.face_attendance_events_memory[:20]
@@ -862,7 +861,7 @@ class CameraMonitoringService:
             "severity": severity,
             "confidence": round(confidence, 2),
             "description": description,
-            "created_at": utc_now().strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": classroom_now().strftime("%Y-%m-%d %H:%M:%S"),
             "session_id": self.monitoring_session_id,
         }
 
@@ -919,7 +918,7 @@ class CameraMonitoringService:
                 "started_at": self.recording_started_at,
             }
 
-        filename = f"camera_session_{session_id or 'none'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.webm"
+        filename = f"camera_session_{session_id or 'none'}_{classroom_now().strftime('%Y%m%d_%H%M%S')}.webm"
         path = RECORDINGS_DIR / filename
 
         fourcc = cv2.VideoWriter_fourcc(*"VP80")

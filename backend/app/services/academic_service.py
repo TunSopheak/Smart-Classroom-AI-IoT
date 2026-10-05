@@ -10,6 +10,7 @@ from app.models.subject import Subject
 from app.schemas.session_schema import ClassSessionCreate
 from app.crud.session_crud import create_session
 from app.services.session_service import prepare_session_attendance
+from app.core.timezone import classroom_today
 
 
 WEEKDAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -82,7 +83,7 @@ def get_or_create_legacy_subject(db: Session, course: Course) -> Subject:
 
 
 def get_or_create_demo_weekly_schedule(db: Session, class_group: ClassGroup, course: Course) -> WeeklySchedule:
-    demo_weekday = date.today().weekday()
+    demo_weekday = classroom_today().weekday()
     schedule = (
         db.query(WeeklySchedule)
         .filter(
@@ -163,7 +164,7 @@ def build_schedule_datetimes(schedule: WeeklySchedule, target_date: date) -> tup
 
 
 def create_session_from_schedule(db: Session, schedule: WeeklySchedule, target_date: date | None = None) -> ClassSession | None:
-    target_date = target_date or date.today()
+    target_date = target_date or classroom_today()
     start_at, late_at, close_at = build_schedule_datetimes(schedule, target_date)
 
     existing = (

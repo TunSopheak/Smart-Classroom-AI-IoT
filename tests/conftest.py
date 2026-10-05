@@ -1,7 +1,7 @@
 import os
 import sys
 import tempfile
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -61,17 +61,18 @@ def db(client):
 def active_session(db):
     """Create a fresh active session for the seeded classroom (S001-S005 enrolled).
 
-    Times are naive UTC, matching how the edge API stores captured_at.
+    Times are classroom (Cambodia) time, like real sessions.
     """
     from app.models.class_session import ClassSession
     from app.models.classroom import Classroom
     from app.models.subject import Subject
+    from app.core.timezone import classroom_now
 
     db.query(ClassSession).filter(ClassSession.active.is_(True)).update(
         {ClassSession.active: False}
     )
 
-    now = datetime.utcnow().replace(microsecond=0)
+    now = classroom_now()
     session = ClassSession(
         classroom_id=db.query(Classroom).first().id,
         subject_id=db.query(Subject).first().id,

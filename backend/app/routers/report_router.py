@@ -4,7 +4,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
+from app.core.timezone import format_cambodia_datetime
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -17,7 +18,6 @@ from app.models.sensor_reading import SensorReading
 from app.services.attendance_service import ensure_attendance_records_for_session
 
 router = APIRouter(tags=["Reports"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 ATTENDANCE_STATUSES = ["P", "L", "A", "Pm"]
@@ -250,7 +250,7 @@ def export_ai_events_csv(
         "confidence",
         "source",
         "description",
-        "created_at",
+        "created_at_cambodia",
     ])
 
     for event in events:
@@ -266,7 +266,7 @@ def export_ai_events_csv(
             event.confidence if event.confidence is not None else "",
             event.source,
             event.description,
-            event.created_at,
+            format_cambodia_datetime(event.created_at),
         ])
 
     filename = f"ai_events_report_session_{selected_session_id or 'latest'}.csv"
@@ -296,7 +296,7 @@ def export_iot_readings_csv(
         "humidity",
         "noise_level",
         "light_level",
-        "timestamp",
+        "timestamp_cambodia",
     ])
 
     for reading in readings:
@@ -307,7 +307,7 @@ def export_iot_readings_csv(
             reading.humidity if reading.humidity is not None else "",
             reading.noise_level if reading.noise_level is not None else "",
             reading.light_level if reading.light_level is not None else "",
-            reading.timestamp,
+            format_cambodia_datetime(reading.timestamp),
         ])
 
     return Response(

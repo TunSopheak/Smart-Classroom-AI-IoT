@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy.orm import Session
 
 from app.core.timezone import format_cambodia_datetime, utc_now
@@ -10,7 +10,6 @@ from app.database.database import get_db
 from app.models.camera_recording import CameraRecording
 
 router = APIRouter(tags=["Admin Management"])
-templates = Jinja2Templates(directory="app/templates")
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 RECORDINGS_DIR = BACKEND_ROOT / "app" / "static" / "recordings"

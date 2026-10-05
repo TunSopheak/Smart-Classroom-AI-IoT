@@ -1,6 +1,6 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 
 from app.core.auth import (
     get_current_user_from_request,
@@ -11,7 +11,6 @@ from app.core.auth import (
 )
 
 
-templates = Jinja2Templates(directory="app/templates")
 
 
 async def auth_middleware(request: Request, call_next):
