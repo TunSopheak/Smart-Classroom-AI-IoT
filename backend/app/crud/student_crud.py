@@ -1,7 +1,26 @@
+import re
+
 from sqlalchemy.orm import Session
 
 from app.models.student import Student
 from app.schemas.student_schema import StudentCreate, StudentUpdate
+
+
+STUDENT_CODE_PATTERN = re.compile(r"^S(\d+)$", re.IGNORECASE)
+
+
+def generate_next_student_code(db: Session) -> str:
+    """Return the next free S001-style code, ignoring manually entered IDs."""
+    max_number = 0
+    for (stu_id,) in db.query(Student.stu_id).all():
+        match = STUDENT_CODE_PATTERN.match(stu_id or "")
+        if match:
+            max_number = max(max_number, int(match.group(1)))
+
+    next_number = max_number + 1
+    while db.query(Student).filter(Student.stu_id == f"S{next_number:03d}").first():
+        next_number += 1
+    return f"S{next_number:03d}"
 
 
 def get_students(db: Session, skip: int = 0, limit: int = 200):

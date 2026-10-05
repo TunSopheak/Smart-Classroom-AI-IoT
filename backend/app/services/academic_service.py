@@ -205,7 +205,7 @@ def create_session_from_schedule(db: Session, schedule: WeeklySchedule, target_d
     return session
 
 
-# Phase 16.2.1 academic code helpers
+# Academic code helpers
 DEFAULT_DEPARTMENT_CODE = "CS"
 DEFAULT_CLASS_LEVEL = "M4"
 DEFAULT_YEAR_LEVEL = "Y3"

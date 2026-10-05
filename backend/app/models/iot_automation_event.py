@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
+from app.core.timezone import utc_now
 
 
 class IoTAutomationEvent(Base):
@@ -15,4 +16,4 @@ class IoTAutomationEvent(Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="skipped")
     occupancy_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)

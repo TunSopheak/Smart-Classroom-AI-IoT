@@ -4,6 +4,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+from app.core.timezone import utc_now
 
 
 class ClassSession(Base):
@@ -22,7 +23,7 @@ class ClassSession(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     archived = Column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     classroom = relationship("Classroom", back_populates="sessions")
     subject = relationship("Subject", back_populates="sessions")

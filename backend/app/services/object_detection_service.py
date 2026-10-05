@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -73,7 +73,6 @@ class ObjectDetectionService:
         numpy_ready = np is not None
 
         return {
-            "phase": "17B-object-detection-camera-overlay",
             "model_path": str(self.model_path),
             "model_exists": model_exists,
             "opencv_dnn_ready": opencv_dnn_ready,

@@ -4,6 +4,7 @@ from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
+from app.core.timezone import utc_now
 
 
 class EdgeDevice(Base):
@@ -25,5 +26,5 @@ class EdgeDevice(Base):
 
     last_seen_at: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=False)
     first_seen_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utc_now, nullable=False
     )

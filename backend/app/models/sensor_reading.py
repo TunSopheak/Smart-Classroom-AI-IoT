@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, Float, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+from app.core.timezone import utc_now
 
 
 class SensorReading(Base):
@@ -15,6 +16,6 @@ class SensorReading(Base):
     humidity: Mapped[float | None] = mapped_column(Float, nullable=True)
     noise_level: Mapped[float | None] = mapped_column(Float, nullable=True)
     light_level: Mapped[float | None] = mapped_column(Float, nullable=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     device = relationship("Device", back_populates="sensor_readings")

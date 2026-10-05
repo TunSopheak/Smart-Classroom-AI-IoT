@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
+from app.core.timezone import utc_now
 
 
 class EdgeInferenceEvent(Base):
@@ -38,6 +39,6 @@ class EdgeInferenceEvent(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utc_now, nullable=False
     )
     processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

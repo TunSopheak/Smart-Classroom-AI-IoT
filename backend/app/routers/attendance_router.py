@@ -13,11 +13,13 @@ from app.schemas.attendance_schema import (
     AttendanceScanResponse,
     QRScanRequest,
 )
+from app.schemas.face_schema import FaceRecognitionRequest
 from app.services.attendance_service import (
     ensure_attendance_records_for_session,
     override_attendance_record,
     scan_qr_attendance,
 )
+from app.services.face_service import simulate_face_attendance
 
 router = APIRouter(tags=["Attendance"])
 templates = Jinja2Templates(directory="app/templates")
@@ -130,10 +132,7 @@ def dashboard_override_attendance(
     return RedirectResponse(url=f"/dashboard/sessions/{record.session_id}/attendance", status_code=303)
 
 
-
-# Phase 4 face attendance routes
-from app.schemas.face_schema import FaceRecognitionRequest
-from app.services.face_service import simulate_face_attendance
+# Face attendance routes (manual / simulation entry points)
 
 
 @router.post("/api/attendance/face-recognize")

@@ -14,7 +14,6 @@ from app.models.attendance_record import AttendanceRecord
 from app.models.class_session import ClassSession
 from app.models.iot_automation_event import IoTAutomationEvent
 from app.models.sensor_reading import SensorReading
-from app.models.student import Student
 from app.services.attendance_service import ensure_attendance_records_for_session
 
 router = APIRouter(tags=["Reports"])

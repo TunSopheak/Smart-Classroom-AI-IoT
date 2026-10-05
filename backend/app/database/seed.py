@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy.orm import Session
 
 from app.core.constants import AttendanceMethod, AttendanceStatus, UserRole
 from app.core.security import hash_password
@@ -89,7 +88,7 @@ def seed_demo_data() -> None:
         db.add(session)
         db.flush()
 
-        # Default records start as absent until QR/face/manual updates happen in later phases.
+        # Default records start as absent until QR, FACE or manual attendance updates them.
         for student in students:
             db.add(
                 AttendanceRecord(

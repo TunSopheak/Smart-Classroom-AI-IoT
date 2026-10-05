@@ -1,4 +1,3 @@
-from app.services.academic_rules import class_has_active_session
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request

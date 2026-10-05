@@ -1,14 +1,13 @@
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.core.monitoring_mode import is_edge_monitoring
-from app.core.timezone import format_cambodia_datetime, format_cambodia_time
+from app.core.timezone import format_cambodia_datetime, format_cambodia_time, utc_now
 from app.database.database import get_db
 from app.models.ai_monitoring_event import AIMonitoringEvent
 from app.models.attendance_record import AttendanceRecord
@@ -496,7 +495,7 @@ def dashboard_stop_recording(
             file_path = get_recording_file_path(latest)
             if file_path.exists() and file_path.stat().st_size > 100000:
                 latest.status = "saved"
-                latest.stopped_at = datetime.utcnow()
+                latest.stopped_at = utc_now()
                 if latest.started_at:
                     latest.duration_seconds = (latest.stopped_at - latest.started_at).total_seconds()
                 db.commit()
@@ -549,7 +548,7 @@ def dashboard_fix_stuck_recordings(
 
         if file_path.exists() and file_path.stat().st_size > 100000:
             item.status = "saved"
-            item.stopped_at = datetime.utcnow()
+            item.stopped_at = utc_now()
             if item.started_at:
                 item.duration_seconds = (item.stopped_at - item.started_at).total_seconds()
             fixed_count += 1
@@ -602,8 +601,8 @@ def dashboard_convert_recording_to_webm(
         filename=result["filename"],
         file_path=f"/static/recordings/{result['filename']}",
         status="saved",
-        started_at=datetime.utcnow(),
-        stopped_at=datetime.utcnow(),
+        started_at=utc_now(),
+        stopped_at=utc_now(),
         duration_seconds=result.get("duration_seconds"),
         note=f"Converted from legacy recording: {recording.filename}",
     )

@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, Uniqu
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+from app.core.timezone import utc_now
 
 
 class AttendanceRecord(Base):
@@ -19,7 +20,7 @@ class AttendanceRecord(Base):
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     overridden_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     session = relationship("ClassSession", back_populates="attendance_records")
     student = relationship("Student", back_populates="attendance_records")
