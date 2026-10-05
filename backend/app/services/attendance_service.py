@@ -11,7 +11,7 @@ from app.models.class_session import ClassSession
 from app.models.enrollment import Enrollment
 from app.models.student import Student
 from app.services.qr_service import parse_signed_student_qr
-from app.core.timezone import utc_now
+from app.core.timezone import classroom_now, utc_now
 
 
 def calculate_attendance_status(event_time: datetime, session: ClassSession) -> AttendanceStatus:
@@ -255,7 +255,7 @@ def scan_qr_attendance(
     if not session:
         raise ValueError("No active/session attendance session found")
 
-    event_time = event_time or datetime.now().replace(microsecond=0)
+    event_time = event_time or classroom_now()
     ensure_attendance_records_for_session(db, session)
 
     student = get_student_by_qr_code(db, clean_qr)

@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db, SessionLocal
@@ -28,7 +28,6 @@ from app.services.face_product_service import (
 from app.services.face_service import FACE_ATTENDANCE_MIN_CONFIDENCE, simulate_face_attendance
 
 router = APIRouter(tags=["Product AI Integration"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def get_active_or_latest_session(db: Session):

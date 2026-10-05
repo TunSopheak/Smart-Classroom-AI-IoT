@@ -84,7 +84,7 @@
                             {{ device.status }}
                         </span>
                     </td>
-                    <td>{{ device.last_seen.strftime("%Y-%m-%d %H:%M:%S") if device.last_seen else "-" }}</td>
+                    <td>{{ device.last_seen|kh_datetime }}</td>
                     <td>
                         {% if device.type in ["light", "fan"] %}
                         <form method="post" action="/dashboard/iot-monitoring/control" class="inline-form">
@@ -130,7 +130,7 @@
             <tbody>
                 {% for reading in readings %}
                 <tr>
-                    <td>{{ reading.timestamp.strftime("%Y-%m-%d %H:%M:%S") if reading.timestamp else "-" }}</td>
+                    <td>{{ reading.timestamp|kh_datetime }}</td>
                     <td><strong class="device-name">{{ reading.device.name if reading.device else "Unknown Device" }}</strong></td>
                     <td>{{ "%.1f"|format(reading.temperature) if reading.temperature is not none else "-" }}°C</td>
                     <td>{{ "%.1f"|format(reading.humidity) if reading.humidity is not none else "-" }}%</td>
@@ -185,7 +185,7 @@
             <tbody>
                 {% for event in automation_events %}
                 <tr>
-                    <td>{{ event.created_at.strftime("%Y-%m-%d %H:%M:%S") if event.created_at else "-" }}</td>
+                    <td>{{ event.created_at|kh_datetime }}</td>
                     <td><span class="badge badge-ai">{{ event.rule_name }}</span></td>
                     <td>{{ event.action }}</td>
                     <td><span class="automation-status automation-status-{{ event.status }}">{{ event.status }}</span></td>

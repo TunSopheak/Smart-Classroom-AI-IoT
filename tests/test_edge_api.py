@@ -168,7 +168,9 @@ def test_unstable_face_does_not_mark_attendance(client, device_headers, db, acti
 
 
 def test_after_close_is_logged_but_not_marked(client, device_headers, db, active_session):
-    captured = active_session.close_time.replace(tzinfo=timezone.utc) + timedelta(minutes=1)
+    from app.core.timezone import CAMBODIA_TZ
+
+    captured = active_session.close_time.replace(tzinfo=CAMBODIA_TZ) + timedelta(minutes=1)
     body = _post_event(
         client,
         device_headers,

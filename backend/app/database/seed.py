@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 
 from app.core.constants import AttendanceMethod, AttendanceStatus, UserRole
@@ -13,6 +13,7 @@ from app.models.subject import Subject
 from app.models.teacher import Teacher
 from app.models.user import User
 from app.services.academic_service import seed_academic_demo_data
+from app.core.timezone import classroom_now
 
 
 def seed_demo_data() -> None:
@@ -74,7 +75,7 @@ def seed_demo_data() -> None:
         for student in students:
             db.add(Enrollment(classroom_id=classroom.id, student_id=student.id, active=True))
 
-        now = datetime.now().replace(second=0, microsecond=0)
+        now = classroom_now().replace(second=0)
         session = ClassSession(
             classroom_id=classroom.id,
             subject_id=subject.id,

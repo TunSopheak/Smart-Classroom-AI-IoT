@@ -1,8 +1,7 @@
 ﻿from fastapi import APIRouter, Request
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 
 router = APIRouter(tags=["Object Detection Page"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/dashboard/object-detection")

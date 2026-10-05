@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -17,7 +17,6 @@ from app.services.iot_service import (
 )
 
 router = APIRouter(tags=["IoT Monitoring"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def device_to_dict(device):

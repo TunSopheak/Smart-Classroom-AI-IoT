@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy.orm import Session
 
 from app.crud.session_crud import create_session, get_session, get_sessions, update_session
@@ -15,9 +15,9 @@ from app.schemas.session_schema import ClassSessionCreate, ClassSessionRead, Cla
 from app.services.academic_service import get_or_create_legacy_classroom, get_or_create_legacy_subject
 from app.services.attendance_service import finalize_session_absences
 from app.services.session_service import prepare_session_attendance
+from app.core.timezone import classroom_now
 
 router = APIRouter(tags=["Class Sessions"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def close_other_active_sessions(db: Session, keep_session_id: int | None = None) -> None:
@@ -131,7 +131,7 @@ def dashboard_create_session(
     if classroom_id is None or subject_id is None:
         raise HTTPException(status_code=400, detail="Class group/course or legacy classroom/subject is required")
 
-    now = datetime.now().replace(microsecond=0)
+    now = classroom_now()
     session = create_session(
         db,
         ClassSessionCreate(

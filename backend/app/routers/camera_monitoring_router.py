@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy.orm import Session
 
 from app.core.monitoring_mode import is_edge_monitoring
@@ -23,7 +23,6 @@ from app.services.iot_service import get_iot_stats, list_devices, seed_demo_devi
 from app.services.object_detection_service import object_detection_service
 
 router = APIRouter(tags=["Camera Monitoring"])
-templates = Jinja2Templates(directory="app/templates")
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 RECORDINGS_DIR = BACKEND_ROOT / "app" / "static" / "recordings"

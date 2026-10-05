@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.core.templating import templates
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -16,7 +16,6 @@ from app.services.ai_monitoring_service import (
 )
 
 router = APIRouter(tags=["AI Monitoring"])
-templates = Jinja2Templates(directory="app/templates")
 
 EVENT_TYPES = [
     "phone_usage",

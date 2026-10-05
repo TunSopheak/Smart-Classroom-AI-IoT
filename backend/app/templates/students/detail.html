@@ -59,8 +59,8 @@
     <h2>Student System Info</h2>
     <div class="info-grid">
         <div><span>Status</span><strong>{{ 'Active' if student.active else 'Inactive' }}</strong></div>
-        <div><span>Created</span><strong>{{ student.created_at }}</strong></div>
-        <div><span>Updated</span><strong>{{ student.updated_at }}</strong></div>
+        <div><span>Created</span><strong>{{ student.created_at|kh_datetime }}</strong></div>
+        <div><span>Updated</span><strong>{{ student.updated_at|kh_datetime }}</strong></div>
         <div><span>Face Dataset</span><strong>{{ student.face_dataset_path or '-' }}</strong></div>
     </div>
 
