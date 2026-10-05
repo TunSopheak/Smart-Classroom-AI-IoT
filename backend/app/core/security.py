@@ -2,7 +2,7 @@ import hashlib
 import os
 
 
-# Lightweight demo hashing for Phase 0 + Phase 1.
+# Lightweight demo password hashing (not used for production accounts).
 # For production, replace this with passlib/bcrypt or another strong password-hashing library.
 def hash_password(password: str) -> str:
     salt = os.environ.get("SMART_CLASSROOM_DEMO_SALT", "smart-classroom-demo-salt")

@@ -1,6 +1,5 @@
 import json
 import uuid
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -10,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models.face_profile import FaceProfile
 from app.models.student import Student
+from app.core.timezone import utc_now
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -66,7 +66,7 @@ def get_unique_sample_path(folder: Path, stu_id: str, source: str) -> Path:
     folder.mkdir(parents=True, exist_ok=True)
 
     while True:
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+        timestamp = utc_now().strftime("%Y%m%d%H%M%S%f")
         short_uuid = uuid.uuid4().hex[:8]
         output_path = folder / f"{stu_id}_{source}_{timestamp}_{short_uuid}.jpg"
         if not output_path.exists():
@@ -567,7 +567,7 @@ def train_lbph_model(db: Session) -> dict:
     recognizer.train(images, np.array(labels))
     recognizer.write(str(MODEL_PATH))
 
-    trained_at = datetime.utcnow()
+    trained_at = utc_now()
 
     labels_data = {
         "trained_at": trained_at.isoformat(),

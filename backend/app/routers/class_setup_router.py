@@ -1,4 +1,4 @@
-from app.services.academic_rules import validate_weekly_schedule_rule, class_has_active_session
+from app.services.academic_rules import validate_weekly_schedule_rule
 from datetime import date
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request

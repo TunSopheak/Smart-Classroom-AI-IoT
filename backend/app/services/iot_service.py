@@ -1,4 +1,3 @@
-from datetime import datetime
 from statistics import mean
 
 from sqlalchemy.orm import Session
@@ -7,6 +6,7 @@ from app.core.constants import DeviceStatus
 from app.models.device import Device
 from app.models.sensor_reading import SensorReading
 from app.schemas.iot_schema import SensorReadingCreate
+from app.core.timezone import utc_now
 
 
 DEMO_DEVICES = [
@@ -74,7 +74,7 @@ def seed_demo_devices(db: Session):
             type=item["type"],
             location=item["location"],
             status=item["status"],
-            last_seen=datetime.utcnow(),
+            last_seen=utc_now(),
         )
         db.add(device)
         created += 1
@@ -102,7 +102,7 @@ def update_device_status(db: Session, device_id: int, status: str):
         raise ValueError(f"Invalid device status: {status}")
 
     device.status = clean_status
-    device.last_seen = datetime.utcnow()
+    device.last_seen = utc_now()
     db.commit()
     db.refresh(device)
     return device
@@ -119,10 +119,10 @@ def create_sensor_reading(db: Session, payload: SensorReadingCreate):
         humidity=payload.humidity,
         noise_level=payload.noise_level,
         light_level=payload.light_level,
-        timestamp=datetime.utcnow(),
+        timestamp=utc_now(),
     )
 
-    device.last_seen = datetime.utcnow()
+    device.last_seen = utc_now()
     if device.status == "offline":
         device.status = "online"
 

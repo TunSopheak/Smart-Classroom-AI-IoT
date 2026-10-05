@@ -320,20 +320,18 @@ def generate_face_recognition_stream(camera_index: int = 0):
                 if prediction and prediction["confidence"] >= FACE_ATTENDANCE_MIN_CONFIDENCE:
                     student = db.query(Student).filter(Student.stu_id == prediction["stu_id"]).first()
                     name = student.name if student else "Unknown Student"
-                    attendance_text = "not recorded"
                     if student and student.stu_id not in sent_students:
                         try:
-                            result = simulate_face_attendance(
+                            simulate_face_attendance(
                                 db=db,
                                 student_id=student.id,
                                 session_id=None,
                                 confidence=prediction["confidence"],
                                 raw_source="dashboard_live_face_recognition",
                             )
-                            attendance_text = result["result"]
                             sent_students.add(student.stu_id)
                         except ValueError:
-                            attendance_text = "no active session"
+                            pass  # No active session: show the name only.
 
                     label = f"{prediction['stu_id']} - {name}"
                     color = (0, 255, 0)

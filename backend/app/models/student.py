@@ -4,6 +4,7 @@ from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+from app.core.timezone import utc_now
 
 
 class Student(Base):
@@ -17,8 +18,8 @@ class Student(Base):
     qr_image_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     face_dataset_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     enrollments = relationship("Enrollment", back_populates="student", cascade="all, delete-orphan")
     class_group_enrollments = relationship("StudentEnrollment", back_populates="student", cascade="all, delete-orphan")

@@ -12,6 +12,7 @@ from app.models.ai_monitoring_event import AIMonitoringEvent
 from app.models.attendance_record import AttendanceRecord
 from app.models.device import Device
 from app.services.object_detection_service import object_detection_service
+from app.core.timezone import utc_now
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -475,7 +476,7 @@ class CameraMonitoringService:
             "severity": severity,
             "confidence": round(confidence, 2),
             "description": description,
-            "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": utc_now().strftime("%Y-%m-%d %H:%M:%S"),
             "session_id": self.monitoring_session_id,
             "source": "object_detection_yolo",
         }
@@ -533,7 +534,7 @@ class CameraMonitoringService:
             self.latest_occupancy_count = occupancy_count
 
             if occupancy_count > 0:
-                self.last_occupancy_seen_at = datetime.utcnow()
+                self.last_occupancy_seen_at = utc_now()
                 self.iot_auto_control_status = "Active"
                 self.iot_auto_off_remaining_seconds = None
                 self._set_simulated_relay_status(db, "on")
@@ -543,7 +544,7 @@ class CameraMonitoringService:
                     self.iot_auto_off_remaining_seconds = None
                     self._set_simulated_relay_status(db, "off")
                 else:
-                    empty_for = (datetime.utcnow() - self.last_occupancy_seen_at).total_seconds()
+                    empty_for = (utc_now() - self.last_occupancy_seen_at).total_seconds()
                     remaining = max(0, int(IOT_EMPTY_AUTO_OFF_SECONDS - empty_for))
                     self.iot_auto_off_remaining_seconds = remaining
                     if remaining <= 0:
@@ -568,7 +569,7 @@ class CameraMonitoringService:
         for device in devices:
             if device.status != status:
                 device.status = status
-                device.last_seen = datetime.utcnow()
+                device.last_seen = utc_now()
                 changed = True
         if changed:
             db.commit()
@@ -597,7 +598,7 @@ class CameraMonitoringService:
                 "marked": marked,
                 "student_id": student_id,
                 "session_id": self.monitoring_session_id,
-                "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                "created_at": utc_now().strftime("%Y-%m-%d %H:%M:%S"),
             },
         )
         self.face_attendance_events_memory = self.face_attendance_events_memory[:20]
@@ -700,13 +701,14 @@ class CameraMonitoringService:
                 )
                 return f"{stu_id} - {name} | multi-face blocked {confidence:.2f}", (0, 140, 255)
 
-            attendance_text = "FACE ready"
             session_key = f"{self.monitoring_session_id}:{student.id if student else stu_id}"
 
             if self.auto_face_attendance_enabled and student and self.monitoring_session_id:
-                if session_key in self.face_attendance_marked_keys and session_key in self.face_attendance_duplicate_logged_keys:
-                    attendance_text = "already marked"
-                else:
+                already_logged = (
+                    session_key in self.face_attendance_marked_keys
+                    and session_key in self.face_attendance_duplicate_logged_keys
+                )
+                if not already_logged:
                     result = simulate_face_attendance(
                         db=db,
                         student_id=student.id,
@@ -719,7 +721,6 @@ class CameraMonitoringService:
                             else FACE_RECOGNITION_CONFIDENCE_THRESHOLD
                         ),
                     )
-                    attendance_text = result["result"]
                     if result.get("ok"):
                         self.face_attendance_marked_keys.add(session_key)
                     if result.get("result") == "duplicate":
@@ -739,10 +740,6 @@ class CameraMonitoringService:
                         marked=bool(result.get("ok")),
                         student_id=student.id,
                     )
-            elif not self.auto_face_attendance_enabled:
-                attendance_text = "auto attendance off"
-            elif not self.monitoring_session_id:
-                attendance_text = "no session"
 
             if has_stable_demo_confidence:
                 return f"Stable {stu_id} - {name} {confidence:.2f}", (0, 180, 0)
@@ -865,7 +862,7 @@ class CameraMonitoringService:
             "severity": severity,
             "confidence": round(confidence, 2),
             "description": description,
-            "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": utc_now().strftime("%Y-%m-%d %H:%M:%S"),
             "session_id": self.monitoring_session_id,
         }
 
@@ -935,7 +932,7 @@ class CameraMonitoringService:
 
         self.recording = True
         self.recording_path = path
-        self.recording_started_at = datetime.utcnow()
+        self.recording_started_at = utc_now()
         self._sync_live_state()
 
         return {
@@ -952,7 +949,7 @@ class CameraMonitoringService:
             if not self.recording and self.video_writer is None:
                 return None
 
-            stopped_at = datetime.utcnow()
+            stopped_at = utc_now()
             started_at = self.recording_started_at
             path = self.recording_path
             filename = path.name if path else None
@@ -1047,7 +1044,7 @@ class CameraMonitoringService:
             "session_id": self.monitoring_session_id,
             "recent_auto_behavior_events": self.auto_behavior_events_memory,
             "recent_face_attendance_events": self.face_attendance_events_memory,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": utc_now().isoformat(),
             }
 
     def get_jpeg_bytes(self):

@@ -16,6 +16,7 @@ from app.schemas.edge_schema import EdgeInferenceEventRequest
 from app.services.ai_monitoring_service import create_ai_monitoring_event
 from app.services.attendance_service import is_student_enrolled
 from app.services.face_service import record_face_attendance
+from app.core.timezone import utc_now
 
 
 MIN_STABLE_FACE_FRAMES = 6
@@ -205,7 +206,7 @@ def process_edge_inference_event(
         record.attendance_record_id = attendance_record_id
         record.attendance_event_id = attendance_event_id
         record.response_json = json.dumps(response, separators=(",", ":"))
-        record.processed_at = datetime.utcnow()
+        record.processed_at = utc_now()
         record.error_message = None
         db.commit()
         return response
@@ -216,6 +217,6 @@ def process_edge_inference_event(
         if failed is not None:
             failed.processing_status = "failed"
             failed.error_message = str(exc)[:2000]
-            failed.processed_at = datetime.utcnow()
+            failed.processed_at = utc_now()
             db.commit()
         raise

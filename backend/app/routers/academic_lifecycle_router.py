@@ -1,16 +1,15 @@
-from app.models.academic import ClassGroup, StudentEnrollment
-from app.models.student import Student
-from fastapi import Form, Depends
 from urllib.parse import quote_plus
-from app.services.academic_rules import validate_weekly_schedule_rule
 
 from fastapi import APIRouter, Depends, Form
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.crud.student_crud import generate_next_student_code
 from app.database.database import get_db
 from app.models.academic import ClassGroup, Course, StudentEnrollment, WeeklySchedule
 from app.models.class_session import ClassSession
+from app.models.student import Student
+from app.services.academic_rules import validate_weekly_schedule_rule
 
 
 router = APIRouter(tags=["Academic Lifecycle"])
@@ -246,7 +245,7 @@ def archive_session(session_id: int, db: Session = Depends(get_db)):
 
 
 
-# Phase 16.2.4 schedule manager helpers
+# Schedule manager helpers
 def redirect_class_setup_v2(message: str = "", selected_group_id: int | None = None):
     url = "/dashboard/class-setup"
 
@@ -363,7 +362,7 @@ def safe_delete_weekly_schedule(schedule_id: int, db: Session = Depends(get_db))
 
 
 
-# Phase 16.2.5 Student Enrollment Manager
+# Student enrollment manager
 def redirect_class_setup_student(message: str = "", selected_group_id: int | None = None):
     url = "/dashboard/class-setup"
     params = []
@@ -387,18 +386,6 @@ def get_student_code_value(student) -> str:
             if value:
                 return str(value)
     return f"ID-{getattr(student, 'id', '')}"
-
-
-def generate_next_student_code(db: Session) -> str:
-    max_number = 0
-
-    for student in db.query(Student).all():
-        code = get_student_code_value(student).upper()
-        match = re.match(r"^S(\d+)$", code)
-        if match:
-            max_number = max(max_number, int(match.group(1)))
-
-    return f"S{max_number + 1:03d}"
 
 
 def student_code_exists(db: Session, code: str) -> bool:

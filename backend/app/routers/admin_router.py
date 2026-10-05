@@ -1,4 +1,3 @@
-from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
@@ -6,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.core.timezone import format_cambodia_datetime
+from app.core.timezone import format_cambodia_datetime, utc_now
 from app.database.database import get_db
 from app.models.camera_recording import CameraRecording
 
@@ -124,7 +123,7 @@ def admin_fix_stuck_recordings(db: Session = Depends(get_db)):
 
         if file_path.exists() and file_path.stat().st_size > 100000:
             recording.status = "saved"
-            recording.stopped_at = datetime.utcnow()
+            recording.stopped_at = utc_now()
 
             if recording.started_at:
                 recording.duration_seconds = (recording.stopped_at - recording.started_at).total_seconds()

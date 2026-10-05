@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+from app.core.timezone import utc_now
 
 
 class CameraRecording(Base):
@@ -16,7 +17,7 @@ class CameraRecording(Base):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="recording", nullable=False)
 
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     stopped_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
 

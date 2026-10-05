@@ -1,4 +1,3 @@
-from datetime import datetime
 
 from sqlalchemy.orm import Session
 
@@ -6,6 +5,7 @@ from app.models.attendance_record import AttendanceRecord
 from app.models.class_session import ClassSession
 from app.models.device import Device
 from app.models.iot_automation_event import IoTAutomationEvent
+from app.core.timezone import utc_now
 
 
 OCCUPIED_STATUSES = ["P", "L", "Pm"]
@@ -58,7 +58,7 @@ def create_automation_event(
         status=status,
         occupancy_count=occupancy_count,
         reason=reason,
-        created_at=datetime.utcnow(),
+        created_at=utc_now(),
     )
     db.add(event)
     db.commit()
@@ -77,7 +77,7 @@ def turn_off_light_and_fan(db: Session):
     for device in devices:
         if device.status != "off":
             device.status = "off"
-            device.last_seen = datetime.utcnow()
+            device.last_seen = utc_now()
             affected.append(device.name)
 
     db.commit()

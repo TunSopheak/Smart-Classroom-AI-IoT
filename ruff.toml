@@ -1,0 +1,6 @@
+# Lint for real bugs only: undefined names, unused imports/variables,
+# syntax errors. Run: backend\.venv\Scripts\python.exe -m ruff check backend tests
+extend-exclude = ["backend/.venv"]
+
+[lint]
+select = ["F", "E9"]

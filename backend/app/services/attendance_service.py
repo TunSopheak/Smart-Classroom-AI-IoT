@@ -11,6 +11,7 @@ from app.models.class_session import ClassSession
 from app.models.enrollment import Enrollment
 from app.models.student import Student
 from app.services.qr_service import parse_signed_student_qr
+from app.core.timezone import utc_now
 
 
 def calculate_attendance_status(event_time: datetime, session: ClassSession) -> AttendanceStatus:
@@ -200,7 +201,7 @@ def mark_attendance_record(
     record.confidence = confidence
     record.override_reason = None
     record.overridden_by = None
-    record.updated_at = datetime.utcnow()
+    record.updated_at = utc_now()
 
 
 def log_attendance_event(

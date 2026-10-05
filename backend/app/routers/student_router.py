@@ -1,5 +1,4 @@
 import csv
-import re
 from io import StringIO
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -12,6 +11,7 @@ from app.crud.student_crud import (
     activate_student,
     create_student,
     deactivate_student,
+    generate_next_student_code,
     get_student,
     get_students,
     update_student,
@@ -19,32 +19,11 @@ from app.crud.student_crud import (
 from app.database.database import get_db
 from app.models.classroom import Classroom
 from app.models.enrollment import Enrollment
-from app.models.student import Student
 from app.schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
 from app.services.qr_service import build_student_qr_code, generate_student_qr_image, parse_signed_student_qr
 
 router = APIRouter(tags=["Students"])
 templates = Jinja2Templates(directory="app/templates")
-STUDENT_CODE_PATTERN = re.compile(r"^S(\d+)$", re.IGNORECASE)
-
-
-def generate_next_student_code(db: Session) -> str:
-    """Generate the next S001-style code while preserving existing manual IDs."""
-    max_number = 0
-    for (stu_id,) in db.query(Student.stu_id).all():
-        match = STUDENT_CODE_PATTERN.match(stu_id or "")
-        if match:
-            max_number = max(max_number, int(match.group(1)))
-
-    next_number = max_number + 1
-    while True:
-        candidate = f"S{next_number:03d}"
-        existing = db.query(Student).filter(Student.stu_id == candidate).first()
-        if not existing:
-            return candidate
-        next_number += 1
-
-
 def normalize_or_generate_student_code(db: Session, stu_id: str | None) -> str:
     clean_stu_id = (stu_id or "").strip().upper()
     if clean_stu_id:
@@ -394,7 +373,7 @@ def dashboard_print_student_qr(student_id: int, request: Request, db: Session = 
 
 
 
-# Phase 4 face profile routes
+# Face profile routes
 @router.get("/dashboard/students/{student_id}/face-profile", response_class=HTMLResponse)
 def dashboard_student_face_profile(student_id: int, request: Request, db: Session = Depends(get_db)):
     student = get_student(db, student_id)
