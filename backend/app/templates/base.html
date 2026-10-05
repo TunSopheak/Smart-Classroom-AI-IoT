@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/styles.css?v=phase23-remove-desktop-drawer-close">
+    <link rel="stylesheet" href="/static/css/styles.css?v=1.1.0">
 </head>
 <body class="{% if request.url.path.startswith('/dashboard/monitoring-workspace') %}page-monitoring-workspace{% elif request.url.path.startswith('/dashboard/camera-monitoring') %}page-camera-monitoring{% elif request.url.path.startswith('/dashboard/object-detection') %}page-object-detection{% endif %}">
     {% set current_user = request.state.current_user if request.state.current_user else None %}
@@ -145,7 +145,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <script src="/static/js/app.js?v=phase23-mobile-nav-fix"></script>
-    <script src="/static/js/product_workflow_polish.js"></script>
+    <script src="/static/js/app.js?v=1.1.0"></script>
+    <script src="/static/js/product_workflow_polish.js?v=1.1.0"></script>
 </body>
 </html>
