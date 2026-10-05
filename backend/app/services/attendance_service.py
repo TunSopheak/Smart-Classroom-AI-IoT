@@ -107,20 +107,18 @@ def get_active_session(db: Session) -> ClassSession | None:
 
 
 def get_student_by_qr_code(db: Session, qr_code: str) -> Student | None:
-    """Find active student by signed QR value, with legacy QR fallback."""
-    clean_qr = qr_code.strip()
-    signed_stu_id = parse_signed_student_qr(clean_qr)
+    """Find the active student for a signed QR value.
 
-    if signed_stu_id:
-        return (
-            db.query(Student)
-            .filter(Student.stu_id == signed_stu_id, Student.active.is_(True))
-            .first()
-        )
+    Unsigned legacy values such as SC-STUDENT-S001 are guessable, so they are
+    rejected and logged as unknown.
+    """
+    stu_id = parse_signed_student_qr(qr_code.strip())
+    if not stu_id:
+        return None
 
     return (
         db.query(Student)
-        .filter(Student.qr_code == clean_qr, Student.active.is_(True))
+        .filter(Student.stu_id == stu_id, Student.active.is_(True))
         .first()
     )
 

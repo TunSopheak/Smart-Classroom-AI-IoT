@@ -14,6 +14,7 @@ from app.models.teacher import Teacher
 from app.models.user import User
 from app.services.academic_service import seed_academic_demo_data
 from app.core.timezone import classroom_now
+from app.services.qr_service import build_student_qr_code
 
 
 def seed_demo_data() -> None:
@@ -63,11 +64,11 @@ def seed_demo_data() -> None:
         db.flush()
 
         students = [
-            Student(stu_id="S001", name="Tun Sopheak", gender="M", qr_code="SC-STUDENT-S001", face_dataset_path="ai_module/face_recognition/datasets/S001", active=True),
-            Student(stu_id="S002", name="Thon Serey Rothana", gender="M", qr_code="SC-STUDENT-S002", face_dataset_path="ai_module/face_recognition/datasets/S002", active=True),
-            Student(stu_id="S003", name="Tit Sokhom", gender="M", qr_code="SC-STUDENT-S003", face_dataset_path="ai_module/face_recognition/datasets/S003", active=True),
-            Student(stu_id="S004", name="Tep Makhon", gender="M", qr_code="SC-STUDENT-S004", face_dataset_path="ai_module/face_recognition/datasets/S004", active=True),
-            Student(stu_id="S005", name="Theam VanTim", gender="M", qr_code="SC-STUDENT-S005", face_dataset_path="ai_module/face_recognition/datasets/S005", active=True),
+            Student(stu_id="S001", name="Tun Sopheak", gender="M", qr_code=build_student_qr_code("S001"), face_dataset_path="ai_module/face_recognition/datasets/S001", active=True),
+            Student(stu_id="S002", name="Thon Serey Rothana", gender="M", qr_code=build_student_qr_code("S002"), face_dataset_path="ai_module/face_recognition/datasets/S002", active=True),
+            Student(stu_id="S003", name="Tit Sokhom", gender="M", qr_code=build_student_qr_code("S003"), face_dataset_path="ai_module/face_recognition/datasets/S003", active=True),
+            Student(stu_id="S004", name="Tep Makhon", gender="M", qr_code=build_student_qr_code("S004"), face_dataset_path="ai_module/face_recognition/datasets/S004", active=True),
+            Student(stu_id="S005", name="Theam VanTim", gender="M", qr_code=build_student_qr_code("S005"), face_dataset_path="ai_module/face_recognition/datasets/S005", active=True),
         ]
         db.add_all(students)
         db.flush()

@@ -9,7 +9,7 @@ import app.models  # noqa: F401  (registers every model with Base.metadata)
 from app.core.auth_middleware import auth_middleware
 from app.core.config import settings
 from app.database.base import Base
-from app.database.database import engine
+from app.database.database import SessionLocal, engine
 from app.database.migrations import apply_schema_migrations
 from app.database.seed import seed_demo_data
 from app.routers import (
@@ -38,6 +38,7 @@ from app.routers import (
     subject_router,
     teacher_router,
 )
+from app.services.student_qr_service import upgrade_unsigned_qr_codes
 
 
 # Registration order matters: when two routers declare the same path,
@@ -81,6 +82,8 @@ async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     apply_schema_migrations()
     seed_demo_data()
+    with SessionLocal() as db:
+        upgrade_unsigned_qr_codes(db)
     yield
 
 
